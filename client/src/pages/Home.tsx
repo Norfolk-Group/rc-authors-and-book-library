@@ -3,6 +3,7 @@
  * Design: Editorial Modernism — sidebar-07 layout + card grid
  * Fonts: Playfair Display (headings) + DM Sans (body)
  * Palette: Warm off-white paper, deep charcoal, 9 category accents
+ * Tabs: Authors | Books | Books Audio
  */
 
 import { useState, useMemo, useCallback } from "react";
@@ -33,6 +34,7 @@ import {
   type Author,
   type Book,
 } from "@/lib/libraryData";
+import { AUDIO_BOOKS, type AudioBook } from "@/lib/audioData";
 import {
   Search,
   BookOpen,
@@ -52,7 +54,9 @@ import {
   ChevronRight,
   Library,
   X,
+  Headphones,
 } from "lucide-react";
+import { FileTypeIcons } from "@/components/FileTypeIcons";
 
 // ── Icon map for categories ──────────────────────────────────
 const ICON_MAP: Record<string, React.ElementType> = {
@@ -68,6 +72,15 @@ const ICON_MAP: Record<string, React.ElementType> = {
   activity: Activity,
 };
 
+// ── Audio format color map ───────────────────────────────────
+const FORMAT_COLORS: Record<string, { bg: string; text: string; label: string }> = {
+  MP3:  { bg: "#fef3c7", text: "#92400e", label: "MP3" },
+  M4B:  { bg: "#dbeafe", text: "#1e40af", label: "M4B" },
+  AAX:  { bg: "#f3e8ff", text: "#6b21a8", label: "AAX" },
+  M4A:  { bg: "#dcfce7", text: "#166534", label: "M4A" },
+  WAV:  { bg: "#fce7f3", text: "#9d174d", label: "WAV" },
+};
+
 // ── Stat Card ────────────────────────────────────────────────
 function StatCard({ label, value, icon: Icon }: { label: string; value: number | string; icon: React.ElementType }) {
   return (
@@ -79,6 +92,18 @@ function StatCard({ label, value, icon: Icon }: { label: string; value: number |
       <span className="text-2xl font-bold" style={{ fontFamily: "'Playfair Display', serif" }}>
         {value}
       </span>
+    </div>
+  );
+}
+
+// ── Empty State ──────────────────────────────────────────────
+function EmptyState({ query }: { query: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-20 text-center">
+      <BookMarked className="w-10 h-10 text-muted-foreground/30 mb-3" />
+      <p className="text-sm text-muted-foreground">
+        {query ? `No results for "${query}"` : "Nothing here yet."}
+      </p>
     </div>
   );
 }
@@ -143,6 +168,9 @@ function AuthorCard({ author, query }: { author: Author; query: string }) {
           <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
             {highlight(author.specialty)}
           </p>
+        )}
+        {author.fileTypes && author.fileTypes.length > 0 && (
+          <FileTypeIcons fileTypes={author.fileTypes} size={20} />
         )}
       </div>
     </div>
@@ -210,13 +238,101 @@ function BookCard({ book, query }: { book: Book; query: string }) {
             <span className="font-medium">by</span> {highlight(book.authors)}
           </p>
         )}
+        {book.fileTypes && book.fileTypes.length > 0 && (
+          <FileTypeIcons fileTypes={book.fileTypes} size={20} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Audio Book Card ──────────────────────────────────────────
+function AudioCard({ audio, query }: { audio: AudioBook; query: string }) {
+  const driveUrl = `https://drive.google.com/drive/folders/${audio.id}`;
+
+  const highlight = (text: string) => {
+    if (!query) return text;
+    const idx = text.toLowerCase().indexOf(query.toLowerCase());
+    if (idx === -1) return text;
+    return (
+      <>
+        {text.slice(0, idx)}
+        <mark className="search-highlight">{text.slice(idx, idx + query.length)}</mark>
+        {text.slice(idx + query.length)}
+      </>
+    );
+  };
+
+  const totalFiles = Object.values(audio.formats).reduce((sum, f) => sum + f.fileCount, 0);
+
+  return (
+    <div
+      className="card-animate group bg-white rounded-lg border border-border shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden"
+      style={{ borderLeftWidth: 3, borderLeftColor: "#7c3aed" }}
+    >
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "#7c3aed18" }}>
+              <Headphones className="w-3.5 h-3.5" style={{ color: "#7c3aed" }} />
+            </div>
+            <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "#7c3aed" }}>
+              Audiobook
+            </span>
+          </div>
+          <a
+            href={driveUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+            title="Open in Google Drive"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+          </a>
+        </div>
+
+        <h3
+          className="text-sm font-semibold leading-snug mb-1"
+          style={{ fontFamily: "'Playfair Display', serif" }}
+        >
+          {highlight(audio.title)}
+        </h3>
+        {audio.bookAuthors && (
+          <p className="text-xs text-muted-foreground leading-relaxed mb-2">
+            <span className="font-medium">by</span> {highlight(audio.bookAuthors)}
+          </p>
+        )}
+
+        {/* Format badges with file counts */}
+        <div className="flex flex-wrap gap-1.5 mt-2 pt-2 border-t border-border/50">
+          {Object.entries(audio.formats).map(([fmt, info]) => {
+            const colors = FORMAT_COLORS[fmt] ?? { bg: "#f3f4f6", text: "#374151", label: fmt };
+            return (
+              <a
+                key={fmt}
+                href={`https://drive.google.com/drive/folders/${info.folderId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold hover:opacity-80 transition-opacity"
+                style={{ backgroundColor: colors.bg, color: colors.text }}
+                title={`Open ${fmt} folder in Drive`}
+              >
+                {colors.label}
+                <span className="opacity-70">·{info.fileCount}</span>
+              </a>
+            );
+          })}
+          <span className="text-[10px] text-muted-foreground ml-auto self-center">
+            {totalFiles} file{totalFiles !== 1 ? "s" : ""}
+          </span>
+        </div>
       </div>
     </div>
   );
 }
 
 // ── Main Page ────────────────────────────────────────────────
-type TabType = "authors" | "books";
+type TabType = "authors" | "books" | "audio";
 
 export default function Home() {
   const [query, setQuery] = useState("");
@@ -263,6 +379,18 @@ export default function Home() {
     }).sort((a, b) => a.displayTitle.localeCompare(b.displayTitle));
   }, [query, selectedCategories]);
 
+  const filteredAudio = useMemo(() => {
+    const q = query.toLowerCase();
+    return AUDIO_BOOKS.filter((a) => {
+      const matchesQ =
+        !q ||
+        a.title.toLowerCase().includes(q) ||
+        a.bookAuthors.toLowerCase().includes(q) ||
+        Object.keys(a.formats).some((f) => f.toLowerCase().includes(q));
+      return matchesQ;
+    }).sort((a, b) => a.title.localeCompare(b.title));
+  }, [query]);
+
   // Per-category counts for sidebar badges
   const authorCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -277,6 +405,7 @@ export default function Home() {
   }, []);
 
   const hasFilters = selectedCategories.size > 0 || query.length > 0;
+  const showCategoryFilter = activeTab !== "audio";
 
   return (
     <SidebarProvider defaultOpen={true}>
@@ -305,7 +434,7 @@ export default function Home() {
                   <SidebarMenuItem>
                     <SidebarMenuButton
                       isActive={activeTab === "authors"}
-                      onClick={() => setActiveTab("authors")}
+                      onClick={() => { setActiveTab("authors"); setSelectedCategories(new Set()); }}
                       tooltip="Authors"
                     >
                       <Users className="w-4 h-4" />
@@ -318,7 +447,7 @@ export default function Home() {
                   <SidebarMenuItem>
                     <SidebarMenuButton
                       isActive={activeTab === "books"}
-                      onClick={() => setActiveTab("books")}
+                      onClick={() => { setActiveTab("books"); setSelectedCategories(new Set()); }}
                       tooltip="Books"
                     >
                       <BookOpen className="w-4 h-4" />
@@ -328,51 +457,90 @@ export default function Home() {
                       </span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      isActive={activeTab === "audio"}
+                      onClick={() => { setActiveTab("audio"); setSelectedCategories(new Set()); }}
+                      tooltip="Books Audio"
+                    >
+                      <Headphones className="w-4 h-4" />
+                      <span>Books Audio</span>
+                      <span className="ml-auto text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
+                        {filteredAudio.length}
+                      </span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
 
             <Separator className="my-2 group-data-[collapsible=icon]:hidden" />
 
-            {/* Category filters */}
-            <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-              <SidebarGroupLabel className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground px-2 mb-1">
-                Filter by Category
-              </SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {CATEGORIES.map((cat) => {
-                    const Icon = ICON_MAP[cat.icon] ?? Briefcase;
-                    const count = activeTab === "authors"
-                      ? (authorCounts[cat.name] ?? 0)
-                      : (bookCounts[cat.name] ?? 0);
-                    if (count === 0) return null;
-                    const isActive = selectedCategories.has(cat.name);
-                    return (
-                      <SidebarMenuItem key={cat.name}>
-                        <SidebarMenuButton
-                          isActive={isActive}
-                          onClick={() => toggleCategory(cat.name)}
-                          className="h-auto py-1.5"
-                        >
-                          <Icon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: isActive ? cat.color : undefined }} />
-                          <span className="text-xs leading-tight flex-1 truncate">{cat.name}</span>
-                          <span
-                            className="text-[10px] font-mono px-1.5 py-0.5 rounded-full flex-shrink-0"
-                            style={{
-                              backgroundColor: isActive ? cat.color + "20" : undefined,
-                              color: isActive ? cat.color : undefined,
-                            }}
+            {/* Category filters (Authors & Books only) */}
+            {showCategoryFilter && (
+              <SidebarGroup className="group-data-[collapsible=icon]:hidden">
+                <SidebarGroupLabel className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground px-2 mb-1">
+                  Filter by Category
+                </SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {CATEGORIES.map((cat) => {
+                      const Icon = ICON_MAP[cat.icon] ?? Briefcase;
+                      const count = activeTab === "authors"
+                        ? (authorCounts[cat.name] ?? 0)
+                        : (bookCounts[cat.name] ?? 0);
+                      if (count === 0) return null;
+                      const isActive = selectedCategories.has(cat.name);
+                      return (
+                        <SidebarMenuItem key={cat.name}>
+                          <SidebarMenuButton
+                            isActive={isActive}
+                            onClick={() => toggleCategory(cat.name)}
+                            className="h-auto py-1.5"
                           >
-                            {count}
-                          </span>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    );
-                  })}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
+                            <Icon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: isActive ? cat.color : undefined }} />
+                            <span className="text-xs leading-tight flex-1 truncate">{cat.name}</span>
+                            <span
+                              className="text-[10px] font-mono px-1.5 py-0.5 rounded-full flex-shrink-0"
+                              style={{
+                                backgroundColor: isActive ? cat.color + "20" : undefined,
+                                color: isActive ? cat.color : undefined,
+                              }}
+                            >
+                              {count}
+                            </span>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      );
+                    })}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            )}
+
+            {/* Audio format legend */}
+            {activeTab === "audio" && (
+              <SidebarGroup className="group-data-[collapsible=icon]:hidden">
+                <SidebarGroupLabel className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground px-2 mb-1">
+                  Audio Formats
+                </SidebarGroupLabel>
+                <SidebarGroupContent className="px-2">
+                  {Object.entries(FORMAT_COLORS).map(([fmt, colors]) => (
+                    <div key={fmt} className="flex items-center gap-2 py-1">
+                      <span
+                        className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold"
+                        style={{ backgroundColor: colors.bg, color: colors.text }}
+                      >
+                        {colors.label}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {fmt === "MP3" ? "Standard audio" : fmt === "M4B" ? "Chapters + bookmarks" : fmt === "AAX" ? "Audible DRM" : fmt === "M4A" ? "Apple audio" : "Lossless audio"}
+                      </span>
+                    </div>
+                  ))}
+                </SidebarGroupContent>
+              </SidebarGroup>
+            )}
           </SidebarContent>
 
           <SidebarFooter className="px-4 py-3 border-t border-sidebar-border group-data-[collapsible=icon]:hidden">
@@ -395,7 +563,7 @@ export default function Home() {
                 NCG Library
               </span>
               <ChevronRight className="w-3.5 h-3.5" />
-              <span className="capitalize">{activeTab}</span>
+              <span className="capitalize">{activeTab === "audio" ? "Books Audio" : activeTab}</span>
               {selectedCategories.size > 0 && (
                 <>
                   <ChevronRight className="w-3.5 h-3.5" />
@@ -408,7 +576,7 @@ export default function Home() {
             <div className="ml-auto relative w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
               <Input
-                placeholder="Search authors, books, topics…"
+                placeholder={activeTab === "audio" ? "Search audiobooks, authors…" : "Search authors, books, topics…"}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 className="pl-9 pr-8 h-8 text-sm bg-white"
@@ -427,9 +595,10 @@ export default function Home() {
           {/* Body */}
           <main className="flex-1 px-6 py-6 overflow-auto">
             {/* Stats strip */}
-            <div className="grid grid-cols-3 gap-3 mb-6">
+            <div className="grid grid-cols-4 gap-3 mb-6">
               <StatCard label="Authors" value={STATS.totalAuthors} icon={Users} />
               <StatCard label="Books" value={STATS.totalBooks} icon={BookOpen} />
+              <StatCard label="Audiobooks" value={AUDIO_BOOKS.length} icon={Headphones} />
               <StatCard label="Categories" value={STATS.totalCategories} icon={LayoutGrid} />
             </div>
 
@@ -472,12 +641,14 @@ export default function Home() {
                 className="text-xl font-bold"
                 style={{ fontFamily: "'Playfair Display', serif" }}
               >
-                {activeTab === "authors" ? "Authors" : "Books"}
+                {activeTab === "authors" ? "Authors" : activeTab === "books" ? "Books" : "Books Audio"}
               </h1>
               <span className="text-sm text-muted-foreground">
                 {activeTab === "authors"
                   ? `${filteredAuthors.length} of ${STATS.totalAuthors}`
-                  : `${filteredBooks.length} of ${STATS.totalBooks}`}
+                  : activeTab === "books"
+                  ? `${filteredBooks.length} of ${STATS.totalBooks}`
+                  : `${filteredAudio.length} of ${AUDIO_BOOKS.length}`}
               </span>
             </div>
 
@@ -494,13 +665,25 @@ export default function Home() {
                   ))}
                 </div>
               )
-            ) : filteredBooks.length === 0 ? (
+            ) : activeTab === "books" ? (
+              filteredBooks.length === 0 ? (
+                <EmptyState query={query} />
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                  {filteredBooks.map((b, i) => (
+                    <div key={b.driveId + i} style={{ animationDelay: `${Math.min(i * 30, 400)}ms` }}>
+                      <BookCard book={b} query={query} />
+                    </div>
+                  ))}
+                </div>
+              )
+            ) : filteredAudio.length === 0 ? (
               <EmptyState query={query} />
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                {filteredBooks.map((b, i) => (
-                  <div key={b.driveId + i} style={{ animationDelay: `${Math.min(i * 30, 400)}ms` }}>
-                    <BookCard book={b} query={query} />
+                {filteredAudio.map((a, i) => (
+                  <div key={a.id + i} style={{ animationDelay: `${Math.min(i * 30, 400)}ms` }}>
+                    <AudioCard audio={a} query={query} />
                   </div>
                 ))}
               </div>
@@ -509,26 +692,5 @@ export default function Home() {
         </SidebarInset>
       </div>
     </SidebarProvider>
-  );
-}
-
-function EmptyState({ query }: { query: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
-      <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mb-4">
-        <Search className="w-6 h-6 text-muted-foreground" />
-      </div>
-      <h3
-        className="text-base font-semibold mb-1"
-        style={{ fontFamily: "'Playfair Display', serif" }}
-      >
-        No results found
-      </h3>
-      <p className="text-sm text-muted-foreground max-w-xs">
-        {query
-          ? `No matches for "${query}". Try a different search term or clear the filters.`
-          : "No items match the selected categories."}
-      </p>
-    </div>
   );
 }
