@@ -128,8 +128,11 @@ function AuthorCard({ author, query }: { author: Author; query: string }) {
   };
 
   return (
-    <div
-      className="card-animate group bg-white rounded-lg border border-border shadow-sm hover:shadow-md transition-all duration-200 card-category-border overflow-hidden"
+    <a
+      href={driveUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="card-animate group bg-white rounded-lg border border-border shadow-sm hover:shadow-md transition-all duration-200 card-category-border overflow-hidden block cursor-pointer"
       style={{ borderLeftColor: cat.color }}
     >
       <div className="p-4">
@@ -148,15 +151,7 @@ function AuthorCard({ author, query }: { author: Author; query: string }) {
               {author.category}
             </span>
           </div>
-          <a
-            href={driveUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
-            title="Open in Google Drive"
-          >
-            <ExternalLink className="w-3.5 h-3.5" />
-          </a>
+          <ExternalLink className="w-3.5 h-3.5 opacity-0 group-hover:opacity-60 transition-opacity text-muted-foreground" />
         </div>
         <h3
           className="text-sm font-semibold leading-snug mb-1"
@@ -173,7 +168,7 @@ function AuthorCard({ author, query }: { author: Author; query: string }) {
           <FileTypeIcons fileTypes={author.fileTypes} size={20} />
         )}
       </div>
-    </div>
+    </a>
   );
 }
 
@@ -197,8 +192,11 @@ function BookCard({ book, query }: { book: Book; query: string }) {
   };
 
   return (
-    <div
-      className="card-animate group bg-white rounded-lg border border-border shadow-sm hover:shadow-md transition-all duration-200 card-category-border overflow-hidden"
+    <a
+      href={driveUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="card-animate group bg-white rounded-lg border border-border shadow-sm hover:shadow-md transition-all duration-200 card-category-border overflow-hidden block cursor-pointer"
       style={{ borderLeftColor: cat.color }}
     >
       <div className="p-4">
@@ -217,15 +215,7 @@ function BookCard({ book, query }: { book: Book; query: string }) {
               {book.category}
             </span>
           </div>
-          <a
-            href={driveUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
-            title="Open in Google Drive"
-          >
-            <ExternalLink className="w-3.5 h-3.5" />
-          </a>
+          <ExternalLink className="w-3.5 h-3.5 opacity-0 group-hover:opacity-60 transition-opacity text-muted-foreground" />
         </div>
         <h3
           className="text-sm font-semibold leading-snug mb-1"
@@ -242,7 +232,7 @@ function BookCard({ book, query }: { book: Book; query: string }) {
           <FileTypeIcons fileTypes={book.fileTypes} size={20} />
         )}
       </div>
-    </div>
+    </a>
   );
 }
 
@@ -266,8 +256,11 @@ function AudioCard({ audio, query }: { audio: AudioBook; query: string }) {
   const totalFiles = Object.values(audio.formats).reduce((sum, f) => sum + f.fileCount, 0);
 
   return (
-    <div
-      className="card-animate group bg-white rounded-lg border border-border shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden"
+    <a
+      href={driveUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="card-animate group bg-white rounded-lg border border-border shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden block cursor-pointer"
       style={{ borderLeftWidth: 3, borderLeftColor: "#7c3aed" }}
     >
       <div className="p-4">
@@ -280,15 +273,7 @@ function AudioCard({ audio, query }: { audio: AudioBook; query: string }) {
               Audiobook
             </span>
           </div>
-          <a
-            href={driveUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
-            title="Open in Google Drive"
-          >
-            <ExternalLink className="w-3.5 h-3.5" />
-          </a>
+          <ExternalLink className="w-3.5 h-3.5 opacity-0 group-hover:opacity-60 transition-opacity text-muted-foreground" />
         </div>
 
         <h3
@@ -327,7 +312,7 @@ function AudioCard({ audio, query }: { audio: AudioBook; query: string }) {
           </span>
         </div>
       </div>
-    </div>
+    </a>
   );
 }
 
