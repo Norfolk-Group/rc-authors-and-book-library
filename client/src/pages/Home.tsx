@@ -1,9 +1,10 @@
 /**
  * NCG Library — Home Page
- * Design: Editorial Modernism — sidebar-07 layout + card grid
+ * Design: Editorial Intelligence — sidebar-07 layout + card grid
  * Fonts: Playfair Display (headings) + DM Sans (body)
  * Palette: Warm off-white paper, deep charcoal, 9 category accents
  * Tabs: Authors | Books | Books Audio
+ * Cards: Show book subfolders with content-type icons
  */
 
 import { useState, useMemo, useCallback } from "react";
@@ -29,10 +30,12 @@ import {
   AUTHORS,
   BOOKS,
   CATEGORIES,
-  STATS,
-  getCategoryMeta,
-  type Author,
-  type Book,
+  CATEGORY_COLORS,
+  CATEGORY_ICONS,
+  CONTENT_TYPE_ICONS,
+  CONTENT_TYPE_COLORS,
+  type AuthorEntry,
+  type BookRecord,
 } from "@/lib/libraryData";
 import { AUDIO_BOOKS, type AudioBook } from "@/lib/audioData";
 import {
@@ -49,14 +52,20 @@ import {
   Cpu,
   TrendingUp,
   BookMarked,
-  Activity,
   ExternalLink,
   ChevronRight,
   Library,
   X,
   Headphones,
+  FileText,
+  File,
+  AlignLeft,
+  Video,
+  Image,
+  Package,
+  Folder,
+  Book,
 } from "lucide-react";
-import { FileTypeIcons } from "@/components/FileTypeIcons";
 
 // ── Icon map for categories ──────────────────────────────────
 const ICON_MAP: Record<string, React.ElementType> = {
@@ -69,7 +78,19 @@ const ICON_MAP: Record<string, React.ElementType> = {
   cpu: Cpu,
   "trending-up": TrendingUp,
   "book-open": BookMarked,
-  activity: Activity,
+};
+
+// ── Icon map for content types ───────────────────────────────
+const CT_ICON_MAP: Record<string, React.ElementType> = {
+  "file-text": FileText,
+  "book": Book,
+  "file": File,
+  "align-left": AlignLeft,
+  "headphones": Headphones,
+  "video": Video,
+  "image": Image,
+  "package": Package,
+  "folder": Folder,
 };
 
 // ── Audio format color map ───────────────────────────────────
@@ -78,8 +99,62 @@ const FORMAT_COLORS: Record<string, { bg: string; text: string; label: string }>
   M4B:  { bg: "#dbeafe", text: "#1e40af", label: "M4B" },
   AAX:  { bg: "#f3e8ff", text: "#6b21a8", label: "AAX" },
   M4A:  { bg: "#dcfce7", text: "#166534", label: "M4A" },
-  WAV:  { bg: "#fce7f3", text: "#9d174d", label: "WAV" },
 };
+
+const STATS = {
+  totalAuthors: AUTHORS.length,
+  totalBooks: BOOKS.length,
+  totalCategories: 9,
+  lastUpdated: "March 2026",
+};
+
+// ── Content Type Badge ───────────────────────────────────────
+function ContentTypeBadge({ type, count }: { type: string; count: number }) {
+  const iconName = CONTENT_TYPE_ICONS[type] ?? "folder";
+  const color = CONTENT_TYPE_COLORS[type] ?? "#9ca3af";
+  const Icon = CT_ICON_MAP[iconName] ?? Folder;
+
+  return (
+    <span
+      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium"
+      style={{ backgroundColor: color + "18", color }}
+      title={`${type}: ${count} file${count !== 1 ? "s" : ""}`}
+    >
+      <Icon className="w-2.5 h-2.5" />
+      {type}
+      {count > 1 && <span className="opacity-60">·{count}</span>}
+    </span>
+  );
+}
+
+// ── Book Subfolder Row ───────────────────────────────────────
+function BookSubfolderRow({ book }: { book: { name: string; id: string; contentTypes: Record<string, number> } }) {
+  const hasContent = Object.keys(book.contentTypes).length > 0;
+  return (
+    <a
+      href={`https://drive.google.com/drive/folders/${book.id}?view=grid`}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={(e) => e.stopPropagation()}
+      className="flex flex-col gap-1 px-2 py-1.5 rounded-md hover:bg-muted/60 transition-colors group/book"
+    >
+      <div className="flex items-center gap-1.5">
+        <BookOpen className="w-3 h-3 text-muted-foreground flex-shrink-0 group-hover/book:text-foreground transition-colors" />
+        <span className="text-[11px] font-medium leading-tight text-foreground/80 group-hover/book:text-foreground transition-colors line-clamp-1 flex-1">
+          {book.name}
+        </span>
+        <ExternalLink className="w-2.5 h-2.5 text-muted-foreground opacity-0 group-hover/book:opacity-60 transition-opacity flex-shrink-0" />
+      </div>
+      {hasContent && (
+        <div className="flex flex-wrap gap-1 pl-4">
+          {Object.entries(book.contentTypes).map(([type, count]) => (
+            <ContentTypeBadge key={type} type={type} count={count} />
+          ))}
+        </div>
+      )}
+    </a>
+  );
+}
 
 // ── Stat Card ────────────────────────────────────────────────
 function StatCard({ label, value, icon: Icon }: { label: string; value: number | string; icon: React.ElementType }) {
@@ -109,15 +184,21 @@ function EmptyState({ query }: { query: string }) {
 }
 
 // ── Author Card ──────────────────────────────────────────────
-function AuthorCard({ author, query }: { author: Author; query: string }) {
-  const cat = getCategoryMeta(author.category);
-  const Icon = ICON_MAP[cat.icon] ?? Briefcase;
-  const driveUrl = `https://drive.google.com/drive/folders/${author.driveId}?view=grid`;
+function AuthorCard({ author, query }: { author: AuthorEntry; query: string }) {
+  const color = CATEGORY_COLORS[author.category] ?? "#374151";
+  const iconName = CATEGORY_ICONS[author.category] ?? "briefcase";
+  const Icon = ICON_MAP[iconName] ?? Briefcase;
+  const driveUrl = `https://drive.google.com/drive/folders/${author.id}?view=grid`;
+
+  // Extract display name (before the dash) and specialty (after the dash)
+  const dashIdx = author.name.indexOf(" - ");
+  const displayName = dashIdx !== -1 ? author.name.slice(0, dashIdx) : author.name;
+  const specialty = dashIdx !== -1 ? author.name.slice(dashIdx + 3) : "";
 
   const highlight = (text: string) => {
-    if (!query) return text;
+    if (!query) return <>{text}</>;
     const idx = text.toLowerCase().indexOf(query.toLowerCase());
-    if (idx === -1) return text;
+    if (idx === -1) return <>{text}</>;
     return (
       <>
         {text.slice(0, idx)}
@@ -127,61 +208,80 @@ function AuthorCard({ author, query }: { author: Author; query: string }) {
     );
   };
 
+  const hasBooks = author.books && author.books.length > 0;
+
   return (
-    <a
-      href={driveUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="card-animate group bg-white rounded-lg border border-border shadow-sm hover:shadow-md transition-all duration-200 card-category-border overflow-hidden block cursor-pointer"
-      style={{ borderLeftColor: cat.color }}
+    <div
+      className="card-animate group bg-white rounded-lg border border-border shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden"
+      style={{ borderLeftWidth: 3, borderLeftColor: color }}
     >
-      <div className="p-4">
+      {/* Card header — clickable to open author Drive folder */}
+      <a
+        href={driveUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block p-4 pb-2 cursor-pointer"
+      >
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex items-center gap-2">
             <div
               className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: cat.color + "18" }}
+              style={{ backgroundColor: color + "18" }}
             >
-              <Icon className="w-3.5 h-3.5" style={{ color: cat.color }} />
+              <Icon className="w-3.5 h-3.5" style={{ color }} />
             </div>
-            <span
-              className="text-[10px] font-semibold uppercase tracking-wider"
-              style={{ color: cat.color }}
-            >
+            <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color }}>
               {author.category}
             </span>
           </div>
           <ExternalLink className="w-3.5 h-3.5 opacity-0 group-hover:opacity-60 transition-opacity text-muted-foreground" />
         </div>
         <h3
-          className="text-sm font-semibold leading-snug mb-1"
+          className="text-sm font-semibold leading-snug mb-0.5"
           style={{ fontFamily: "'Playfair Display', serif" }}
         >
-          {highlight(author.displayName)}
+          {highlight(displayName)}
         </h3>
-        {author.specialty && (
+        {specialty && (
           <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
-            {highlight(author.specialty)}
+            {highlight(specialty)}
           </p>
         )}
-        {author.fileTypes && author.fileTypes.length > 0 && (
-          <FileTypeIcons fileTypes={author.fileTypes} size={20} />
-        )}
-      </div>
-    </a>
+      </a>
+
+      {/* Book subfolders */}
+      {hasBooks && (
+        <div className="px-3 pb-3 pt-1 border-t border-border/40 mt-1">
+          <p className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground mb-1 px-2">
+            Books ({author.books.length})
+          </p>
+          <div className="flex flex-col gap-0.5 max-h-40 overflow-y-auto">
+            {author.books.map((book) => (
+              <BookSubfolderRow key={book.id} book={book} />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
 // ── Book Card ────────────────────────────────────────────────
-function BookCard({ book, query }: { book: Book; query: string }) {
-  const cat = getCategoryMeta(book.category);
-  const Icon = ICON_MAP[cat.icon] ?? BookMarked;
-  const driveUrl = `https://drive.google.com/drive/folders/${book.driveId}?view=grid`;
+function BookCard({ book, query }: { book: BookRecord; query: string }) {
+  const color = CATEGORY_COLORS[book.category] ?? "#374151";
+  const iconName = CATEGORY_ICONS[book.category] ?? "book-open";
+  const Icon = ICON_MAP[iconName] ?? BookMarked;
+  const driveUrl = `https://drive.google.com/drive/folders/${book.id}?view=grid`;
+
+  // Extract title and author from book name (format: "Title - Author Name")
+  const dashIdx = book.name.indexOf(" - ");
+  const displayTitle = dashIdx !== -1 ? book.name.slice(0, dashIdx) : book.name;
+  const bookAuthor = dashIdx !== -1 ? book.name.slice(dashIdx + 3) : "";
 
   const highlight = (text: string) => {
-    if (!query) return text;
+    if (!query) return <>{text}</>;
     const idx = text.toLowerCase().indexOf(query.toLowerCase());
-    if (idx === -1) return text;
+    if (idx === -1) return <>{text}</>;
     return (
       <>
         {text.slice(0, idx)}
@@ -191,45 +291,48 @@ function BookCard({ book, query }: { book: Book; query: string }) {
     );
   };
 
+  const hasContent = Object.keys(book.contentTypes).length > 0;
+
   return (
     <a
       href={driveUrl}
       target="_blank"
       rel="noopener noreferrer"
-      className="card-animate group bg-white rounded-lg border border-border shadow-sm hover:shadow-md transition-all duration-200 card-category-border overflow-hidden block cursor-pointer"
-      style={{ borderLeftColor: cat.color }}
+      className="card-animate group bg-white rounded-lg border border-border shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden block cursor-pointer"
+      style={{ borderLeftWidth: 3, borderLeftColor: color }}
     >
       <div className="p-4">
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex items-center gap-2">
             <div
               className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: cat.color + "18" }}
+              style={{ backgroundColor: color + "18" }}
             >
-              <Icon className="w-3.5 h-3.5" style={{ color: cat.color }} />
+              <Icon className="w-3.5 h-3.5" style={{ color }} />
             </div>
-            <span
-              className="text-[10px] font-semibold uppercase tracking-wider"
-              style={{ color: cat.color }}
-            >
+            <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color }}>
               {book.category}
             </span>
           </div>
           <ExternalLink className="w-3.5 h-3.5 opacity-0 group-hover:opacity-60 transition-opacity text-muted-foreground" />
         </div>
         <h3
-          className="text-sm font-semibold leading-snug mb-1"
+          className="text-sm font-semibold leading-snug mb-0.5"
           style={{ fontFamily: "'Playfair Display', serif" }}
         >
-          {highlight(book.displayTitle)}
+          {highlight(displayTitle)}
         </h3>
-        {book.authors && (
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            <span className="font-medium">by</span> {highlight(book.authors)}
+        {bookAuthor && (
+          <p className="text-xs text-muted-foreground leading-relaxed mb-2">
+            <span className="font-medium">by</span> {highlight(bookAuthor)}
           </p>
         )}
-        {book.fileTypes && book.fileTypes.length > 0 && (
-          <FileTypeIcons fileTypes={book.fileTypes} size={20} />
+        {hasContent && (
+          <div className="flex flex-wrap gap-1 mt-2 pt-2 border-t border-border/40">
+            {Object.entries(book.contentTypes).map(([type, count]) => (
+              <ContentTypeBadge key={type} type={type} count={count} />
+            ))}
+          </div>
         )}
       </div>
     </a>
@@ -241,9 +344,9 @@ function AudioCard({ audio, query }: { audio: AudioBook; query: string }) {
   const driveUrl = `https://drive.google.com/drive/folders/${audio.id}?view=grid`;
 
   const highlight = (text: string) => {
-    if (!query) return text;
+    if (!query) return <>{text}</>;
     const idx = text.toLowerCase().indexOf(query.toLowerCase());
-    if (idx === -1) return text;
+    if (idx === -1) return <>{text}</>;
     return (
       <>
         {text.slice(0, idx)}
@@ -301,6 +404,7 @@ function AudioCard({ audio, query }: { audio: AudioBook; query: string }) {
                 className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold hover:opacity-80 transition-opacity"
                 style={{ backgroundColor: colors.bg, color: colors.text }}
                 title={`Open ${fmt} folder in Drive`}
+                onClick={(e) => e.stopPropagation()}
               >
                 {colors.label}
                 <span className="opacity-70">·{info.fileCount}</span>
@@ -344,11 +448,11 @@ export default function Home() {
       const matchesCat = selectedCategories.size === 0 || selectedCategories.has(a.category);
       const matchesQ =
         !q ||
-        a.displayName.toLowerCase().includes(q) ||
-        a.specialty.toLowerCase().includes(q) ||
-        a.category.toLowerCase().includes(q);
+        a.name.toLowerCase().includes(q) ||
+        a.category.toLowerCase().includes(q) ||
+        a.books.some((b) => b.name.toLowerCase().includes(q));
       return matchesCat && matchesQ;
-    }).sort((a, b) => a.displayName.localeCompare(b.displayName));
+    }).sort((a, b) => a.name.localeCompare(b.name));
   }, [query, selectedCategories]);
 
   const filteredBooks = useMemo(() => {
@@ -357,11 +461,10 @@ export default function Home() {
       const matchesCat = selectedCategories.size === 0 || selectedCategories.has(b.category);
       const matchesQ =
         !q ||
-        b.displayTitle.toLowerCase().includes(q) ||
-        b.authors.toLowerCase().includes(q) ||
+        b.name.toLowerCase().includes(q) ||
         b.category.toLowerCase().includes(q);
       return matchesCat && matchesQ;
-    }).sort((a, b) => a.displayTitle.localeCompare(b.displayTitle));
+    }).sort((a, b) => a.name.localeCompare(b.name));
   }, [query, selectedCategories]);
 
   const filteredAudio = useMemo(() => {
@@ -470,26 +573,28 @@ export default function Home() {
                 <SidebarGroupContent>
                   <SidebarMenu>
                     {CATEGORIES.map((cat) => {
-                      const Icon = ICON_MAP[cat.icon] ?? Briefcase;
+                      const color = CATEGORY_COLORS[cat] ?? "#374151";
+                      const iconName = CATEGORY_ICONS[cat] ?? "briefcase";
+                      const Icon = ICON_MAP[iconName] ?? Briefcase;
                       const count = activeTab === "authors"
-                        ? (authorCounts[cat.name] ?? 0)
-                        : (bookCounts[cat.name] ?? 0);
+                        ? (authorCounts[cat] ?? 0)
+                        : (bookCounts[cat] ?? 0);
                       if (count === 0) return null;
-                      const isActive = selectedCategories.has(cat.name);
+                      const isActive = selectedCategories.has(cat);
                       return (
-                        <SidebarMenuItem key={cat.name}>
+                        <SidebarMenuItem key={cat}>
                           <SidebarMenuButton
                             isActive={isActive}
-                            onClick={() => toggleCategory(cat.name)}
+                            onClick={() => toggleCategory(cat)}
                             className="h-auto py-1.5"
                           >
-                            <Icon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: isActive ? cat.color : undefined }} />
-                            <span className="text-xs leading-tight flex-1 truncate">{cat.name}</span>
+                            <Icon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: isActive ? color : undefined }} />
+                            <span className="text-xs leading-tight flex-1 truncate">{cat}</span>
                             <span
                               className="text-[10px] font-mono px-1.5 py-0.5 rounded-full flex-shrink-0"
                               style={{
-                                backgroundColor: isActive ? cat.color + "20" : undefined,
-                                color: isActive ? cat.color : undefined,
+                                backgroundColor: isActive ? color + "20" : undefined,
+                                color: isActive ? color : undefined,
                               }}
                             >
                               {count}
@@ -519,7 +624,7 @@ export default function Home() {
                         {colors.label}
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        {fmt === "MP3" ? "Standard audio" : fmt === "M4B" ? "Chapters + bookmarks" : fmt === "AAX" ? "Audible DRM" : fmt === "M4A" ? "Apple audio" : "Lossless audio"}
+                        {fmt === "MP3" ? "Standard audio" : fmt === "M4B" ? "Chapters + bookmarks" : fmt === "AAX" ? "Audible DRM" : "Apple audio"}
                       </span>
                     </div>
                   ))}
@@ -598,13 +703,13 @@ export default function Home() {
                   </Badge>
                 )}
                 {Array.from(selectedCategories).map((cat) => {
-                  const meta = getCategoryMeta(cat);
+                  const color = CATEGORY_COLORS[cat] ?? "#374151";
                   return (
                     <Badge
                       key={cat}
                       variant="secondary"
                       className="gap-1 text-xs"
-                      style={{ borderColor: meta.color, color: meta.color, backgroundColor: meta.color + "12" }}
+                      style={{ borderColor: color, color, backgroundColor: color + "12" }}
                     >
                       {cat}
                       <button onClick={() => toggleCategory(cat)}><X className="w-3 h-3" /></button>
@@ -644,7 +749,7 @@ export default function Home() {
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                   {filteredAuthors.map((a, i) => (
-                    <div key={a.driveId + i} style={{ animationDelay: `${Math.min(i * 30, 400)}ms` }}>
+                    <div key={a.id + i} style={{ animationDelay: `${Math.min(i * 30, 400)}ms` }}>
                       <AuthorCard author={a} query={query} />
                     </div>
                   ))}
@@ -656,7 +761,7 @@ export default function Home() {
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                   {filteredBooks.map((b, i) => (
-                    <div key={b.driveId + i} style={{ animationDelay: `${Math.min(i * 30, 400)}ms` }}>
+                    <div key={b.id + i} style={{ animationDelay: `${Math.min(i * 30, 400)}ms` }}>
                       <BookCard book={b} query={query} />
                     </div>
                   ))}
