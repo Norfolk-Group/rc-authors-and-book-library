@@ -8,6 +8,8 @@
  */
 
 import { useState, useMemo, useCallback } from "react";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
 import {
   SidebarProvider,
   Sidebar,
@@ -66,6 +68,12 @@ import {
   Package,
   Folder,
   Book,
+  Scroll,
+  Newspaper,
+  Link,
+  List,
+  RefreshCw,
+  CheckCircle2,
 } from "lucide-react";
 
 // ── Icon map for categories ──────────────────────────────────
@@ -91,6 +99,10 @@ const CT_ICON_MAP: Record<string, React.ElementType> = {
   "video": Video,
   "image": Image,
   "package": Package,
+  "scroll": Scroll,
+  "newspaper": Newspaper,
+  "link": Link,
+  "list": List,
   "folder": Folder,
 };
 
@@ -460,6 +472,22 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>("authors");
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
 
+  const regenerate = trpc.library.regenerate.useMutation({
+    onSuccess: (data) => {
+      if (data.success && data.stats) {
+        toast.success(
+          `Library rebuilt — ${data.stats.authors} authors, ${data.stats.books} books, ${data.stats.audioBooks} audiobooks (${data.stats.elapsedSeconds}s). Reload to see changes.`,
+          { duration: 8000 }
+        );
+      } else {
+        toast.error(`Regeneration failed: ${(data as { error?: string }).error ?? "Unknown error"}`);
+      }
+    },
+    onError: (err) => {
+      toast.error(`Regeneration error: ${err.message}`);
+    },
+  });
+
   const toggleCategory = useCallback((cat: string) => {
     setSelectedCategories((prev) => {
       const next = new Set(prev);
@@ -666,9 +694,24 @@ export default function Home() {
           </SidebarContent>
 
           <SidebarFooter className="px-4 py-3 border-t border-sidebar-border group-data-[collapsible=icon]:hidden">
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-[10px] text-muted-foreground mb-2">
               Last updated {STATS.lastUpdated}
             </p>
+            <button
+              onClick={() => regenerate.mutate()}
+              disabled={regenerate.isPending}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md text-xs font-medium border border-border hover:bg-muted/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Re-scan Google Drive and rebuild the library data"
+            >
+              {regenerate.isPending ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+              ) : regenerate.isSuccess ? (
+                <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
+              ) : (
+                <RefreshCw className="w-3.5 h-3.5" />
+              )}
+              {regenerate.isPending ? "Scanning Drive…" : "Regenerate Database"}
+            </button>
           </SidebarFooter>
         </Sidebar>
 
