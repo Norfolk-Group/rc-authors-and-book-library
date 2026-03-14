@@ -159,12 +159,12 @@ function BookSubfolderRow({ book }: { book: { name: string; id: string; contentT
 // ── Stat Card ────────────────────────────────────────────────
 function StatCard({ label, value, icon: Icon }: { label: string; value: number | string; icon: React.ElementType }) {
   return (
-    <div className="flex flex-col gap-1 px-5 py-4 bg-white rounded-lg border border-border shadow-sm">
+    <div className="flex flex-col gap-1 px-3 sm:px-5 py-3 sm:py-4 bg-white rounded-lg border border-border shadow-sm">
       <div className="flex items-center gap-2 text-muted-foreground">
         <Icon className="w-3.5 h-3.5" />
         <span className="text-xs font-medium uppercase tracking-widest">{label}</span>
       </div>
-      <span className="text-2xl font-bold" style={{ fontFamily: "'Playfair Display', serif" }}>
+      <span className="text-xl sm:text-2xl font-bold" style={{ fontFamily: "'Playfair Display', serif" }}>
         {value}
       </span>
     </div>
@@ -496,10 +496,10 @@ export default function Home() {
   const showCategoryFilter = activeTab !== "audio";
 
   return (
-    <SidebarProvider defaultOpen={true}>
-      <div className="flex min-h-screen w-full">
+    <SidebarProvider defaultOpen={false}>
+      <div className="flex min-h-screen w-full overflow-hidden">
         {/* ── Sidebar ── */}
-        <Sidebar collapsible="icon" className="border-r border-sidebar-border">
+        <Sidebar collapsible="offcanvas" className="border-r border-sidebar-border">
           <SidebarHeader className="px-4 py-4 border-b border-sidebar-border">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center flex-shrink-0">
@@ -641,14 +641,14 @@ export default function Home() {
         </Sidebar>
 
         {/* ── Main Content ── */}
-        <SidebarInset className="flex-1 flex flex-col min-w-0">
+        <SidebarInset className="flex-1 flex flex-col min-w-0 overflow-hidden">
           {/* Top bar */}
-          <header className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm border-b border-border px-6 py-3 flex items-center gap-4">
+          <header className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm border-b border-border px-3 sm:px-6 py-3 flex items-center gap-2 sm:gap-4">
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="h-5" />
 
             {/* Breadcrumb */}
-            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <div className="hidden sm:flex items-center gap-1.5 text-sm text-muted-foreground">
               <span className="font-medium text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>
                 NCG Library
               </span>
@@ -663,7 +663,7 @@ export default function Home() {
             </div>
 
             {/* Search */}
-            <div className="ml-auto relative w-64">
+            <div className="ml-auto relative w-full sm:w-64 max-w-xs">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
               <Input
                 placeholder={activeTab === "audio" ? "Search audiobooks, authors…" : "Search authors, books, topics…"}
@@ -683,9 +683,9 @@ export default function Home() {
           </header>
 
           {/* Body */}
-          <main className="flex-1 px-6 py-6 overflow-auto">
+          <main className="flex-1 px-3 sm:px-6 py-4 sm:py-6 overflow-auto">
             {/* Stats strip */}
-            <div className="grid grid-cols-4 gap-3 mb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
               <StatCard label="Authors" value={STATS.totalAuthors} icon={Users} />
               <StatCard label="Books" value={STATS.totalBooks} icon={BookOpen} />
               <StatCard label="Audiobooks" value={AUDIO_BOOKS.length} icon={Headphones} />
