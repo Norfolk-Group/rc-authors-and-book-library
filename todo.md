@@ -28,3 +28,12 @@
 - [x] Fix depth-collapse entries: Alan Dib and Alex Hormozi Transcript DOC/PDF folders in Drive
 - [x] Add Last Synced timestamp to sidebar footer
 - [x] Clean up Books Audio/ root legacy Audio MP3 and Audible MP3 folders
+
+## Session March 15, 2026
+- [x] Fix duplicate CATEGORY_COLORS/ICONS/BG exports in libraryData.ts (TS2451 errors)
+- [x] Fix generateLibraryTs to include CONTENT_TYPE_ICONS/COLORS with Papers/Articles/Links
+- [x] Fix duplicate author display: deduplicate same-name authors in UI (105 unique from 112 entries)
+- [x] Fix duplicate book display: deduplicate same-name books in UI
+- [ ] Add author photo support on cards
+- [x] Normalize raw folder names (temp, Knowledge Base, Notes, DOC) in UI display
+- [x] Save checkpoint and publish

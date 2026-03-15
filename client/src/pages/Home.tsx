@@ -121,6 +121,33 @@ const STATS = {
   lastUpdated: "March 2026",
 };
 
+// Normalize raw content type names for display
+const DISPLAY_NAME_MAP: Record<string, string> = {
+  "Additional DOC": "Supplemental",
+  "PDF Extra": "PDF",
+  "PDF Extra 2": "PDF",
+  "PDF Extras": "PDF",
+  "Complete Book in PDF": "PDF",
+  "DOC": "Transcript",
+  "ChatGPT": "Supplemental",
+  "Sana AI": "Supplemental",
+  "Notes": "Supplemental",
+  "Knowledge Base": "Supplemental",
+  "temp": "Supplemental",
+  "Temp": "Supplemental",
+  "TEMP": "Supplemental",
+};
+
+// Normalize content types for display — merge raw names into canonical types
+function normalizeContentTypes(raw: Record<string, number>): Record<string, number> {
+  const result: Record<string, number> = {};
+  for (const [type, count] of Object.entries(raw)) {
+    const normalized = DISPLAY_NAME_MAP[type] ?? type;
+    result[normalized] = (result[normalized] ?? 0) + count;
+  }
+  return result;
+}
+
 // ── Content Type Badge ───────────────────────────────────────
 function ContentTypeBadge({ type, count }: { type: string; count: number }) {
   const iconName = CONTENT_TYPE_ICONS[type] ?? "folder";
@@ -154,13 +181,17 @@ function BookSubfolderRow({ book }: { book: { name: string; id: string; contentT
       <div className="flex items-center gap-1.5">
         <BookOpen className="w-3 h-3 text-muted-foreground flex-shrink-0 group-hover/book:text-foreground transition-colors" />
         <span className="text-[11px] font-medium leading-tight text-foreground/80 group-hover/book:text-foreground transition-colors line-clamp-1 flex-1">
-          {book.name}
+          {(() => {
+            // Strip " - Author Name" suffix from book name if present
+            const dashIdx = book.name.lastIndexOf(" - ");
+            return dashIdx !== -1 ? book.name.slice(0, dashIdx) : book.name;
+          })()}
         </span>
         <ExternalLink className="w-2.5 h-2.5 text-muted-foreground opacity-0 group-hover/book:opacity-60 transition-opacity flex-shrink-0" />
       </div>
       {hasContent && (
         <div className="flex flex-wrap gap-1 pl-4">
-          {Object.entries(book.contentTypes).map(([type, count]) => (
+          {Object.entries(normalizeContentTypes(book.contentTypes)).map(([type, count]) => (
             <ContentTypeBadge key={type} type={type} count={count} />
           ))}
         </div>
@@ -506,7 +537,17 @@ export default function Home() {
 
   const filteredAuthors = useMemo(() => {
     const q = query.toLowerCase();
-    return AUTHORS.filter((a) => {
+    // Deduplicate authors by base name (before " - "), keeping the one with most books
+    const seen = new Map<string, typeof AUTHORS[number]>();
+    for (const a of AUTHORS) {
+      const baseName = a.name.split(" - ")[0].trim().toLowerCase();
+      const existing = seen.get(baseName);
+      if (!existing || a.books.length > existing.books.length) {
+        seen.set(baseName, a);
+      }
+    }
+    const deduped = Array.from(seen.values());
+    return deduped.filter((a) => {
       const matchesCat = selectedCategories.size === 0 || selectedCategories.has(a.category);
       const matchesQ =
         !q ||
@@ -519,7 +560,25 @@ export default function Home() {
 
   const filteredBooks = useMemo(() => {
     const q = query.toLowerCase();
-    return BOOKS.filter((b) => {
+    // Deduplicate books: prefer "Title - Author" format over plain "Title"
+    const seen = new Map<string, typeof BOOKS[number]>();
+    for (const b of BOOKS) {
+      const titleKey = b.name.split(" - ")[0].trim().toLowerCase();
+      const existing = seen.get(titleKey);
+      if (!existing) {
+        seen.set(titleKey, b);
+      } else {
+        // Prefer the entry with more content types or with author suffix
+        const hasAuthor = b.name.includes(" - ");
+        const existingHasAuthor = existing.name.includes(" - ");
+        if (hasAuthor && !existingHasAuthor) seen.set(titleKey, b);
+        else if (Object.keys(b.contentTypes).length > Object.keys(existing.contentTypes).length) {
+          seen.set(titleKey, b);
+        }
+      }
+    }
+    const deduped = Array.from(seen.values());
+    return deduped.filter((b) => {
       const matchesCat = selectedCategories.size === 0 || selectedCategories.has(b.category);
       const matchesQ =
         !q ||

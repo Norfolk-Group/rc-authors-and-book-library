@@ -356,25 +356,27 @@ ${iconsTs}
 export const CONTENT_TYPE_ICONS: Record<string, string> = {
   "PDF": "file-text",
   "Binder": "book",
-  "DOC": "file",
   "Transcript": "align-left",
   "Summary": "list",
   "Supplemental": "package",
-  "Audio": "headphones",
   "Video": "video",
   "Images": "image",
+  "Papers": "scroll",
+  "Articles": "newspaper",
+  "Links": "link",
   "Other": "folder",
 };
 export const CONTENT_TYPE_COLORS: Record<string, string> = {
   "PDF": "#dc2626",
   "Binder": "#7c3aed",
-  "DOC": "#2563eb",
   "Transcript": "#059669",
   "Summary": "#0891b2",
   "Supplemental": "#6b7280",
-  "Audio": "#d97706",
   "Video": "#db2777",
   "Images": "#0891b2",
+  "Papers": "#0d9488",
+  "Articles": "#78350f",
+  "Links": "#4338ca",
   "Other": "#9ca3af",
 };
 export const LIBRARY_STATS = {
