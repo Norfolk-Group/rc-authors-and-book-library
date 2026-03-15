@@ -34,6 +34,15 @@
 - [x] Fix generateLibraryTs to include CONTENT_TYPE_ICONS/COLORS with Papers/Articles/Links
 - [x] Fix duplicate author display: deduplicate same-name authors in UI (105 unique from 112 entries)
 - [x] Fix duplicate book display: deduplicate same-name books in UI
-- [ ] Add author photo support on cards
+- [x] Add author photo support on cards (93 golden bokeh headshots generated and integrated)
 - [x] Normalize raw folder names (temp, Knowledge Base, Notes, DOC) in UI display
+- [x] Save checkpoint and publish
+
+## Session March 15, 2026 — Part 2
+- [x] Apply new palette: Yellow #FDB817, Blue #112548, Orange #F4795B, Teal #0091AE, Green #21B9A3
+- [x] Switch fonts to Inter Tight (Bold H1, SemiBold H2/H3, Regular body)
+- [x] Fix author deduplication: merge book lists from all duplicate entries
+- [x] Generate photorealistic author headshots with consistent background color (93 authors, golden bokeh style B)
+- [x] Upload headshots to CDN and integrate into author cards
+- [x] Save Norfolk AI palette as reusable skill (/home/ubuntu/skills/norfolk-ai-palette/SKILL.md)
 - [x] Save checkpoint and publish

@@ -1,8 +1,8 @@
 /**
  * NCG Library — Home Page
  * Design: Editorial Intelligence — sidebar-07 layout + card grid
- * Fonts: Playfair Display (headings) + DM Sans (body)
- * Palette: Warm off-white paper, deep charcoal, 9 category accents
+ * Fonts: Inter Tight (ExtraBold H1, SemiBold H2/H3, Regular body)
+ * Palette: NCG Brand — Navy #112548, Yellow #FDB817, Teal #0091AE, Orange #F4795B
  * Tabs: Authors | Books | Books Audio
  * Cards: Show book subfolders with content-type icons
  */
@@ -41,6 +41,7 @@ import {
   type BookRecord,
 } from "@/lib/libraryData";
 import { AUDIO_BOOKS, type AudioBook } from "@/lib/audioData";
+import { getAuthorPhoto } from "@/lib/authorPhotos";
 import {
   Search,
   BookOpen,
@@ -208,7 +209,7 @@ function StatCard({ label, value, icon: Icon }: { label: string; value: number |
         <Icon className="w-3.5 h-3.5" />
         <span className="text-xs font-medium uppercase tracking-widest">{label}</span>
       </div>
-      <span className="text-xl sm:text-2xl font-bold" style={{ fontFamily: "'Playfair Display', serif" }}>
+      <span className="text-xl sm:text-2xl font-extrabold tracking-tight">
         {value}
       </span>
     </div>
@@ -238,6 +239,9 @@ function AuthorCard({ author, query }: { author: AuthorEntry; query: string }) {
   const dashIdx = author.name.indexOf(" - ");
   const displayName = dashIdx !== -1 ? author.name.slice(0, dashIdx) : author.name;
   const specialty = dashIdx !== -1 ? author.name.slice(dashIdx + 3) : "";
+
+  // Look up author photo
+  const photoUrl = getAuthorPhoto(displayName);
 
   const highlight = (text: string) => {
     if (!query) return <>{text}</>;
@@ -293,17 +297,35 @@ function AuthorCard({ author, query }: { author: AuthorEntry; query: string }) {
           </div>
           <ExternalLink className="w-3.5 h-3.5 opacity-0 group-hover:opacity-60 transition-opacity text-muted-foreground" />
         </div>
-        <h3
-          className="text-sm font-semibold leading-snug mb-0.5"
-          style={{ fontFamily: "'Playfair Display', serif" }}
-        >
-          {highlight(displayName)}
-        </h3>
-        {specialty && (
-          <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
-            {highlight(specialty)}
-          </p>
-        )}
+        {/* Author photo + name row */}
+        <div className="flex items-center gap-2.5 mb-1">
+          {photoUrl ? (
+            <img
+              src={photoUrl}
+              alt={displayName}
+              className="w-10 h-10 rounded-full object-cover flex-shrink-0 ring-2 ring-offset-1"
+              style={{ '--tw-ring-color': color + '55' } as React.CSSProperties}
+              loading="lazy"
+            />
+          ) : (
+            <div
+              className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold"
+              style={{ backgroundColor: color + '22', color }}
+            >
+              {displayName.charAt(0)}
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-semibold leading-snug tracking-tight">
+              {highlight(displayName)}
+            </h3>
+            {specialty && (
+              <p className="text-xs text-muted-foreground leading-relaxed line-clamp-1">
+                {highlight(specialty)}
+              </p>
+            )}
+          </div>
+        </div>
       </a>
 
       {/* Book subfolders */}
@@ -386,10 +408,7 @@ function BookCard({ book, query }: { book: BookRecord; query: string }) {
           </div>
           <ExternalLink className="w-3.5 h-3.5 opacity-0 group-hover:opacity-60 transition-opacity text-muted-foreground" />
         </div>
-        <h3
-          className="text-sm font-semibold leading-snug mb-0.5"
-          style={{ fontFamily: "'Playfair Display', serif" }}
-        >
+        <h3 className="text-sm font-semibold leading-snug mb-1 tracking-tight">
           {highlight(displayTitle)}
         </h3>
         {bookAuthor && (
@@ -454,10 +473,7 @@ function AudioCard({ audio, query }: { audio: AudioBook; query: string }) {
           <ExternalLink className="w-3.5 h-3.5 opacity-0 group-hover:opacity-60 transition-opacity text-muted-foreground" />
         </div>
 
-        <h3
-          className="text-sm font-semibold leading-snug mb-1"
-          style={{ fontFamily: "'Playfair Display', serif" }}
-        >
+        <h3 className="text-sm font-semibold leading-snug mb-1 tracking-tight">
           {highlight(audio.title)}
         </h3>
         {audio.bookAuthors && (
@@ -537,13 +553,32 @@ export default function Home() {
 
   const filteredAuthors = useMemo(() => {
     const q = query.toLowerCase();
-    // Deduplicate authors by base name (before " - "), keeping the one with most books
+    // Deduplicate authors by base name (before " - "), merging all book lists
     const seen = new Map<string, typeof AUTHORS[number]>();
+    const booksSeen = new Map<string, Set<string>>(); // track book IDs per author
     for (const a of AUTHORS) {
       const baseName = a.name.split(" - ")[0].trim().toLowerCase();
       const existing = seen.get(baseName);
-      if (!existing || a.books.length > existing.books.length) {
-        seen.set(baseName, a);
+      if (!existing) {
+        seen.set(baseName, { ...a, books: [...a.books] });
+        booksSeen.set(baseName, new Set(a.books.map((b) => b.id)));
+      } else {
+        // Merge books from this duplicate entry, avoiding duplicates by ID
+        const seenIds = booksSeen.get(baseName)!;
+        for (const book of a.books) {
+          if (!seenIds.has(book.id)) {
+            existing.books.push(book);
+            seenIds.add(book.id);
+          }
+        }
+        // Keep the entry with the longer specialty description
+        const existingSpecialty = existing.name.includes(" - ") ? existing.name.split(" - ").slice(1).join(" - ") : "";
+        const newSpecialty = a.name.includes(" - ") ? a.name.split(" - ").slice(1).join(" - ") : "";
+        if (newSpecialty.length > existingSpecialty.length) {
+          existing.name = a.name;
+          existing.id = a.id;
+          existing.category = a.category;
+        }
       }
     }
     const deduped = Array.from(seen.values());
@@ -628,7 +663,7 @@ export default function Home() {
               </div>
               <div className="group-data-[collapsible=icon]:hidden">
                 <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Norfolk CG</p>
-                <p className="text-sm font-bold leading-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
+                <p className="text-sm font-bold leading-tight tracking-tight">
                   Knowledge Library
                 </p>
               </div>
@@ -788,7 +823,7 @@ export default function Home() {
 
             {/* Breadcrumb */}
             <div className="hidden sm:flex items-center gap-1.5 text-sm text-muted-foreground">
-              <span className="font-medium text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>
+              <span className="font-medium text-foreground">
                 NCG Library
               </span>
               <ChevronRight className="w-3.5 h-3.5" />
@@ -866,10 +901,7 @@ export default function Home() {
 
             {/* Section header */}
             <div className="flex items-baseline justify-between mb-4">
-              <h1
-                className="text-xl font-bold"
-                style={{ fontFamily: "'Playfair Display', serif" }}
-              >
+              <h1 className="text-xl font-extrabold tracking-tight">
                 {activeTab === "authors" ? "Authors" : activeTab === "books" ? "Books" : "Books Audio"}
               </h1>
               <span className="text-sm text-muted-foreground">

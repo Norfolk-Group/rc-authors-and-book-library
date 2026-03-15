@@ -5,9 +5,9 @@
 
 /* ============================================================
    NCG LIBRARY — EDITORIAL INTELLIGENCE DESIGN SYSTEM
-   Design Movement: Editorial Modernism (The Economist × Monocle)
-   Typography: Playfair Display (serif display) + DM Sans (body)
-   Palette: Warm off-white paper, deep charcoal, 9 category accents
+   Typography: Inter Tight (ExtraBold H1, SemiBold H2/H3, Regular body)
+   Palette: NCG Brand — Navy #112548, Yellow #FDB817, Teal #0091AE,
+            Orange #F4795B, Green #21B9A3, Light Gray #F5F8FA
    Layout: Fixed sidebar + wide content grid, asymmetric
    ============================================================ */
 
@@ -43,44 +43,57 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* NCG Brand tokens */
+  --color-ncg-navy:    oklch(0.22 0.07 255);   /* #112548 */
+  --color-ncg-yellow:  oklch(0.87 0.17 85);    /* #FDB817 */
+  --color-ncg-orange:  oklch(0.72 0.15 30);    /* #F4795B */
+  --color-ncg-teal:    oklch(0.60 0.12 210);   /* #0091AE */
+  --color-ncg-teal2:   oklch(0.65 0.11 210);   /* #00A9B8 */
+  --color-ncg-green:   oklch(0.70 0.12 175);   /* #21B9A3 */
+  --color-ncg-green2:  oklch(0.65 0.10 145);   /* #6A9E56 */
+  --color-ncg-gray:    oklch(0.85 0.02 240);   /* #CCD6E2 */
+  --color-ncg-dark:    oklch(0.33 0.04 240);   /* #34475B */
+  --color-ncg-light:   oklch(0.97 0.008 240);  /* #F5F8FA */
 }
 
 :root {
   --radius: 0.5rem;
 
-  /* Warm paper palette */
-  --background: oklch(0.975 0.008 80);
-  --foreground: oklch(0.18 0.012 60);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.012 60);
+  /* NCG Light palette */
+  --background: oklch(0.97 0.008 240);         /* #F5F8FA light gray */
+  --foreground: oklch(0.33 0.04 240);          /* #34475B dark font */
+  --card: oklch(1 0 0);                        /* white cards */
+  --card-foreground: oklch(0.22 0.07 255);     /* #112548 navy */
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.012 60);
+  --popover-foreground: oklch(0.33 0.04 240);
 
-  /* Deep navy primary */
-  --primary: oklch(0.28 0.09 250);
+  /* Primary = NCG Navy */
+  --primary: oklch(0.22 0.07 255);            /* #112548 */
   --primary-foreground: oklch(0.97 0.005 80);
 
-  --secondary: oklch(0.94 0.008 80);
-  --secondary-foreground: oklch(0.28 0.012 60);
-  --muted: oklch(0.94 0.008 80);
-  --muted-foreground: oklch(0.52 0.018 60);
-  --accent: oklch(0.92 0.012 80);
-  --accent-foreground: oklch(0.18 0.012 60);
+  /* Secondary = NCG Yellow accent */
+  --secondary: oklch(0.95 0.02 240);
+  --secondary-foreground: oklch(0.22 0.07 255);
+  --muted: oklch(0.94 0.012 240);
+  --muted-foreground: oklch(0.50 0.03 240);   /* #CCD6E2-ish */
+  --accent: oklch(0.87 0.17 85);              /* #FDB817 yellow */
+  --accent-foreground: oklch(0.22 0.07 255);  /* navy on yellow */
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.88 0.010 80);
-  --input: oklch(0.88 0.010 80);
-  --ring: oklch(0.28 0.09 250);
+  --border: oklch(0.88 0.015 240);            /* #CCD6E2 */
+  --input: oklch(0.88 0.015 240);
+  --ring: oklch(0.60 0.12 210);              /* teal ring */
 
-  /* Sidebar — warm linen */
-  --sidebar: oklch(0.955 0.012 80);
-  --sidebar-foreground: oklch(0.22 0.012 60);
-  --sidebar-primary: oklch(0.28 0.09 250);
-  --sidebar-primary-foreground: oklch(0.97 0.005 80);
-  --sidebar-accent: oklch(0.92 0.014 80);
-  --sidebar-accent-foreground: oklch(0.22 0.012 60);
-  --sidebar-border: oklch(0.86 0.012 80);
-  --sidebar-ring: oklch(0.28 0.09 250);
+  /* Sidebar — deep navy brand */
+  --sidebar: oklch(0.22 0.07 255);            /* #112548 navy */
+  --sidebar-foreground: oklch(0.97 0.005 80);
+  --sidebar-primary: oklch(0.87 0.17 85);     /* yellow */
+  --sidebar-primary-foreground: oklch(0.22 0.07 255);
+  --sidebar-accent: oklch(0.28 0.07 255);     /* lighter navy hover */
+  --sidebar-accent-foreground: oklch(0.97 0.005 80);
+  --sidebar-border: oklch(0.30 0.06 255);
+  --sidebar-ring: oklch(0.87 0.17 85);
 }
 
 @layer base {
@@ -89,11 +102,17 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: 'DM Sans', system-ui, sans-serif;
+    font-family: 'Inter Tight', system-ui, sans-serif;
     font-feature-settings: "kern" 1, "liga" 1;
+    font-weight: 400;
   }
-  h1, h2, h3, .font-display {
-    font-family: 'Playfair Display', Georgia, serif;
+  h1 {
+    font-family: 'Inter Tight', system-ui, sans-serif;
+    font-weight: 800; /* ExtraBold */
+  }
+  h2, h3, .font-display {
+    font-family: 'Inter Tight', system-ui, sans-serif;
+    font-weight: 600; /* SemiBold */
   }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
@@ -139,9 +158,9 @@
     animation: cardIn 0.3s ease both;
   }
 
-  /* Search highlight */
+  /* Search highlight — NCG yellow tint */
   mark.search-highlight {
-    background: oklch(0.92 0.12 80);
+    background: oklch(0.95 0.12 85);
     color: inherit;
     border-radius: 2px;
     padding: 0 1px;

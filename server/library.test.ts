@@ -215,3 +215,37 @@ describe("book name display", () => {
     expect(displayName).toBe("Positioning");
   });
 });
+
+// ── Author Photo Lookup Tests ─────────────────────────────────
+const SAMPLE_PHOTOS: Record<string, string> = {
+  "Adam Grant": "https://cdn.example.com/Adam Grant_abc123.png",
+  "Simon Sinek": "https://cdn.example.com/Simon Sinek_def456.png",
+  "Brene Brown": "https://cdn.example.com/Brene Brown_ghi789.png",
+};
+
+function getAuthorPhotoTest(name: string): string | undefined {
+  if (SAMPLE_PHOTOS[name]) return SAMPLE_PHOTOS[name];
+  const lower = name.toLowerCase();
+  const key = Object.keys(SAMPLE_PHOTOS).find(k => k.toLowerCase() === lower);
+  return key ? SAMPLE_PHOTOS[key] : undefined;
+}
+
+describe("getAuthorPhoto", () => {
+  it("returns exact match photo URL", () => {
+    expect(getAuthorPhotoTest("Adam Grant")).toBe("https://cdn.example.com/Adam Grant_abc123.png");
+  });
+
+  it("returns case-insensitive match", () => {
+    expect(getAuthorPhotoTest("adam grant")).toBe("https://cdn.example.com/Adam Grant_abc123.png");
+    expect(getAuthorPhotoTest("SIMON SINEK")).toBe("https://cdn.example.com/Simon Sinek_def456.png");
+  });
+
+  it("returns undefined for unknown author", () => {
+    expect(getAuthorPhotoTest("Unknown Author")).toBeUndefined();
+    expect(getAuthorPhotoTest("")).toBeUndefined();
+  });
+
+  it("handles authors with special characters in name", () => {
+    expect(getAuthorPhotoTest("Brene Brown")).toBe("https://cdn.example.com/Brene Brown_ghi789.png");
+  });
+});

@@ -19,27 +19,27 @@ export interface BookRecord {
   contentTypes: Record<string, number>;
 }
 export const CATEGORY_COLORS: Record<string, string> = {
-  "Business & Entrepreneurship": "#b45309",
-  "Behavioral Science & Psychology": "#7c3aed",
-  "Sales & Negotiation": "#0369a1",
-  "Leadership & Management": "#065f46",
-  "Self-Help & Productivity": "#b91c1c",
-  "Communication & Storytelling": "#c2410c",
-  "Technology & Futurism": "#1d4ed8",
-  "Strategy & Economics": "#374151",
-  "History & Biography": "#92400e",
+  "Business & Entrepreneurship": "#FDB817",
+  "Behavioral Science & Psychology": "#0091AE",
+  "Sales & Negotiation": "#112548",
+  "Leadership & Management": "#21B9A3",
+  "Self-Help & Productivity": "#F4795B",
+  "Communication & Storytelling": "#00A9B8",
+  "Technology & Futurism": "#112548",
+  "Strategy & Economics": "#34475B",
+  "History & Biography": "#6A9E56",
 };
-// Soft pastel background tints per category (low-opacity, warm-paper-aware)
+// Soft pastel background tints per category (NCG palette-aware)
 export const CATEGORY_BG: Record<string, string> = {
-  "Business & Entrepreneurship": "#fef9ec",
-  "Behavioral Science & Psychology": "#f5f3ff",
-  "Sales & Negotiation": "#eff8ff",
-  "Leadership & Management": "#f0fdf4",
-  "Self-Help & Productivity": "#fff1f2",
-  "Communication & Storytelling": "#fff7ed",
-  "Technology & Futurism": "#eff6ff",
-  "Strategy & Economics": "#f8fafc",
-  "History & Biography": "#fdf8f0",
+  "Business & Entrepreneurship": "#fffbec",
+  "Behavioral Science & Psychology": "#edf8fc",
+  "Sales & Negotiation": "#eef1f8",
+  "Leadership & Management": "#edfaf8",
+  "Self-Help & Productivity": "#fef3ef",
+  "Communication & Storytelling": "#edfafc",
+  "Technology & Futurism": "#eef1f8",
+  "Strategy & Economics": "#f5f8fa",
+  "History & Biography": "#f1f7ee",
 };
 export const CATEGORY_ICONS: Record<string, string> = {
   "Business & Entrepreneurship": "briefcase",
