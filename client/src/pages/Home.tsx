@@ -105,6 +105,9 @@ import {
   Sparkles,
   UserCheck,
   AlertCircle,
+  Star,
+  BookMarked as BookMarkedIcon,
+  ShoppingCart,
 } from "lucide-react";
 
 // ── Icon map for categories ──────────────────────────────────
@@ -397,8 +400,8 @@ function AuthorCard({ author, query, onBioClick, isEnriched }: { author: AuthorE
   );
 }
 
-// ── Book Card ────────────────────────────────────────────────
-function BookCard({ book, query, onDetailClick }: { book: BookRecord; query: string; onDetailClick?: (b: BookRecord) => void }) {
+// ── Book Card ────────────────────────────────────────────
+function BookCard({ book, query, onDetailClick, coverImageUrl, isEnriched }: { book: BookRecord; query: string; onDetailClick?: (b: BookRecord) => void; coverImageUrl?: string; isEnriched?: boolean }) {
   const color = CATEGORY_COLORS[book.category] ?? "#374151";
   const iconName = CATEGORY_ICONS[book.category] ?? "book-open";
   const Icon = ICON_MAP[iconName] ?? BookMarked;
@@ -423,7 +426,6 @@ function BookCard({ book, query, onDetailClick }: { book: BookRecord; query: str
   };
 
   const hasContent = Object.keys(book.contentTypes).length > 0;
-
   const bg = CATEGORY_BG[book.category] ?? "#fafaf9";
 
   return (
@@ -432,20 +434,16 @@ function BookCard({ book, query, onDetailClick }: { book: BookRecord; query: str
       style={{ borderLeftWidth: 3, borderLeftColor: color, backgroundColor: bg }}
       onClick={() => onDetailClick?.(book)}
     >
-      {/* Watermark */}
-      <div className="pointer-events-none absolute bottom-2 right-2 select-none" aria-hidden>
-        <Icon
-          style={{ width: 72, height: 72, color, opacity: 0.07 }}
-          strokeWidth={1}
-        />
-      </div>
+      {/* Watermark (only when no cover) */}
+      {!coverImageUrl && (
+        <div className="pointer-events-none absolute bottom-2 right-2 select-none" aria-hidden>
+          <Icon style={{ width: 72, height: 72, color, opacity: 0.07 }} strokeWidth={1} />
+        </div>
+      )}
       <div className="p-4 relative z-10">
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex items-center gap-2">
-            <div
-              className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: color + "22" }}
-            >
+            <div className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0" style={{ backgroundColor: color + "22" }}>
               <Icon className="w-3.5 h-3.5" style={{ color }} />
             </div>
             <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color }}>
@@ -463,14 +461,46 @@ function BookCard({ book, query, onDetailClick }: { book: BookRecord; query: str
             <ExternalLink className="w-3.5 h-3.5 opacity-0 group-hover:opacity-60 transition-opacity" />
           </a>
         </div>
-        <h3 className="text-sm font-semibold leading-snug mb-1 tracking-tight">
-          {highlight(displayTitle)}
-        </h3>
-        {bookAuthor && (
-          <p className="text-xs text-muted-foreground leading-relaxed mb-2">
-            <span className="font-medium">by</span> {highlight(bookAuthor)}
-          </p>
-        )}
+
+        {/* Cover + title row */}
+        <div className="flex items-start gap-3 mb-2">
+          {coverImageUrl && (
+            <img
+              src={coverImageUrl}
+              alt={displayTitle}
+              className="w-12 h-16 object-cover rounded shadow-sm ring-1 ring-border flex-shrink-0"
+              loading="lazy"
+            />
+          )}
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-semibold leading-snug mb-0.5 tracking-tight">
+              {highlight(displayTitle)}
+            </h3>
+            {bookAuthor && (
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                <span className="font-medium">by</span> {highlight(bookAuthor)}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Enrichment status */}
+        <div className="mb-1">
+          <span className="text-[10px] font-medium flex items-center gap-1.5">
+            {isEnriched ? (
+              <>
+                <BookMarkedIcon className="w-3 h-3 text-teal-500" />
+                <span className="text-teal-600 dark:text-teal-400">Cover ready · click for details</span>
+              </>
+            ) : (
+              <>
+                <BookOpen className="w-3 h-3 text-muted-foreground" />
+                <span className="text-muted-foreground">Click for details</span>
+              </>
+            )}
+          </span>
+        </div>
+
         {hasContent && (
           <div className="flex flex-wrap gap-1 mt-2 pt-2 border-t border-border/40">
             {Object.entries(book.contentTypes).map(([type, count]) => (
@@ -690,7 +720,7 @@ function AuthorBioPanel({ author, onClose }: { author: typeof AUTHORS[number]; o
   );
 }
 
-// ── Book Detail Panel (Sheet) ──────────────────────────────
+// ── Book Detail Modal ─────────────────────────────────────────
 function BookDetailPanel({ book, onClose }: { book: typeof BOOKS[number]; onClose: () => void }) {
   const color = CATEGORY_COLORS[book.category] ?? "#374151";
   const iconName = CATEGORY_ICONS[book.category] ?? "book-open";
@@ -701,37 +731,135 @@ function BookDetailPanel({ book, onClose }: { book: typeof BOOKS[number]; onClos
   const bookAuthor = dashIdx !== -1 ? book.name.slice(dashIdx + 3) : "";
   const totalItems = Object.values(book.contentTypes).reduce((s, n) => s + n, 0);
 
+  // Fetch enriched profile from DB
+  const { data: profile, isLoading } = trpc.bookProfiles.get.useQuery({ bookTitle: displayTitle });
+  const enrichMutation = trpc.bookProfiles.enrich.useMutation({
+    onError: (e) => toast.error("Failed to load book info: " + e.message),
+  });
+
+  // Auto-trigger enrichment if no profile exists
+  const hasTriggered = useRef(false);
+  useEffect(() => {
+    if (!isLoading && !profile && !hasTriggered.current) {
+      hasTriggered.current = true;
+      enrichMutation.mutate({ bookTitle: displayTitle, authorName: bookAuthor });
+    }
+  }, [isLoading, profile]);
+
+  const isLoadingProfile = isLoading || enrichMutation.isPending;
+
   return (
     <div className="flex flex-col gap-5 pt-2">
       {/* Header */}
-      <SheetHeader>
-        <div className="flex items-start gap-3 mb-1">
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: color + "22" }}>
-            <Icon className="w-5 h-5" style={{ color }} />
+      <DialogHeader>
+        <div className="flex items-start gap-4 mb-1">
+          {/* Book cover */}
+          <div className="flex-shrink-0">
+            {profile?.coverImageUrl ? (
+              <img
+                src={profile.coverImageUrl}
+                alt={displayTitle}
+                className="w-20 h-28 object-cover rounded-md shadow-md ring-1 ring-border"
+                loading="lazy"
+              />
+            ) : (
+              <div
+                className="w-20 h-28 rounded-md flex items-center justify-center shadow-md ring-1 ring-border"
+                style={{ backgroundColor: color + "18" }}
+              >
+                {isLoadingProfile ? (
+                  <RefreshCw className="w-5 h-5 animate-spin" style={{ color }} />
+                ) : (
+                  <Icon className="w-8 h-8" style={{ color, opacity: 0.5 }} />
+                )}
+              </div>
+            )}
           </div>
           <div className="flex-1 min-w-0">
-            <SheetTitle className="text-base font-bold leading-snug">{displayTitle}</SheetTitle>
-            {bookAuthor && <SheetDescription className="text-xs">by {bookAuthor}</SheetDescription>}
-            <span className="text-[10px] font-semibold uppercase tracking-wider mt-0.5 block" style={{ color }}>{book.category}</span>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ backgroundColor: color + "22", color }}>{book.category}</span>
+            </div>
+            <DialogTitle className="text-lg font-bold leading-snug">{displayTitle}</DialogTitle>
+            {bookAuthor && <DialogDescription className="text-sm mt-0.5">by {bookAuthor}</DialogDescription>}
+            {/* Rating */}
+            {profile?.rating && (
+              <div className="flex items-center gap-1 mt-1.5">
+                <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
+                <span className="text-sm font-semibold">{profile.rating}</span>
+                {profile.ratingCount && (
+                  <span className="text-xs text-muted-foreground">({profile.ratingCount} ratings)</span>
+                )}
+              </div>
+            )}
+            {/* Publication info */}
+            {(profile?.publishedDate || profile?.publisher) && (
+              <p className="text-xs text-muted-foreground mt-1">
+                {[profile.publisher, profile.publishedDate?.slice(0, 4)].filter(Boolean).join(" · ")}
+              </p>
+            )}
           </div>
         </div>
-      </SheetHeader>
+      </DialogHeader>
 
-      {/* Stats */}
-      <div className="flex gap-3">
-        <div className="flex-1 rounded-lg bg-muted/50 px-3 py-2 text-center">
-          <p className="text-lg font-bold">{Object.keys(book.contentTypes).length}</p>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Content Types</p>
-        </div>
-        <div className="flex-1 rounded-lg bg-muted/50 px-3 py-2 text-center">
-          <p className="text-lg font-bold">{totalItems}</p>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Total Files</p>
-        </div>
+      {/* Summary */}
+      <div>
+        <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">About</h4>
+        {isLoadingProfile ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+            Loading book info…
+          </div>
+        ) : profile?.summary ? (
+          <p className="text-sm leading-relaxed text-foreground/80">{profile.summary}</p>
+        ) : (
+          <p className="text-sm text-muted-foreground italic">No summary available.</p>
+        )}
       </div>
 
-      {/* Content types with Drive links */}
+      {/* Key themes */}
+      {profile?.keyThemes && (
+        <div>
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Key Themes</h4>
+          <div className="flex flex-wrap gap-1.5">
+            {profile.keyThemes.split(",").map((t) => t.trim()).filter(Boolean).map((theme) => (
+              <span key={theme} className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: color + "18", color }}>
+                {theme}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* External links */}
+      {profile && (profile.amazonUrl || profile.goodreadsUrl || profile.resourceUrl) && (
+        <div>
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Find This Book</h4>
+          <div className="flex flex-col gap-1.5">
+            {profile.amazonUrl && (
+              <a href={profile.amazonUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
+                <ShoppingCart className="w-3.5 h-3.5" />
+                Search on Amazon
+              </a>
+            )}
+            {profile.goodreadsUrl && (
+              <a href={profile.goodreadsUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
+                <BookMarkedIcon className="w-3.5 h-3.5" />
+                Search on Goodreads
+              </a>
+            )}
+            {profile.resourceUrl && (
+              <a href={profile.resourceUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
+                <Globe className="w-3.5 h-3.5" />
+                {profile.resourceLabel || "More Info"}
+              </a>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Library content */}
       <div>
-        <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Available Content</h4>
+        <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">In Your Library ({totalItems} files)</h4>
         <div className="flex flex-col gap-1.5">
           {Object.entries(book.contentTypes).map(([type, count]) => {
             const iconKey = CONTENT_TYPE_ICONS[type] ?? "file";
@@ -815,6 +943,39 @@ export default function Home() {
     [enrichedNamesQuery.data]
   );
 
+  // Fetch all enriched book titles for indicators
+  const enrichedTitlesQuery = trpc.bookProfiles.getAllEnrichedTitles.useQuery(undefined, {
+    staleTime: 60_000,
+  });
+  const enrichedTitlesSet = useMemo(
+    () => new Set(enrichedTitlesQuery.data ?? []),
+    [enrichedTitlesQuery.data]
+  );
+
+  // Fetch all book cover URLs for card display
+  const allBookTitles = useMemo(() => {
+    return Array.from(new Set(BOOKS.map((b) => b.name.split(" - ")[0].trim())));
+  }, []);
+  const bookCoversQuery = trpc.bookProfiles.getMany.useQuery(
+    { bookTitles: allBookTitles },
+    { staleTime: 60_000 }
+  );
+  const bookCoverMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const p of bookCoversQuery.data ?? []) {
+      if (p.coverImageUrl) map.set(p.bookTitle, p.coverImageUrl);
+    }
+    return map;
+  }, [bookCoversQuery.data]);
+
+  // ── Batch enrich books state ──────────────────────────────────
+  const [bookEnrichStatus, setBookEnrichStatus] = useState<EnrichStatus>("idle");
+  const [bookEnrichProgress, setBookEnrichProgress] = useState(0);
+  const [bookEnrichDone, setBookEnrichDone] = useState(0);
+  const [bookEnrichTotal, setBookEnrichTotal] = useState(0);
+  const [bookEnrichFailed, setBookEnrichFailed] = useState(0);
+  const bookEnrichBatchMutation = trpc.bookProfiles.enrichBatch.useMutation();
+
   const utils = trpc.useUtils();
   const enrichAllBios = useCallback(async () => {
     if (enrichStatus === "running") return;
@@ -854,6 +1015,48 @@ export default function Home() {
       toast.error("Bio enrichment failed: " + (err instanceof Error ? err.message : String(err)));
     }
   }, [enrichStatus, enrichBatchMutation, utils]);
+
+  const enrichAllBooks = useCallback(async () => {
+    if (bookEnrichStatus === "running") return;
+    const titles = Array.from(
+      new Set(BOOKS.map((b) => {
+        const d = b.name.indexOf(" - ");
+        return d !== -1 ? b.name.slice(0, d) : b.name;
+      }))
+    );
+    const BATCH_SIZE = 10;
+    setBookEnrichStatus("running");
+    setBookEnrichProgress(0);
+    setBookEnrichDone(0);
+    setBookEnrichFailed(0);
+    setBookEnrichTotal(titles.length);
+    let done = 0;
+    let failed = 0;
+    try {
+      for (let i = 0; i < titles.length; i += BATCH_SIZE) {
+        const batch = titles.slice(i, i + BATCH_SIZE).map((bookTitle) => {
+          const book = BOOKS.find((b) => b.name.startsWith(bookTitle));
+          const authorName = book?.name.includes(" - ") ? book.name.split(" - ").slice(1).join(" - ") : "";
+          return { bookTitle, authorName };
+        });
+        const result = await bookEnrichBatchMutation.mutateAsync(batch);
+        const succeeded = result.filter((r) => r.status === "enriched").length;
+        const batchFailed = result.filter((r) => r.status === "error").length;
+        done += succeeded;
+        failed += batchFailed;
+        setBookEnrichDone(done);
+        setBookEnrichFailed(failed);
+        setBookEnrichProgress(Math.round(((i + batch.length) / titles.length) * 100));
+      }
+      setBookEnrichStatus("done");
+      toast.success(`Enriched ${done} book profiles${failed > 0 ? ` (${failed} failed)` : ""}.`);
+      void utils.bookProfiles.getAllEnrichedTitles.invalidate();
+      void utils.bookProfiles.getMany.invalidate();
+    } catch (err) {
+      setBookEnrichStatus("error");
+      toast.error("Book enrichment failed: " + (err instanceof Error ? err.message : String(err)));
+    }
+  }, [bookEnrichStatus, bookEnrichBatchMutation, utils]);
 
   const regenerate = trpc.library.regenerate.useMutation({
     onSuccess: (data) => {
@@ -1232,6 +1435,81 @@ export default function Home() {
             {enrichStatus === "done" && enrichFailed > 0 && (
               <p className="text-[10px] text-muted-foreground mt-1">{enrichFailed} authors could not be enriched.</p>
             )}
+
+            {/* Enrich All Books button */}
+            <button
+              onClick={enrichAllBooks}
+              disabled={bookEnrichStatus === "running" || regenerate.isPending}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md text-xs font-medium border border-border hover:bg-muted/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-1.5"
+              title="Fetch book covers, summaries, and links for all books"
+            >
+              {bookEnrichStatus === "running" ? (
+                <BookOpen className="w-3.5 h-3.5 animate-pulse" />
+              ) : bookEnrichStatus === "done" ? (
+                <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
+              ) : bookEnrichStatus === "error" ? (
+                <AlertCircle className="w-3.5 h-3.5 text-red-500" />
+              ) : (
+                <BookOpen className="w-3.5 h-3.5" />
+              )}
+              {bookEnrichStatus === "running"
+                ? `Enriching… ${bookEnrichDone}/${bookEnrichTotal}`
+                : bookEnrichStatus === "done"
+                ? `Books enriched (${bookEnrichDone})`
+                : bookEnrichStatus === "error"
+                ? "Enrichment failed — retry"
+                : "Enrich All Books"}
+            </button>
+
+            {/* Book enrichment progress bar */}
+            {bookEnrichStatus === "running" && (
+              <div className="mt-2">
+                <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
+                  <span>{bookEnrichDone} of {bookEnrichTotal} books</span>
+                  <span>{bookEnrichProgress}%</span>
+                </div>
+                <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{ width: `${bookEnrichProgress}%`, backgroundColor: "#0d9488" }}
+                  />
+                </div>
+                {bookEnrichFailed > 0 && (
+                  <p className="text-[10px] text-red-500 mt-1">{bookEnrichFailed} failed</p>
+                )}
+              </div>
+            )}
+
+            {bookEnrichStatus === "done" && bookEnrichFailed > 0 && (
+              <p className="text-[10px] text-muted-foreground mt-1">{bookEnrichFailed} books could not be enriched.</p>
+            )}
+
+            {/* Drive Media Folders */}
+            <div className="mt-3 pt-3 border-t border-border/50">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Media Folders</p>
+              <div className="flex flex-col gap-1">
+                <a
+                  href="https://drive.google.com/drive/folders/1_sTZD5m4dfP4byryghw9XgeDyPnYWNiH"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1 px-2 rounded hover:bg-muted/60"
+                >
+                  <Users className="w-3.5 h-3.5 flex-shrink-0" />
+                  Author Pictures
+                  <ExternalLink className="w-3 h-3 ml-auto opacity-50" />
+                </a>
+                <a
+                  href="https://drive.google.com/drive/folders/1qzmgRdCQr98fxVs6Bvnqi3J-tS574GY1"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1 px-2 rounded hover:bg-muted/60"
+                >
+                  <BookOpen className="w-3.5 h-3.5 flex-shrink-0" />
+                  Book Covers
+                  <ExternalLink className="w-3 h-3 ml-auto opacity-50" />
+                </a>
+              </div>
+            </div>
           </SidebarFooter>
         </Sidebar>
 
@@ -1391,11 +1669,20 @@ export default function Home() {
                 <EmptyState query={query} />
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                  {filteredBooks.map((b, i) => (
-                    <div key={b.id + i} style={{ animationDelay: `${Math.min(i * 30, 400)}ms` }}>
-                      <BookCard book={b} query={query} onDetailClick={(book) => { setSelectedBook(book); setBookSheetOpen(true); }} />
-                    </div>
-                  ))}
+                  {filteredBooks.map((b, i) => {
+                    const titleKey = b.name.split(" - ")[0].trim();
+                    return (
+                      <div key={b.id + i} style={{ animationDelay: `${Math.min(i * 30, 400)}ms` }}>
+                        <BookCard
+                          book={b}
+                          query={query}
+                          onDetailClick={(book) => { setSelectedBook(book); setBookSheetOpen(true); }}
+                          coverImageUrl={bookCoverMap.get(titleKey)}
+                          isEnriched={enrichedTitlesSet.has(titleKey)}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
               )
             ) : filteredAudio.length === 0 ? (
@@ -1426,17 +1713,17 @@ export default function Home() {
       </DialogContent>
     </Dialog>
 
-    {/* ── Book Detail Sheet ──────────────────────────────── */}
-    <Sheet open={bookSheetOpen} onOpenChange={setBookSheetOpen}>
-      <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+    {/* ── Book Detail Modal ────────────────────── */}
+    <Dialog open={bookSheetOpen} onOpenChange={setBookSheetOpen}>
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         {selectedBook && (
           <BookDetailPanel
             book={selectedBook}
             onClose={() => setBookSheetOpen(false)}
           />
         )}
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
     </>
   );
 }

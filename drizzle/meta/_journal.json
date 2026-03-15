@@ -15,6 +15,20 @@
       "when": 1773572426358,
       "tag": "0001_motionless_roland_deschain",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1773575287257,
+      "tag": "0002_condemned_texas_twister",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1773575807390,
+      "tag": "0003_reflective_whistler",
+      "breakpoints": true
     }
   ]
 }

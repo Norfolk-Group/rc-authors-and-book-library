@@ -3,7 +3,6 @@ import { eq, ne } from "drizzle-orm";
 import { getDb } from "./db";
 import { authorProfiles } from "../drizzle/schema";
 import { publicProcedure, router } from "./_core/trpc";
-import { invokeLLM } from "./_core/llm";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface AuthorInfo {
@@ -13,59 +12,104 @@ interface AuthorInfo {
   linkedinUrl: string;
 }
 
-// ── LLM enrichment ────────────────────────────────────────────────────────────
-async function enrichAuthorViaLLM(authorName: string): Promise<AuthorInfo> {
-  const response = await invokeLLM({
-    messages: [
-      {
-        role: "system",
-        content:
-          "You are a research assistant with deep knowledge of business authors, thought leaders, and academics. Return accurate, factual information only. For URLs, only include real, verified URLs that you are highly confident exist.",
-      },
-      {
-        role: "user",
-        content: `Provide information about the author "${authorName}". Return a JSON object with these exact fields:
-- bio: A 2-3 sentence professional biography (focus on their main field, notable works, and impact). Keep it under 250 characters.
-- websiteUrl: Their official personal or author website URL (e.g., adamgrant.net). Empty string if unknown.
-- twitterUrl: Their Twitter/X profile URL (e.g., https://twitter.com/AdamMGrant). Empty string if unknown.
-- linkedinUrl: Their LinkedIn profile URL. Empty string if unknown.
+// ── Wikipedia + Wikidata enrichment ──────────────────────────────────────────
 
-Return ONLY valid JSON, no markdown, no explanation.`,
-      },
-    ],
-    response_format: {
-      type: "json_schema",
-      json_schema: {
-        name: "author_info",
-        strict: true,
-        schema: {
-          type: "object",
-          properties: {
-            bio: { type: "string", description: "2-3 sentence professional biography" },
-            websiteUrl: { type: "string", description: "Official website URL or empty string" },
-            twitterUrl: { type: "string", description: "Twitter/X profile URL or empty string" },
-            linkedinUrl: { type: "string", description: "LinkedIn profile URL or empty string" },
-          },
-          required: ["bio", "websiteUrl", "twitterUrl", "linkedinUrl"],
-          additionalProperties: false,
-        },
-      },
-    },
-  });
+/**
+ * Fetch author bio from Wikipedia REST API and social/website links from Wikidata.
+ * Falls back gracefully if any request fails.
+ */
+export async function enrichAuthorViaWikipedia(authorName: string): Promise<AuthorInfo> {
+  const result: AuthorInfo = { bio: "", websiteUrl: "", twitterUrl: "", linkedinUrl: "" };
 
-  // response_format content is always a string
-  const content = (response.choices?.[0]?.message?.content as string) ?? "{}";
   try {
-    const parsed = JSON.parse(content) as Partial<AuthorInfo>;
-    return {
-      bio: parsed.bio ?? "",
-      websiteUrl: parsed.websiteUrl ?? "",
-      twitterUrl: parsed.twitterUrl ?? "",
-      linkedinUrl: parsed.linkedinUrl ?? "",
-    };
-  } catch {
-    return { bio: "", websiteUrl: "", twitterUrl: "", linkedinUrl: "" };
+    // 1. Wikipedia summary (bio + wikibase_item for Wikidata lookup)
+    const searchSlug = encodeURIComponent(authorName.replace(/ /g, "_"));
+    const wikiUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${searchSlug}`;
+    const wikiRes = await fetch(wikiUrl, {
+      headers: { "User-Agent": "NCG-Library/1.0 (contact@norfolkconsulting.com)" },
+    });
+
+    let wikidataId: string | null = null;
+
+    if (wikiRes.ok) {
+      const wikiData = (await wikiRes.json()) as {
+        extract?: string;
+        wikibase_item?: string;
+      };
+      // Use the first 2 sentences of the extract as the bio
+      const extract = wikiData.extract ?? "";
+      const sentences = extract.match(/[^.!?]+[.!?]+/g) ?? [];
+      result.bio = sentences.slice(0, 2).join(" ").trim().slice(0, 400);
+      wikidataId = wikiData.wikibase_item ?? null;
+    } else {
+      // Try searching for the author by name if direct slug fails
+      const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(authorName)}&srlimit=1&format=json&origin=*`;
+      const searchRes = await fetch(searchUrl, {
+        headers: { "User-Agent": "NCG-Library/1.0" },
+      });
+      if (searchRes.ok) {
+        const searchData = (await searchRes.json()) as {
+          query?: { search?: Array<{ title: string }> };
+        };
+        const firstResult = searchData.query?.search?.[0];
+        if (firstResult) {
+          const altSlug = encodeURIComponent(firstResult.title.replace(/ /g, "_"));
+          const altRes = await fetch(
+            `https://en.wikipedia.org/api/rest_v1/page/summary/${altSlug}`,
+            { headers: { "User-Agent": "NCG-Library/1.0" } }
+          );
+          if (altRes.ok) {
+            const altData = (await altRes.json()) as {
+              extract?: string;
+              wikibase_item?: string;
+            };
+            const extract = altData.extract ?? "";
+            const sentences = extract.match(/[^.!?]+[.!?]+/g) ?? [];
+            result.bio = sentences.slice(0, 2).join(" ").trim().slice(0, 400);
+            wikidataId = altData.wikibase_item ?? null;
+          }
+        }
+      }
+    }
+
+    // 2. Wikidata for website + Twitter
+    if (wikidataId) {
+      const wdUrl = `https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${wikidataId}&props=claims&format=json&origin=*`;
+      const wdRes = await fetch(wdUrl, {
+        headers: { "User-Agent": "NCG-Library/1.0" },
+      });
+      if (wdRes.ok) {
+        const wdData = (await wdRes.json()) as {
+          entities?: Record<string, {
+            claims?: Record<string, Array<{
+              mainsnak?: { datavalue?: { value?: string } };
+            }>>;
+          }>;
+        };
+        const entity = wdData.entities?.[wikidataId];
+        const claims = entity?.claims ?? {};
+
+        // P856 = official website
+        const websiteClaim = claims["P856"]?.[0];
+        const website = websiteClaim?.mainsnak?.datavalue?.value ?? "";
+        if (website) result.websiteUrl = website;
+
+        // P2002 = Twitter username
+        const twitterClaim = claims["P2002"]?.[0];
+        const twitterHandle = twitterClaim?.mainsnak?.datavalue?.value ?? "";
+        if (twitterHandle) result.twitterUrl = `https://twitter.com/${twitterHandle}`;
+
+        // P6634 = LinkedIn personal profile ID
+        const linkedinClaim = claims["P6634"]?.[0];
+        const linkedinId = linkedinClaim?.mainsnak?.datavalue?.value ?? "";
+        if (linkedinId) result.linkedinUrl = `https://www.linkedin.com/in/${linkedinId}`;
+      }
+    }
+  } catch (err) {
+    console.error(`[authorEnrich] Failed to enrich "${authorName}":`, err);
   }
+
+  return result;
 }
 
 // ── Router ────────────────────────────────────────────────────────────────────
@@ -115,8 +159,8 @@ export const authorProfilesRouter = router({
         return { success: true, cached: true, profile: existing[0] };
       }
 
-      // Enrich via LLM
-      const info = await enrichAuthorViaLLM(input.authorName);
+      // Enrich via Wikipedia/Wikidata
+      const info = await enrichAuthorViaWikipedia(input.authorName);
       const now = new Date();
 
       if (existing[0]) {
@@ -175,7 +219,7 @@ export const authorProfilesRouter = router({
             continue;
           }
 
-          const info = await enrichAuthorViaLLM(authorName);
+          const info = await enrichAuthorViaWikipedia(authorName);
           const now = new Date();
 
           if (existing[0]) {

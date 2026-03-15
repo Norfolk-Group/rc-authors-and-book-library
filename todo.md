@@ -89,3 +89,16 @@
 - [x] Drive link stays accessible as icon in top-right of card header
 - [x] 69 vitest tests passing (4 test files)
 - [x] Save checkpoint
+
+## Session March 15, 2026 — Part 8 (Books Enrichment — Real Data)
+- [x] Add book_profiles DB table (summary, coverUrl, amazonUrl, goodreadsUrl, keyThemes, rating, enrichedAt)
+- [x] Add tRPC procedures: get, getMany, getAllEnrichedTitles, enrich, enrichBatch
+- [ ] Fetch book covers from Google Books API (by title + author search, store coverUrl in DB)
+- [ ] Fetch author bios from Wikipedia API (structured, reliable, free — replace LLM generation)
+- [ ] Fetch author website URLs from Wikipedia/Wikidata
+- [ ] Update server enrichment procedures to use real sources
+- [ ] Integrate book covers into BookCard UI (cover thumbnail on left or top)
+- [ ] Build Book Detail Dialog modal (cover, summary, key themes, Amazon/Goodreads links, content types)
+- [ ] Add enrichment status indicator on book cards
+- [ ] Add "Enrich All Books" button to sidebar with progress bar
+- [ ] Run tests and save checkpoint
