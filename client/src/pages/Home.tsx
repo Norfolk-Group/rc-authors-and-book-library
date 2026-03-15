@@ -581,6 +581,24 @@ export default function Home() {
         }
       }
     }
+    // Second pass: deduplicate books within each author by title
+    // (same book may appear as "Title" and "Title - Author" with different Drive IDs)
+    for (const author of Array.from(seen.values())) {
+      const bookByTitle = new Map<string, typeof author.books[number]>();
+      for (const book of author.books) {
+        const titleKey = book.name.split(" - ")[0].trim().toLowerCase();
+        const existing = bookByTitle.get(titleKey);
+        if (!existing) {
+          bookByTitle.set(titleKey, book);
+        } else {
+          // Prefer the entry with more content types; tie-break: prefer "Title - Author" format
+          const existingScore = Object.keys(existing.contentTypes).length * 2 + (existing.name.includes(" - ") ? 1 : 0);
+          const newScore = Object.keys(book.contentTypes).length * 2 + (book.name.includes(" - ") ? 1 : 0);
+          if (newScore > existingScore) bookByTitle.set(titleKey, book);
+        }
+      }
+      author.books = Array.from(bookByTitle.values());
+    }
     const deduped = Array.from(seen.values());
     return deduped.filter((a) => {
       const matchesCat = selectedCategories.size === 0 || selectedCategories.has(a.category);

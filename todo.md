@@ -46,3 +46,8 @@
 - [x] Upload headshots to CDN and integrate into author cards
 - [x] Save Norfolk AI palette as reusable skill (/home/ubuntu/skills/norfolk-ai-palette/SKILL.md)
 - [x] Save checkpoint and publish
+
+## Session March 15, 2026 — Part 3
+- [x] Fix duplicate books within author cards (e.g., "Hidden Potential" x2 under Adam Grant)
+- [x] Validate and deliver person-headshot-generator skill
+- [x] Save checkpoint
