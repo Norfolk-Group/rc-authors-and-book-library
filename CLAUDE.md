@@ -225,3 +225,109 @@ All scripts use the `gws` CLI for Google Drive API calls. Run with `python3.11 -
 ---
 
 *Last updated: March 2026 — NCG Knowledge Library v1.0*
+
+---
+
+## 🤝 Claude Code Task Handoff (March 2026)
+
+### Primary Task: Fetch Amazon Author Bios
+
+The app currently has shallow 2-sentence Wikipedia bios for most authors. Your job is to fetch **rich, accurate bios from Amazon author pages** for all 105 authors.
+
+**Author → Books map** is in `author_books_map.json` at the repo root. Use the book titles as search anchors to find the correct Amazon author page.
+
+**How to find Amazon bios:**
+1. Search `https://www.amazon.com/s?k={author_name}&i=stripbooks`
+2. Click through to the book page → scroll to "About the Author" section
+3. Or go directly to `https://www.amazon.com/author/{handle}` if you can find the handle
+4. Extract the bio text (typically 3–6 sentences)
+
+**How to save bios to the database:**
+```bash
+# The tRPC endpoint accepts batches of up to 20 author names
+curl -X POST http://localhost:3000/api/trpc/authorProfiles.enrichBatch \
+  -H "Content-Type: application/json" \
+  -d '{"json":{"authorNames":["Adam Grant","James Clear"]}}'
+```
+
+Or write directly to the DB using Drizzle — see `server/db.ts` and `drizzle/schema.ts`.
+
+**Save bio files to Drive** (Bios folder ID: `1DDxUQhlMmqudPFzkp5oOjru1zZd_XAl-`):
+```bash
+gws drive files create \
+  --json '{"name":"Adam Grant.txt","parents":["1DDxUQhlMmqudPFzkp5oOjru1zZd_XAl-"]}' \
+  --media-file /path/to/"Adam Grant.txt"
+```
+
+---
+
+### Secondary Task: Fix Author Name Errors
+
+Fix these in `client/src/lib/libraryData.ts`:
+
+| Wrong | Correct | Books (evidence) |
+|---|---|---|
+| `Matt Dixon` | `Matthew Dixon` | The Challenger Sale, The JOLT Effect |
+| `Ashwin Vaidyanathan and Ruben Rubago` | `Ashvin Vaidyanathan & Ruben Rabago` | The Customer Success Professional's Handbook |
+| `Steven Hawking` | `Stephen Hawking` | The Grand Design |
+| `Kerry Leonard` | `Kelly Leonard` | Yes, And (with Tom Yorton) |
+| `Peter Hans Beck` | `Hans Peter Bech` | Building Successful Partner Channels |
+| `Richard H Thaler` | `Richard H. Thaler` | Misbehaving, Nudge |
+| `Robert B Cialdini` | `Robert B. Cialdini` | Influence, Pre-Suasion |
+| `Geoffrey A. Moore` | `Geoffrey Moore` | Crossing the Chasm |
+| `TEST Matthew Dixon` | **DELETE** | Test entry |
+| `Your Next Five Moves` | **DELETE** | Book title, not an author |
+| `Founders Pocket Guide` | **DELETE** | Series name, not an author |
+
+---
+
+### Google Drive Folder IDs
+
+| Folder | ID |
+|---|---|
+| Authors (root) | `119tuydLrpyvavFEouf3SCq38LAD4_ln5` |
+| Author Pictures | `1XGBfvnqN3W9LFpFJjqhDEZVBRPrXGf9W` |
+| Book Covers | `1fmHQBjkKmhGYVBkjnGFBpJFBpJFBpJFBp` |
+| Bios | `1DDxUQhlMmqudPFzkp5oOjru1zZd_XAl-` |
+
+---
+
+### What's Already Done
+
+- ✅ 105 author bios enriched via Wikipedia (shallow — needs Amazon upgrade)
+- ✅ 140 books enriched via Google Books API (covers, summaries, ratings)
+- ✅ 143 book cover images uploaded to Drive
+- ✅ 93 author headshots uploaded to Drive and CDN
+- ✅ Book detail modal: cover, summary, rating, Amazon/Goodreads links
+- ✅ Author bio modal: photo, bio, website/Twitter/LinkedIn links
+- ✅ Enrich All Books + Enrich All Bios buttons in sidebar
+
+### What Needs Doing
+
+- [ ] Fetch rich Amazon author bios for all 105 authors
+- [ ] Fix the 11 author name errors listed above
+- [ ] Save bio .txt files to the Drive Bios folder
+- [ ] Fetch author headshots for the ~72 authors still missing photos
+- [ ] Update `client/src/lib/authorPhotos.ts` with new headshot CDN URLs
+
+---
+
+### DB Schema (author_profiles table)
+
+```typescript
+export const authorProfiles = mysqlTable('author_profiles', {
+  id: int('id').primaryKey().autoincrement(),
+  authorName: varchar('authorName', { length: 255 }).notNull().unique(),
+  bio: text('bio'),
+  websiteUrl: varchar('websiteUrl', { length: 500 }),
+  twitterUrl: varchar('twitterUrl', { length: 500 }),
+  linkedinUrl: varchar('linkedinUrl', { length: 500 }),
+  enrichedAt: datetime('enrichedAt'),
+});
+```
+
+Set `enrichedAt = null` to force re-enrichment of any author.
+
+---
+
+*Handoff created by Manus — March 15, 2026*
