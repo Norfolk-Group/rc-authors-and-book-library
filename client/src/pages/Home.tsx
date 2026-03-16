@@ -56,7 +56,6 @@ import {
   CATEGORIES,
   CATEGORY_COLORS,
   CATEGORY_ICONS,
-  CATEGORY_BG,
   CONTENT_TYPE_ICONS,
   CONTENT_TYPE_COLORS,
   type AuthorEntry,
@@ -66,7 +65,6 @@ import { AUDIO_BOOKS, type AudioBook } from "@/lib/audioData";
 import { getAuthorPhoto } from "@/lib/authorPhotos";
 import { canonicalName } from "@/lib/authorAliases";
 import { useTheme, type AppTheme } from "@/contexts/ThemeContext";
-import { useAppSettings } from "@/contexts/AppSettingsContext";
 import { CategoryChart } from "@/components/CategoryChart";
 import {
   Search,
@@ -276,9 +274,6 @@ function AuthorCard({ author, query, onBioClick, isEnriched }: { author: AuthorE
   const iconName = CATEGORY_ICONS[author.category] ?? "briefcase";
   const Icon = ICON_MAP[iconName] ?? Briefcase;
   const driveUrl = `https://drive.google.com/drive/folders/${author.id}?view=grid`;
-  const { settings: appSettings } = useAppSettings();
-  const isNoir = appSettings.theme === "noir-dark";
-
   // Resolve canonical display name (handles aliases, suffix variants, misspellings)
   const displayName = canonicalName(author.name);
   const specialty = author.name.includes(" - ") ? author.name.slice(author.name.indexOf(" - ") + 3) : "";
@@ -301,12 +296,10 @@ function AuthorCard({ author, query, onBioClick, isEnriched }: { author: AuthorE
 
   const hasBooks = author.books && author.books.length > 0;
 
-  const bg = isNoir ? undefined : (CATEGORY_BG[author.category] ?? "#fafaf9");
-
   return (
     <div
       className="card-animate group rounded-lg border border-border shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden relative bg-card"
-      style={{ borderLeftWidth: 3, borderLeftColor: color, ...(bg ? { backgroundColor: bg } : {}) }}
+      style={{ borderLeftWidth: 3, borderLeftColor: color }}
     >
       {/* Watermark illustration */}
       <div
@@ -414,8 +407,6 @@ function BookCard({ book, query, onDetailClick, coverImageUrl, isEnriched }: { b
   const iconName = CATEGORY_ICONS[book.category] ?? "book-open";
   const Icon = ICON_MAP[iconName] ?? BookMarked;
   const driveUrl = `https://drive.google.com/drive/folders/${book.id}?view=grid`;
-   const { settings: appSettings } = useAppSettings();
-  const isNoir = appSettings.theme === "noir-dark";
   // Extract title and author from book name (format: "Title - Author Name")
   const dashIdx = book.name.indexOf(" - ");
   const displayTitle = dashIdx !== -1 ? book.name.slice(0, dashIdx) : book.name;
@@ -435,12 +426,10 @@ function BookCard({ book, query, onDetailClick, coverImageUrl, isEnriched }: { b
   };
 
   const hasContent = Object.keys(book.contentTypes).length > 0;
-  const bg = isNoir ? undefined : (CATEGORY_BG[book.category] ?? "#fafaf9");
-
   return (
     <div
       className="card-animate group rounded-lg border border-border shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden cursor-pointer relative bg-card"
-      style={{ borderLeftWidth: 3, borderLeftColor: color, ...(bg ? { backgroundColor: bg } : {}) }}
+      style={{ borderLeftWidth: 3, borderLeftColor: color }}
       onClick={() => onDetailClick?.(book)}
     >
       {/* Watermark (only when no cover) */}
@@ -524,10 +513,6 @@ function BookCard({ book, query, onDetailClick, coverImageUrl, isEnriched }: { b
 // ── Audio Book Cardd ──────────────────────────────────────────
 function AudioCard({ audio, query }: { audio: AudioBook; query: string }) {
   const driveUrl = `https://drive.google.com/drive/folders/${audio.id}?view=grid`;
-  const { settings: appSettings } = useAppSettings();
-  const isNoir = appSettings.theme === "noir-dark";
-  const audioBg = isNoir ? undefined : "#fffbeb";
-
   const highlight = (text: string) => {
     if (!query) return <>{text}</>;
     const idx = text.toLowerCase().indexOf(query.toLowerCase());
@@ -549,7 +534,7 @@ function AudioCard({ audio, query }: { audio: AudioBook; query: string }) {
       target="_blank"
       rel="noopener noreferrer"
       className="card-animate group rounded-lg border border-border shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden block cursor-pointer relative bg-card"
-      style={{ borderLeftWidth: 3, borderLeftColor: "#d97706", ...(audioBg ? { backgroundColor: audioBg } : {}) }}
+      style={{ borderLeftWidth: 3, borderLeftColor: "#d97706" }}
     >
       {/* Watermark */}
       <div className="pointer-events-none absolute bottom-2 right-2 select-none" aria-hidden>
@@ -752,7 +737,7 @@ function BookDetailPanel({ book, onClose }: { book: typeof BOOKS[number]; onClos
   const totalItems = Object.values(book.contentTypes).reduce((s, n) => s + n, 0);
 
   // Fetch enriched profile from DB
-  const { data: profile, isLoading } = trpc.bookProfiles.get.useQuery({ bookTitle: displayTitle });
+  const { data: profile, isLoading, refetch: refetchProfile } = trpc.bookProfiles.get.useQuery({ bookTitle: displayTitle });
   const enrichMutation = trpc.bookProfiles.enrich.useMutation({
     onError: (e) => toast.error("Failed to load book info: " + e.message),
   });
@@ -767,6 +752,19 @@ function BookDetailPanel({ book, onClose }: { book: typeof BOOKS[number]; onClos
   }, [isLoading, profile]);
 
   const isLoadingProfile = isLoading || enrichMutation.isPending;
+
+  // Apify Amazon scrape mutation
+  const scrapeMutation = trpc.apify.scrapeBook.useMutation({
+    onSuccess: (data) => {
+      if (data.success) {
+        toast.success(`Found on Amazon: ${data.matchedTitle ?? displayTitle}`);
+        refetchProfile();
+      } else {
+        toast.error("Amazon scrape: " + ((data as { message?: string }).message ?? "No results found"));
+      }
+    },
+    onError: (e) => toast.error("Amazon scrape failed: " + e.message),
+  });
 
   return (
     <div className="flex flex-col gap-5 pt-2">
@@ -850,32 +848,48 @@ function BookDetailPanel({ book, onClose }: { book: typeof BOOKS[number]; onClos
         </div>
       )}
 
-      {/* External links */}
-      {profile && (profile.amazonUrl || profile.goodreadsUrl || profile.resourceUrl) && (
-        <div>
-          <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Find This Book</h4>
-          <div className="flex flex-col gap-1.5">
-            {profile.amazonUrl && (
-              <a href={profile.amazonUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
-                <ShoppingCart className="w-3.5 h-3.5" />
-                Search on Amazon
-              </a>
+      {/* External links + Amazon scrape */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Find This Book</h4>
+          <button
+            onClick={() => scrapeMutation.mutate({ title: displayTitle, author: bookAuthor })}
+            disabled={scrapeMutation.isPending}
+            className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md border border-border bg-card hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+            title="Scrape Amazon for cover image and buy link"
+          >
+            {scrapeMutation.isPending ? (
+              <RefreshCw className="w-3 h-3 animate-spin" />
+            ) : (
+              <ShoppingCart className="w-3 h-3" />
             )}
-            {profile.goodreadsUrl && (
-              <a href={profile.goodreadsUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
-                <BookMarkedIcon className="w-3.5 h-3.5" />
-                Search on Goodreads
-              </a>
-            )}
-            {profile.resourceUrl && (
-              <a href={profile.resourceUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
-                <Globe className="w-3.5 h-3.5" />
-                {profile.resourceLabel || "More Info"}
-              </a>
-            )}
-          </div>
+            {scrapeMutation.isPending ? "Searching..." : "Scrape Amazon"}
+          </button>
         </div>
-      )}
+        <div className="flex flex-col gap-1.5">
+          {profile?.amazonUrl && (
+            <a href={profile.amazonUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
+              <ShoppingCart className="w-3.5 h-3.5" />
+              Buy on Amazon
+            </a>
+          )}
+          {profile?.goodreadsUrl && (
+            <a href={profile.goodreadsUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
+              <BookMarkedIcon className="w-3.5 h-3.5" />
+              Search on Goodreads
+            </a>
+          )}
+          {profile?.resourceUrl && (
+            <a href={profile.resourceUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
+              <Globe className="w-3.5 h-3.5" />
+              {profile.resourceLabel || "More Info"}
+            </a>
+          )}
+          {!profile?.amazonUrl && !profile?.goodreadsUrl && !profile?.resourceUrl && !scrapeMutation.isPending && (
+            <p className="text-xs text-muted-foreground">Click "Scrape Amazon" to find purchase links and cover art.</p>
+          )}
+        </div>
+      </div>
 
       {/* Library content */}
       <div>

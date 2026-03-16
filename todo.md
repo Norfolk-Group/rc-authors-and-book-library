@@ -185,3 +185,12 @@
 - [x] Noir Dark theme strips all category tints (clean white bg-card)
 - [x] Manus and Norfolk AI themes keep soft category-tinted pastels
 - [x] 105 tests passing
+
+## Session March 16, 2026 — Card Theme Fix + Home Button + Amazon Scrape
+- [ ] Remove all hardcoded category-tinted card backgrounds (CATEGORY_BG pastels) — use only bg-card
+- [ ] Ensure category accent color is shown only via the left border stripe, not the card fill
+- [ ] Add persistent Home button to PageHeader (top-left, visible on all non-home pages)
+- [ ] Add Home button to sidebar footer as a navigation shortcut
+- [ ] Wire trpc.apify.scrapeBook mutation into book detail drawer with loading state and toast feedback
+- [ ] Show scraped cover image immediately in the drawer after successful scrape
+- [ ] Save Amazon URL to bookProfiles DB after scrape
