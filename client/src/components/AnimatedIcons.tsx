@@ -5,7 +5,7 @@
  * Phosphor icons are static SVGs; use these for motion.
  *
  * Components:
- *   ManusSpinner   — 3D morphing blue square (primary loading indicator)
+ *   ManusSpinner   — 3D morphing primary-colored square (primary loading indicator)
  *   SpinningArc    — Thin circular arc (inline progress)
  *   ThinkingDots   — Three bouncing dots (AI composing)
  *   PulsingRing    — Expanding pulse ring (active task indicator)
@@ -27,8 +27,8 @@ export function ManusSpinner({ size = 40 }: { size?: number }) {
         }
         .manus-spinner {
           animation: manus-spin 2s ease-in-out infinite;
-          background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 50%, #2563eb 100%);
-          box-shadow: 0 0 20px rgba(59,130,246,0.4), 0 0 40px rgba(59,130,246,0.15);
+          background: hsl(var(--primary));
+          box-shadow: 0 0 20px hsl(var(--primary) / 0.4), 0 0 40px hsl(var(--primary) / 0.15);
         }
       `}</style>
       <div className="manus-spinner" style={{ width: size, height: size }} />
@@ -38,7 +38,9 @@ export function ManusSpinner({ size = 40 }: { size?: number }) {
 
 // ── SpinningArc ───────────────────────────────────────────────────────────────
 
-export function SpinningArc({ size = 16, color = "#3B82F6" }: { size?: number; color?: string }) {
+export function SpinningArc({ size = 16, color }: { size?: number; color?: string }) {
+  // Default to CSS variable if no explicit color provided
+  const strokeColor = color ?? "hsl(var(--primary))";
   return (
     <>
       <style>{`
@@ -46,11 +48,11 @@ export function SpinningArc({ size = 16, color = "#3B82F6" }: { size?: number; c
         .spin-arc { animation: spin-arc 0.8s linear infinite; }
       `}</style>
       <svg width={size} height={size} viewBox="0 0 16 16" className="spin-arc" style={{ flexShrink: 0 }}>
-        <circle cx="8" cy="8" r="6" fill="none" stroke="#E5E7EB" strokeWidth="1.5" />
+        <circle cx="8" cy="8" r="6" fill="none" stroke="hsl(var(--border))" strokeWidth="1.5" />
         <path
           d="M 8 2 A 6 6 0 0 1 14 8"
           fill="none"
-          stroke={color}
+          stroke={strokeColor}
           strokeWidth="1.5"
           strokeLinecap="round"
         />
@@ -61,7 +63,8 @@ export function SpinningArc({ size = 16, color = "#3B82F6" }: { size?: number; c
 
 // ── ThinkingDots ──────────────────────────────────────────────────────────────
 
-export function ThinkingDots({ color = "#9CA3AF" }: { color?: string }) {
+export function ThinkingDots({ color }: { color?: string }) {
+  const dotColor = color ?? "hsl(var(--muted-foreground))";
   return (
     <>
       <style>{`
@@ -77,7 +80,7 @@ export function ThinkingDots({ color = "#9CA3AF" }: { color?: string }) {
         {["dot-1", "dot-2", "dot-3"].map((cls) => (
           <span key={cls} className={cls} style={{
             display: "block", width: 5, height: 5,
-            borderRadius: "50%", background: color,
+            borderRadius: "50%", background: dotColor,
           }} />
         ))}
       </div>
@@ -87,7 +90,8 @@ export function ThinkingDots({ color = "#9CA3AF" }: { color?: string }) {
 
 // ── PulsingRing ───────────────────────────────────────────────────────────────
 
-export function PulsingRing({ color = "#3B82F6", size = 12 }: { color?: string; size?: number }) {
+export function PulsingRing({ color, size = 12 }: { color?: string; size?: number }) {
+  const ringColor = color ?? "hsl(var(--primary))";
   return (
     <>
       <style>{`
@@ -100,11 +104,11 @@ export function PulsingRing({ color = "#3B82F6", size = 12 }: { color?: string; 
       <span style={{ position: "relative", display: "inline-flex", width: size, height: size }}>
         <span className="pulse-ring" style={{
           position: "absolute", inset: 0,
-          borderRadius: "50%", background: color,
+          borderRadius: "50%", background: ringColor,
         }} />
         <span style={{
           position: "relative", width: "100%", height: "100%",
-          borderRadius: "50%", background: color,
+          borderRadius: "50%", background: ringColor,
         }} />
       </span>
     </>
@@ -130,7 +134,12 @@ export function SkeletonShimmer({
           100% { background-position: 400px 0; }
         }
         .skeleton-shimmer {
-          background: linear-gradient(90deg, #F0F0F0 25%, #E8E8E8 50%, #F0F0F0 75%);
+          background: linear-gradient(
+            90deg,
+            hsl(var(--muted)) 25%,
+            hsl(var(--secondary)) 50%,
+            hsl(var(--muted)) 75%
+          );
           background-size: 800px 100%;
           animation: shimmer 1.5s ease-in-out infinite;
         }

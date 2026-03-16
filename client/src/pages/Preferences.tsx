@@ -29,13 +29,13 @@ const THEMES: {
   {
     id: "manus",
     label: "Manus",
-    description: "Achromatic, grey hierarchy, flat surfaces. Clean and focused.",
+    description: "Indigo-blue primary, warm off-white surface, deep indigo sidebar. Modern and focused.",
     palette: {
-      bg: "#FAFAFA",
-      fg: "#1A1A1A",
-      primary: "#1A1A1A",
-      accent: "#6B7280",
-      sidebar: "#FFFFFF",
+      bg: "#F4F6FA",
+      fg: "#1A2340",
+      primary: "#4F6EF7",
+      accent: "#7C3AED",
+      sidebar: "#1A2340",
     },
   },
   {

@@ -270,7 +270,7 @@ function EmptyState({ query }: { query: string }) {
 
 // ── Author Card ──────────────────────────────────────────────
 function AuthorCard({ author, query, onBioClick, isEnriched }: { author: AuthorEntry; query: string; onBioClick: (a: AuthorEntry) => void; isEnriched?: boolean }) {
-  const color = CATEGORY_COLORS[author.category] ?? "#374151";
+  const color = CATEGORY_COLORS[author.category] ?? "hsl(var(--muted-foreground))";
   const iconName = CATEGORY_ICONS[author.category] ?? "briefcase";
   const Icon = ICON_MAP[iconName] ?? Briefcase;
   const driveUrl = `https://drive.google.com/drive/folders/${author.id}?view=grid`;
@@ -403,7 +403,7 @@ function AuthorCard({ author, query, onBioClick, isEnriched }: { author: AuthorE
   );
 }// ── Book Card ──────────────────────────────────────────────
 function BookCard({ book, query, onDetailClick, coverImageUrl, isEnriched }: { book: BookRecord; query: string; onDetailClick?: (b: BookRecord) => void; coverImageUrl?: string; isEnriched?: boolean }) {
-  const color = CATEGORY_COLORS[book.category] ?? "#374151";
+  const color = CATEGORY_COLORS[book.category] ?? "hsl(var(--muted-foreground))";
   const iconName = CATEGORY_ICONS[book.category] ?? "book-open";
   const Icon = ICON_MAP[iconName] ?? BookMarked;
   const driveUrl = `https://drive.google.com/drive/folders/${book.id}?view=grid`;
@@ -533,21 +533,20 @@ function AudioCard({ audio, query }: { audio: AudioBook; query: string }) {
       href={driveUrl}
       target="_blank"
       rel="noopener noreferrer"
-      className="card-animate group rounded-lg border border-border shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden block cursor-pointer relative bg-card"
-      style={{ borderLeftWidth: 3, borderLeftColor: "#d97706" }}
+      className="card-animate group rounded-lg border border-border shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden block cursor-pointer relative bg-card border-l-[3px] border-l-primary"
     >
       {/* Watermark */}
       <div className="pointer-events-none absolute bottom-2 right-2 select-none" aria-hidden>
-        <Headphones style={{ width: 72, height: 72, color: "#d97706", opacity: 0.07 }} strokeWidth={1} />
+        <Headphones className="w-[72px] h-[72px] text-primary opacity-[0.07]" strokeWidth={1} />
       </div>
 
       <div className="p-4 relative z-10">
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "#d9770622" }}>
-              <Headphones className="w-3.5 h-3.5" style={{ color: "#d97706" }} />
+            <div className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0 bg-primary/10">
+              <Headphones className="w-3.5 h-3.5 text-primary" />
             </div>
-            <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "#d97706" }}>
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-primary">
               Audiobook
             </span>
           </div>
@@ -566,7 +565,7 @@ function AudioCard({ audio, query }: { audio: AudioBook; query: string }) {
         {/* Format badges with file counts */}
         <div className="flex flex-wrap gap-1.5 mt-2 pt-2 border-t border-border/50">
           {Object.entries(audio.formats).map(([fmt, info]) => {
-            const colors = FORMAT_COLORS[fmt] ?? { bg: "#f3f4f6", text: "#374151", label: fmt };
+            const colors = FORMAT_COLORS[fmt] ?? { bg: "hsl(var(--muted))", text: "hsl(var(--muted-foreground))", label: fmt };
             return (
               <a
                 key={fmt}
@@ -598,7 +597,7 @@ function AuthorBioPanel({ author, onClose }: { author: typeof AUTHORS[number]; o
   const displayName = canonicalName(author.name);
   const specialty = author.name.includes(" - ") ? author.name.slice(author.name.indexOf(" - ") + 3) : "";
   const photoUrl = getAuthorPhoto(displayName);
-  const color = CATEGORY_COLORS[author.category] ?? "#374151";
+  const color = CATEGORY_COLORS[author.category] ?? "hsl(var(--muted-foreground))";
   const driveUrl = `https://drive.google.com/drive/folders/${author.id}?view=grid`;
 
   // Check JSON bios first (rich bios from Claude Code research)
@@ -727,7 +726,7 @@ function AuthorBioPanel({ author, onClose }: { author: typeof AUTHORS[number]; o
 
 // ── Book Detail Modal ─────────────────────────────────────────
 function BookDetailPanel({ book, onClose }: { book: typeof BOOKS[number]; onClose: () => void }) {
-  const color = CATEGORY_COLORS[book.category] ?? "#374151";
+  const color = CATEGORY_COLORS[book.category] ?? "hsl(var(--muted-foreground))";
   const iconName = CATEGORY_ICONS[book.category] ?? "book-open";
   const Icon = ICON_MAP[iconName] ?? BookMarked;
   const driveUrl = `https://drive.google.com/drive/folders/${book.id}?view=grid`;
@@ -898,10 +897,7 @@ function BookDetailPanel({ book, onClose }: { book: typeof BOOKS[number]; onClos
           {Object.entries(book.contentTypes).map(([type, count]) => {
             const iconKey = CONTENT_TYPE_ICONS[type] ?? "file";
             const CtIcon = CT_ICON_MAP[iconKey] ?? File;
-            const ctColorRaw = CONTENT_TYPE_COLORS[type];
-            const ctColor = typeof ctColorRaw === "object" && ctColorRaw !== null
-              ? ctColorRaw as { bg: string; text: string }
-              : { bg: "#f3f4f6", text: "#374151" };
+            const ctColor = CONTENT_TYPE_COLORS[type] ?? null;
             const subfolderUrl = `https://drive.google.com/drive/folders/${book.id}?view=grid`;
             return (
               <a
@@ -911,8 +907,14 @@ function BookDetailPanel({ book, onClose }: { book: typeof BOOKS[number]; onClos
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted/60 transition-colors group"
               >
-                <div className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0" style={{ backgroundColor: ctColor.bg }}>
-                  <CtIcon className="w-3.5 h-3.5" style={{ color: ctColor.text }} />
+                <div
+                  className={`w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0 ${!ctColor ? "bg-muted" : ""}`}
+                  style={ctColor ? { backgroundColor: ctColor + "18" } : undefined}
+                >
+                  <CtIcon
+                    className={`w-3.5 h-3.5 ${!ctColor ? "text-muted-foreground" : ""}`}
+                    style={ctColor ? { color: ctColor } : undefined}
+                  />
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-medium capitalize">{type}</p>
@@ -1397,7 +1399,7 @@ export default function Home() {
                 <SidebarGroupContent>
                   <SidebarMenu>
                     {CATEGORIES.map((cat) => {
-                      const color = CATEGORY_COLORS[cat] ?? "#374151";
+                      const color = CATEGORY_COLORS[cat] ?? "hsl(var(--muted-foreground))";
                       const iconName = CATEGORY_ICONS[cat] ?? "briefcase";
                       const Icon = ICON_MAP[iconName] ?? Briefcase;
                       const count = activeTab === "authors"
@@ -1736,7 +1738,7 @@ export default function Home() {
                   </Badge>
                 )}
                 {Array.from(selectedCategories).map((cat) => {
-                  const color = CATEGORY_COLORS[cat] ?? "#374151";
+                  const color = CATEGORY_COLORS[cat] ?? "hsl(var(--muted-foreground))";
                   return (
                     <Badge
                       key={cat}
