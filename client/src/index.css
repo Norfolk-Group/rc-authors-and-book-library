@@ -4,7 +4,7 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ============================================================
-   NCG LIBRARY — SWISS MODERNIST DESIGN SYSTEM
+   RICARDO CIDALE'S LIBRARY — SWISS MODERNIST DESIGN SYSTEM
    Ported from Manus / L+B Hospitality theme
    Typography: IBM Plex Sans (display) + Inter (body) + JetBrains Mono
    Palette: NCG Brand — Navy #112548, Yellow #FDB817, Teal #0091AE,
@@ -121,7 +121,7 @@
   }
 }
 
-/* ── NCG Library Light Theme (default) ── */
+/* ── Ricardo Cidale's Library Light Theme (default) ── */
 /* NCG Brand: Navy #112548, Yellow #FDB817, Teal #0091AE */
 :root {
   --background: 210 33% 97%;      /* #F5F8FA light gray-blue */
@@ -353,6 +353,36 @@
     animation: cardIn 0.3s ease both;
   }
 
+  /* Card lift on hover — smooth spring-like scale + elevated shadow */
+  .card-lift {
+    transition: transform 250ms cubic-bezier(0.34, 1.56, 0.64, 1),
+                box-shadow 250ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    will-change: transform;
+  }
+  .card-lift:hover {
+    transform: scale(1.025) translateY(-2px);
+    box-shadow: 0 8px 24px -4px rgba(0,0,0,0.12), 0 4px 8px -2px rgba(0,0,0,0.08);
+    z-index: 10;
+    position: relative;
+  }
+
+  /* Cover expand tooltip — enlarged cover preview on hover */
+  .cover-tooltip-content {
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+  }
+  .cover-expand-img {
+    width: 120px;
+    height: 168px;
+    object-fit: cover;
+    border-radius: 8px;
+    box-shadow: 0 12px 32px -4px rgba(0,0,0,0.35), 0 4px 12px -2px rgba(0,0,0,0.2);
+    transition: opacity 150ms ease;
+    display: block;
+  }
+
   /* Search highlight — NCG yellow tint */
   mark.search-highlight {
     background: hsl(43 98% 85%);
@@ -378,6 +408,116 @@
   .transition-base   { transition: all 150ms ease; }
   .transition-normal { transition: all 200ms ease-in-out; }
   .transition-slow   { transition: all 300ms ease-in-out; }
+
+  /* ===== Button Press Feedback ===== */
+  button:active:not(:disabled),
+  [role="button"]:active:not(:disabled) {
+    transform: scale(0.96);
+    transition: transform 80ms ease-out;
+  }
+
+  /* ===== Search Bar Focus Glow ===== */
+  .search-glow {
+    transition: box-shadow 200ms ease, border-color 200ms ease;
+  }
+  .search-glow:focus-within {
+    box-shadow: 0 0 0 3px rgba(0, 145, 174, 0.25);
+    border-color: rgba(0, 145, 174, 0.6);
+  }
+
+  /* ===== Tab Slide Transition ===== */
+  @keyframes tabSlideIn {
+    from { opacity: 0; transform: translateX(16px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  .tab-content-enter {
+    animation: tabSlideIn 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /* ===== Book Cover Zoom on Card Hover ===== */
+  .cover-zoom-wrap {
+    overflow: hidden;
+    border-radius: 4px;
+  }
+  .cover-zoom-wrap img {
+    transition: transform 350ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .card-lift:hover .cover-zoom-wrap img {
+    transform: scale(1.06);
+  }
+
+  /* ===== Watermark Icon 3D Spin on Card Hover ===== */
+  .watermark-icon {
+    transition: transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 300ms ease;
+    transform-style: preserve-3d;
+    perspective: 400px;
+  }
+  .card-lift:hover .watermark-icon {
+    transform: perspective(400px) rotateY(20deg) rotateX(-8deg) scale(1.1);
+    opacity: 0.12;
+  }
+
+  /* ===== Sidebar Category Pill Pulse ===== */
+  @keyframes categoryPulse {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(1.08); }
+    100% { transform: scale(1); }
+  }
+  .category-active-pulse {
+    animation: categoryPulse 300ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+
+  /* ===== Count-up Number Animation ===== */
+  @keyframes countUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .stat-number {
+    animation: countUp 600ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /* ===== Cover Strip Momentum Scroll ===== */
+  .cover-strip-scroll {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+  }
+  .cover-strip-scroll::-webkit-scrollbar { display: none; }
+
+  /* ===== Amazon Badge Slide-up Entrance ===== */
+  @keyframes badgeSlideUp {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .amazon-badge {
+    animation: badgeSlideUp 250ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: 150ms;
+    opacity: 0;
+    animation-fill-mode: forwards;
+  }
+
+  /* ===== Norfolk AI Logo Ambient Pulse ===== */
+  @keyframes norfolkPulse {
+    0%, 85%, 100% { opacity: 0.65; }
+    92%           { opacity: 1.0; }
+  }
+  .norfolk-logo-pulse {
+    animation: norfolkPulse 8s ease-in-out infinite;
+  }
+
+  /* ===== Progress Bar Spring Fill ===== */
+  .progress-spring {
+    transition: width 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  /* ===== Modal Spring Entrance ===== */
+  @keyframes modalSpringIn {
+    from { opacity: 0; transform: scale(0.94) translateY(8px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .modal-spring {
+    animation: modalSpringIn 250ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
 
   /* ===== Dialog/Modal Styles ===== */
   .dialog-header-title {

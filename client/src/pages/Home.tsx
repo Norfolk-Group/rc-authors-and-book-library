@@ -1,5 +1,5 @@
 /**
- * NCG Library — Home Page
+ * Ricardo Cidale's Library — Home Page
  * Design: Editorial Intelligence — sidebar-07 layout + card grid
  * Fonts: Inter Tight (ExtraBold H1, SemiBold H2/H3, Regular body)
  * Palette: NCG Brand — Navy #112548, Yellow #FDB817, Teal #0091AE, Orange #F4795B
@@ -67,6 +67,7 @@ import { canonicalName } from "@/lib/authorAliases";
 import { useAppSettings, type ColorMode as AppTheme } from "@/contexts/AppSettingsContext";
 import { CategoryChart } from "@/components/CategoryChart";
 import { AvatarUpload } from "@/components/AvatarUpload";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import {
   Search,
   BookOpen,
@@ -250,7 +251,7 @@ function StatCard({ label, value, icon: Icon }: { label: string; value: number |
         <Icon className="w-3.5 h-3.5" />
         <span className="text-xs font-medium uppercase tracking-widest">{label}</span>
       </div>
-      <span className="text-xl sm:text-2xl font-extrabold font-display tracking-tight">
+      <span className="text-xl sm:text-2xl font-extrabold font-display tracking-tight stat-number">
         {value}
       </span>
     </div>
@@ -282,6 +283,22 @@ function AuthorCard({ author, query, onBioClick, isEnriched, coverMap, onBookCli
   // Look up author photo: DB-first (generated portraits) then static map fallback
   const photoUrl = dbPhotoMap?.get(displayName.toLowerCase()) ?? getAuthorPhoto(displayName);
 
+  // 3D mouse-tracking tilt
+  const cardRef = useRef<HTMLDivElement>(null);
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const el = cardRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;  // -0.5 to 0.5
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    el.style.transform = `perspective(700px) rotateY(${x * 10}deg) rotateX(${-y * 8}deg) scale(1.025)`;
+  }, []);
+  const handleMouseLeave = useCallback(() => {
+    const el = cardRef.current;
+    if (!el) return;
+    el.style.transform = "perspective(700px) rotateY(0deg) rotateX(0deg) scale(1)";
+  }, []);
+
   const highlight = (text: string) => {
     if (!query) return <>{text}</>;
     const idx = text.toLowerCase().indexOf(query.toLowerCase());
@@ -299,8 +316,11 @@ function AuthorCard({ author, query, onBioClick, isEnriched, coverMap, onBookCli
 
   return (
     <div
-      className="card-animate group rounded-lg border border-border shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden relative bg-card"
-      style={{ borderLeftWidth: 3, borderLeftColor: color }}
+      ref={cardRef}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      className="card-animate group rounded-lg border border-border shadow-sm overflow-hidden relative bg-card"
+      style={{ borderLeftWidth: 3, borderLeftColor: color, transition: "transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease", willChange: "transform" }}
     >
       {/* Watermark illustration */}
       <div
@@ -396,7 +416,7 @@ function AuthorCard({ author, query, onBioClick, isEnriched, coverMap, onBookCli
         <div className="px-3 pb-3 pt-1 border-t border-border/40 mt-1 relative z-10">
           {/* Mini cover strip */}
           {coverMap && (
-            <div className="flex gap-1.5 mb-2 overflow-x-auto pb-0.5 scrollbar-none">
+            <div className="flex gap-1.5 mb-2 overflow-x-auto pb-0.5 cover-strip-scroll">
               {author.books.map((book) => {
                 const titleKey = book.name.includes(" - ")
                   ? book.name.slice(0, book.name.lastIndexOf(" - ")).trim()
@@ -444,7 +464,7 @@ function AuthorCard({ author, query, onBioClick, isEnriched, coverMap, onBookCli
     </div>
   );
 }// ── Book Card ──────────────────────────────────────────────
-function BookCard({ book, query, onDetailClick, coverImageUrl, isEnriched }: { book: BookRecord; query: string; onDetailClick?: (b: BookRecord) => void; coverImageUrl?: string; isEnriched?: boolean }) {
+function BookCard({ book, query, onDetailClick, coverImageUrl, isEnriched, amazonUrl }: { book: BookRecord; query: string; onDetailClick?: (b: BookRecord) => void; coverImageUrl?: string; isEnriched?: boolean; amazonUrl?: string }) {
   const color = CATEGORY_COLORS[book.category] ?? "hsl(var(--muted-foreground))";
   const iconName = CATEGORY_ICONS[book.category] ?? "book-open";
   const Icon = ICON_MAP[iconName] ?? BookMarked;
@@ -470,14 +490,14 @@ function BookCard({ book, query, onDetailClick, coverImageUrl, isEnriched }: { b
   const hasContent = Object.keys(book.contentTypes).length > 0;
   return (
     <div
-      className="card-animate group rounded-lg border border-border shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden cursor-pointer relative bg-card"
+      className="card-animate card-lift group rounded-lg border border-border shadow-sm overflow-hidden cursor-pointer relative bg-card"
       style={{ borderLeftWidth: 3, borderLeftColor: color }}
       onClick={() => onDetailClick?.(book)}
     >
       {/* Watermark (only when no cover) */}
       {!coverImageUrl && (
-        <div className="pointer-events-none absolute bottom-2 right-2 select-none" aria-hidden>
-          <Icon style={{ width: 72, height: 72, color, opacity: 0.07 }} strokeWidth={1} />
+        <div className="pointer-events-none absolute bottom-2 right-2 select-none watermark-icon" aria-hidden>
+          <Icon className="w-[72px] h-[72px]" style={{ color, opacity: 0.07 }} strokeWidth={1} />
         </div>
       )}
       <div className="p-4 relative z-10">
@@ -505,12 +525,14 @@ function BookCard({ book, query, onDetailClick, coverImageUrl, isEnriched }: { b
         {/* Cover + title row */}
         <div className="flex items-start gap-3 mb-2">
           {coverImageUrl && (
-            <img
-              src={coverImageUrl}
-              alt={displayTitle}
-              className="w-12 h-16 object-cover rounded shadow-sm ring-1 ring-border flex-shrink-0"
-              loading="lazy"
-            />
+            <div className="cover-zoom-wrap flex-shrink-0 w-12 h-16">
+              <img
+                src={coverImageUrl}
+                alt={displayTitle}
+                className="w-12 h-16 object-cover rounded shadow-sm ring-1 ring-border"
+                loading="lazy"
+              />
+            </div>
           )}
           <div className="flex-1 min-w-0">
             <h3 className="text-sm font-semibold leading-snug mb-0.5 tracking-tight">
@@ -548,6 +570,24 @@ function BookCard({ book, query, onDetailClick, coverImageUrl, isEnriched }: { b
             ))}
           </div>
         )}
+
+        {/* Amazon badge */}
+        {amazonUrl && (
+          <a
+            href={amazonUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="amazon-badge absolute bottom-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wide text-white"
+            style={{ backgroundColor: "#FF9900" }}
+            title="View on Amazon"
+          >
+            <svg viewBox="0 0 24 24" className="w-2.5 h-2.5 fill-white" xmlns="http://www.w3.org/2000/svg">
+              <path d="M13.958 10.09c0 1.232.029 2.256-.591 3.351-.502.891-1.301 1.438-2.186 1.438-1.214 0-1.922-.924-1.922-2.292 0-2.692 2.415-3.182 4.699-3.182v.685zm3.186 7.705c-.209.189-.512.201-.745.074-1.047-.872-1.234-1.276-1.814-2.106-1.734 1.767-2.962 2.297-5.209 2.297-2.66 0-4.731-1.641-4.731-4.925 0-2.565 1.391-4.309 3.37-5.164 1.715-.754 4.11-.891 5.942-1.099v-.41c0-.753.06-1.642-.384-2.294-.385-.579-1.124-.82-1.775-.82-1.205 0-2.277.618-2.54 1.897-.054.285-.261.567-.549.582l-3.061-.333c-.259-.056-.548-.266-.472-.66C6.265 1.862 9.316.5 12.073.5c1.407 0 3.245.374 4.354 1.44 1.407 1.312 1.273 3.063 1.273 4.969v4.5c0 1.353.561 1.948 1.089 2.678.186.261.226.574-.009.769l-1.636 1.939z"/>
+            </svg>
+            Amazon
+          </a>
+        )}
       </div>
     </div>
   );
@@ -575,10 +615,10 @@ function AudioCard({ audio, query }: { audio: AudioBook; query: string }) {
       href={driveUrl}
       target="_blank"
       rel="noopener noreferrer"
-      className="card-animate group rounded-lg border border-border shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden block cursor-pointer relative bg-card border-l-[3px] border-l-primary"
+      className="card-animate card-lift group rounded-lg border border-border shadow-sm overflow-hidden block cursor-pointer relative bg-card border-l-[3px] border-l-primary"
     >
       {/* Watermark */}
-      <div className="pointer-events-none absolute bottom-2 right-2 select-none" aria-hidden>
+      <div className="pointer-events-none absolute bottom-2 right-2 select-none watermark-icon" aria-hidden>
         <Headphones className="w-[72px] h-[72px] text-primary opacity-[0.07]" strokeWidth={1} />
       </div>
 
@@ -1101,6 +1141,14 @@ export default function Home() {
       // Prefer S3-mirrored URL (stable CDN) over external URL (may block hotlinking)
       const url = (p as { s3CoverUrl?: string | null }).s3CoverUrl || p.coverImageUrl;
       if (url) map.set(p.bookTitle, url);
+    }
+    return map;
+  }, [bookCoversQuery.data]);
+  // Amazon URL map: bookTitle → amazonUrl (built from same bookCoversQuery, no extra request)
+  const amazonUrlMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const p of bookCoversQuery.data ?? []) {
+      if (p.amazonUrl) map.set(p.bookTitle, p.amazonUrl);
     }
     return map;
   }, [bookCoversQuery.data]);
@@ -1801,7 +1849,7 @@ export default function Home() {
                 href="https://norfolkai.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 opacity-50 hover:opacity-80 transition-opacity"
+                className="flex items-center justify-center gap-2 hover:opacity-90 transition-opacity norfolk-logo-pulse"
                 title="Powered by Norfolk AI"
               >
                 <img
@@ -1828,7 +1876,7 @@ export default function Home() {
             {/* Breadcrumb */}
             <div className="hidden sm:flex items-center gap-1.5 text-sm text-muted-foreground">
               <span className="font-medium text-foreground">
-                NCG Library
+                Ricardo Cidale's Library
               </span>
               <ChevronRight className="w-3.5 h-3.5" />
               <span className="capitalize">{activeTab === "audio" ? "Books Audio" : activeTab}</span>
@@ -1841,7 +1889,7 @@ export default function Home() {
             </div>
 
             {/* Search */}
-            <div className="ml-auto relative w-full sm:w-64 max-w-xs">
+            <div className="ml-auto relative w-full sm:w-64 max-w-xs search-glow rounded-md border border-transparent">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
               <Input
                 placeholder={activeTab === "audio" ? "Search audiobooks, authors…" : "Search authors, books, topics…"}
@@ -1954,7 +2002,7 @@ export default function Home() {
               filteredAuthors.length === 0 ? (
                 <EmptyState query={query} />
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 tab-content-enter">
                   {filteredAuthors.map((a, i) => (
                     <div key={a.id + i} style={{ animationDelay: `${Math.min(i * 30, 400)}ms` }}>
                       <AuthorCard
@@ -1995,7 +2043,7 @@ export default function Home() {
                 {filteredBooks.length === 0 ? (
                   <EmptyState query={query} />
                 ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 tab-content-enter">
                   {filteredBooks.map((b, i) => {
                     const titleKey = b.name.split(" - ")[0].trim();
                     return (
@@ -2006,6 +2054,7 @@ export default function Home() {
                           onDetailClick={(book) => { setSelectedBook(book); setBookSheetOpen(true); }}
                           coverImageUrl={bookCoverMap.get(titleKey)}
                           isEnriched={enrichedTitlesSet.has(titleKey)}
+                          amazonUrl={amazonUrlMap.get(titleKey)}
                         />
                       </div>
                     );

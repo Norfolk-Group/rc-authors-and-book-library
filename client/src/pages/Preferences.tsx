@@ -607,7 +607,7 @@ export default function Preferences() {
       <div className="mb-8">
         <h1 className="text-2xl font-semibold font-display text-foreground mb-1">Preferences</h1>
         <p className="text-sm text-muted-foreground">
-          Customize the appearance and behaviour of the NCG Knowledge Library.
+          Customize the appearance and behaviour of the Ricardo Cidale's Library.
         </p>
       </div>
 
@@ -671,7 +671,7 @@ export default function Preferences() {
             <div className="space-y-3 text-sm">
               <div className="flex justify-between border-b border-border pb-2">
                 <span className="text-muted-foreground">Application</span>
-                <span className="text-foreground font-medium">NCG Knowledge Library</span>
+                <span className="text-foreground font-medium">Ricardo Cidale's Library</span>
               </div>
               <div className="flex justify-between border-b border-border pb-2">
                 <span className="text-muted-foreground">Organisation</span>

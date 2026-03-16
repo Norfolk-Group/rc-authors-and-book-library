@@ -2,7 +2,7 @@
  * PageHeader — Persistent top bar for all non-home pages.
  *
  * Shows:
- *   [← Home]  NCG Library › [segment] › [segment] ...
+ *   [← Home]  Ricardo Cidale's Library › [segment] › [segment] ...
  *
  * The Home button is always visible and returns to "/" on click.
  *
@@ -52,12 +52,12 @@ export default function PageHeader({ crumbs, title }: PageHeaderProps) {
         aria-label="Breadcrumb"
         className="flex items-center gap-1.5 text-sm text-muted-foreground min-w-0 flex-1"
       >
-        {/* Root: NCG Library */}
+        {/* Root: Ricardo Cidale's Library */}
         <Link
           href="/"
           className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors shrink-0"
         >
-          NCG Library
+          Ricardo Cidale's Library
         </Link>
 
         {/* Crumb segments */}

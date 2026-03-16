@@ -272,3 +272,21 @@
 - [x] Add DB-first photo fallback: check author_profiles.s3PhotoUrl before static AUTHOR_PHOTOS map
 - [x] 118 tests passing
 - [x] Save checkpoint
+
+## Session March 16, 2026 — Amazon Badge + Motion System + Rename
+- [x] Rename "NCG Library" → "Ricardo Cidale's Library" in all UI text, page title, sidebar header, breadcrumb, comments (15 occurrences)
+- [x] Add comprehensive motion CSS to index.css (card lift, watermark 3D spin, cover zoom, strip scroll, search glow, tab entrance, stat pop, button press, Norfolk pulse, Amazon badge)
+- [x] Apply card-lift + group to AuthorCard, BookCard, AudioCard
+- [x] Apply watermark-icon class to all three card watermark divs
+- [x] Apply cover-strip-scroll class to author card cover strip
+- [x] Add cover-zoom-wrap around BookCard cover image
+- [x] Add Amazon badge (orange pill, slide-up entrance) to BookCard with amazonUrlMap prop
+- [x] Add stat-number class to StatCard value spans
+- [x] Add search-glow class to search input wrapper
+- [x] Add tab-content-enter class to tab content panels with key={activeTab}
+- [x] Add norfolk-logo-pulse class to Norfolk AI logo wrapper
+- [x] Implement 3D mouse-tracking tilt on AuthorCard (useRef + mousemove, no external library)
+- [x] Create webdev-motion-system skill (validated)
+- [x] Update webdev-norfolk-ai-branding skill with real logo CDN URLs and pulse pattern
+- [x] 118 tests passing
+- [x] Save checkpoint
