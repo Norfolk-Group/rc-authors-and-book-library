@@ -1,9 +1,10 @@
 import { z } from "zod";
-import { eq, ne, isNull, or } from "drizzle-orm";
+import { eq, ne, isNull, or, sql } from "drizzle-orm";
 import { mirrorBatchToS3 } from "../mirrorToS3";
 import { getDb } from "../db";
 import { authorProfiles } from "../../drizzle/schema";
 import { publicProcedure, router } from "../_core/trpc";
+import { processAuthorPhotoWaterfall } from "../lib/authorPhotos/waterfall";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface AuthorInfo {
@@ -325,6 +326,178 @@ export const authorProfilesRouter = router({
         results,
         total: results.length,
         succeeded: results.filter((r) => r.success).length,
+      };
+    }),
+
+  // ── Avatar generation stats ─────────────────────────────────────────────────
+  getAvatarStats: publicProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) return { total: 0, hasPhoto: 0, inS3: 0, missing: 0 };
+    const all = await db
+      .select({
+        authorName: authorProfiles.authorName,
+        photoUrl: authorProfiles.photoUrl,
+        s3PhotoUrl: authorProfiles.s3PhotoUrl,
+      })
+      .from(authorProfiles);
+    return {
+      total: all.length,
+      hasPhoto: all.filter((a: { photoUrl: string | null }) => a.photoUrl).length,
+      inS3: all.filter((a: { s3PhotoUrl: string | null }) => a.s3PhotoUrl).length,
+      missing: all.filter((a: { photoUrl: string | null }) => !a.photoUrl).length,
+    };
+  }),
+
+  // ── Batch avatar generation via waterfall ───────────────────────────────────
+  generateAvatarsBatch: publicProcedure
+    .input(
+      z.object({
+        names: z.array(z.string()).min(1).max(5),
+        skipValidation: z.boolean().optional().default(false),
+        maxTier: z.number().min(1).max(5).optional().default(5),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database unavailable");
+      const results: Array<{
+        name: string;
+        success: boolean;
+        source: string;
+        isAiGenerated: boolean;
+        tier: number;
+        photoUrl: string | null;
+        error?: string;
+      }> = [];
+
+      for (const originalName of input.names) {
+        try {
+          const result = await processAuthorPhotoWaterfall(originalName, {
+            skipValidation: input.skipValidation,
+            maxTier: input.maxTier,
+          });
+
+          // Save to DB
+          if (result.photoUrl || result.s3PhotoUrl) {
+            await db
+              .update(authorProfiles)
+              .set({
+                photoUrl: result.s3PhotoUrl ?? result.photoUrl,
+                s3PhotoUrl: result.s3PhotoUrl,
+                enrichedAt: new Date(),
+              })
+              .where(eq(authorProfiles.authorName, originalName));
+          }
+
+          results.push({
+            name: originalName,
+            success: result.source !== "failed" && result.source !== "skipped",
+            source: result.source,
+            isAiGenerated: result.isAiGenerated,
+            tier: result.tier,
+            photoUrl: result.s3PhotoUrl ?? result.photoUrl,
+          });
+        } catch (err) {
+          results.push({
+            name: originalName,
+            success: false,
+            source: "failed",
+            isAiGenerated: false,
+            tier: 0,
+            photoUrl: null,
+            error: String(err),
+          });
+        }
+      }
+
+      return {
+        results,
+        total: results.length,
+        succeeded: results.filter((r) => r.success).length,
+        aiGenerated: results.filter((r) => r.isAiGenerated).length,
+      };
+    }),
+
+  // ── Generate avatars for ALL authors missing photos ─────────────────────────
+  generateAllMissingAvatars: publicProcedure
+    .input(
+      z.object({
+        batchSize: z.number().min(1).max(10).optional().default(5),
+        maxTier: z.number().min(1).max(5).optional().default(5),
+        skipValidation: z.boolean().optional().default(false),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database unavailable");
+
+      // Fetch all authors that have no photo
+      const missing = await db
+        .select({ authorName: authorProfiles.authorName })
+        .from(authorProfiles)
+        .where(sql`${authorProfiles.photoUrl} IS NULL OR ${authorProfiles.photoUrl} = ''`);
+
+      if (missing.length === 0) {
+        return { total: 0, succeeded: 0, aiGenerated: 0, results: [] };
+      }
+
+      const names = missing.map((r) => r.authorName);
+      const results: Array<{
+        name: string;
+        success: boolean;
+        source: string;
+        isAiGenerated: boolean;
+        tier: number;
+        photoUrl: string | null;
+        error?: string;
+      }> = [];
+
+      // Process in batches
+      for (let i = 0; i < names.length; i += input.batchSize) {
+        const batch = names.slice(i, i + input.batchSize);
+        for (const originalName of batch) {
+          try {
+            const result = await processAuthorPhotoWaterfall(originalName, {
+              skipValidation: input.skipValidation,
+              maxTier: input.maxTier,
+            });
+            if (result.photoUrl || result.s3PhotoUrl) {
+              await db
+                .update(authorProfiles)
+                .set({
+                  photoUrl: result.s3PhotoUrl ?? result.photoUrl,
+                  s3PhotoUrl: result.s3PhotoUrl,
+                  enrichedAt: new Date(),
+                })
+                .where(eq(authorProfiles.authorName, originalName));
+            }
+            results.push({
+              name: originalName,
+              success: result.source !== "failed" && result.source !== "skipped",
+              source: result.source,
+              isAiGenerated: result.isAiGenerated,
+              tier: result.tier,
+              photoUrl: result.s3PhotoUrl ?? result.photoUrl,
+            });
+          } catch (err) {
+            results.push({
+              name: originalName,
+              success: false,
+              source: "failed",
+              isAiGenerated: false,
+              tier: 0,
+              photoUrl: null,
+              error: String(err),
+            });
+          }
+        }
+      }
+
+      return {
+        total: results.length,
+        succeeded: results.filter((r) => r.success).length,
+        aiGenerated: results.filter((r) => r.isAiGenerated).length,
+        results,
       };
     }),
 });

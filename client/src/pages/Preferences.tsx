@@ -5,7 +5,7 @@
  * Storage tab gives power users access to S3 mirror controls.
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useAppSettings, type ThemeName, type IconSetId } from "@/contexts/AppSettingsContext";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -338,6 +338,8 @@ function MirrorCard({
 
 // ── Storage tab ───────────────────────────────────────────────────────────────
 
+type AvatarJobStatus = "idle" | "running" | "done" | "error";
+
 function StorageTab() {
   const [coverStatus, setCoverStatus] = useState<MirrorJobStatus>("idle");
   const [coverDone, setCoverDone] = useState(0);
@@ -346,10 +348,18 @@ function StorageTab() {
   const [photoDone, setPhotoDone] = useState(0);
   const [photoTotal, setPhotoTotal] = useState(0);
 
+  // Avatar generation state
+  const [avatarStatus, setAvatarStatus] = useState<AvatarJobStatus>("idle");
+  const [avatarDone, setAvatarDone] = useState(0);
+  const [avatarTotal, setAvatarTotal] = useState(0);
+  const [avatarLog, setAvatarLog] = useState<Array<{ name: string; source: string; tier: number; success: boolean }>>([]);
+
   const mirrorCoversMutation = trpc.bookProfiles.mirrorCovers.useMutation();
   const mirrorPhotosMutation = trpc.authorProfiles.mirrorPhotos.useMutation();
+  const generateAllAvatarsMutation = trpc.authorProfiles.generateAllMissingAvatars.useMutation();
   const coverStats = trpc.bookProfiles.getMirrorCoverStats.useQuery(undefined, { staleTime: 30_000 });
   const photoStats = trpc.authorProfiles.getMirrorPhotoStats.useQuery(undefined, { staleTime: 30_000 });
+  const avatarStats = trpc.authorProfiles.getAvatarStats.useQuery(undefined, { staleTime: 30_000 });
 
   const runMirrorCovers = useCallback(async () => {
     if (coverStatus === "running") return;
@@ -399,6 +409,45 @@ function StorageTab() {
     }
   }, [photoStatus, mirrorPhotosMutation, photoStats]);
 
+  const runGenerateAvatars = useCallback(async () => {
+    if (avatarStatus === "running") return;
+    const missing = avatarStats.data?.missing ?? 0;
+    if (missing === 0) {
+      toast.info("All authors already have photos.");
+      return;
+    }
+    setAvatarStatus("running");
+    setAvatarDone(0);
+    setAvatarTotal(missing);
+    setAvatarLog([]);
+
+    // We need the list of authors without photos — fetch from the server
+    // by calling generateAvatarsBatch with empty names to get the full list
+    // Instead, we'll pass a sentinel value to trigger "all missing" mode
+    let done = 0;
+    try {
+      const result = await generateAllAvatarsMutation.mutateAsync({
+        batchSize: 5,
+        maxTier: 5,
+        skipValidation: false,
+      });
+      done = result.succeeded;
+      setAvatarDone(done);
+      setAvatarLog(result.results.map((r) => ({ name: r.name, source: r.source, tier: r.tier, success: r.success })));
+      setAvatarStatus("done");
+      void avatarStats.refetch();
+      toast.success(`Generated ${done} author avatars via waterfall.`);
+    } catch {
+      setAvatarStatus("error");
+      toast.error("Avatar generation failed. Check the console for details.");
+    }
+  }, [avatarStatus, avatarStats, generateAllAvatarsMutation]);
+
+  const avatarPct = useMemo(
+    () => (avatarTotal > 0 ? Math.round((avatarDone / avatarTotal) * 100) : 0),
+    [avatarDone, avatarTotal]
+  );
+
   return (
     <div className="space-y-4">
       <div className="mb-2">
@@ -439,6 +488,108 @@ function StorageTab() {
         Mirrored images are served from the Manus CDN and will not be affected by third-party rate limits or hotlink blocks.
         Original source URLs are preserved in the database as a fallback.
       </p>
+
+      {/* ── Avatar Generation ── */}
+      <div className="mt-6 pt-5 border-t border-border">
+        <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-1">
+          Author Avatar Generation
+        </p>
+        <p className="text-xs text-muted-foreground mb-4">
+          Automatically finds real author photos using a 5-tier waterfall: Wikipedia → Tavily image search →
+          Open Library → Gemini-validated web images → AI-generated portrait (Replicate). Results are saved
+          to S3 and displayed in author cards.
+        </p>
+
+        <Card className="p-5">
+          <div className="flex items-start gap-3 mb-4">
+            <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+              <UserCircleIcon size={18} className="text-foreground" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-sm font-semibold text-foreground mb-0.5">Generate All Author Avatars</h3>
+              <p className="text-xs text-muted-foreground">Run the waterfall for all authors missing a photo.</p>
+            </div>
+          </div>
+
+          {/* Stats row */}
+          <div className="flex items-center gap-4 mb-4 text-xs text-muted-foreground">
+            {avatarStats.data && (
+              <>
+                <span className="flex items-center gap-1">
+                  <CheckCircleIcon size={13} className="text-green-500" />
+                  {avatarStats.data.hasPhoto} have photos
+                </span>
+                {avatarStats.data.missing > 0 && (
+                  <span className="flex items-center gap-1">
+                    <WarningCircleIcon size={13} className="text-amber-500" />
+                    {avatarStats.data.missing} missing
+                  </span>
+                )}
+                {avatarStats.data.missing === 0 && (
+                  <span className="flex items-center gap-1 text-green-600">
+                    <CheckCircleIcon size={13} />
+                    All authors have photos
+                  </span>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Progress bar (while running) */}
+          {avatarStatus === "running" && (
+            <div className="mb-3">
+              <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
+                <span>Processing {avatarDone} of {avatarTotal} authors…</span>
+                <span>{avatarPct}%</span>
+              </div>
+              <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-300"
+                  style={{ width: `${avatarPct}%`, backgroundColor: "var(--primary)" }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Results log (after done) */}
+          {avatarStatus === "done" && avatarLog.length > 0 && (
+            <div className="mb-3 max-h-32 overflow-y-auto rounded-md bg-muted/40 p-2 space-y-1">
+              {avatarLog.map((entry, i) => (
+                <div key={i} className="flex items-center gap-2 text-[10px]">
+                  {entry.success ? (
+                    <CheckCircleIcon size={11} className="text-green-500 flex-shrink-0" />
+                  ) : (
+                    <WarningCircleIcon size={11} className="text-amber-500 flex-shrink-0" />
+                  )}
+                  <span className="text-foreground truncate">{entry.name}</span>
+                  <span className="text-muted-foreground ml-auto flex-shrink-0">T{entry.tier} · {entry.source}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <button
+            onClick={runGenerateAvatars}
+            disabled={avatarStatus === "running" || (avatarStats.data?.missing ?? 1) === 0}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium border border-border hover:bg-muted/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {avatarStatus === "running" ? (
+              <ArrowsClockwiseIcon size={14} className="animate-spin" />
+            ) : avatarStatus === "done" ? (
+              <CheckCircleIcon size={14} className="text-green-600" />
+            ) : (
+              <UserCircleIcon size={14} />
+            )}
+            {avatarStatus === "running"
+              ? `Generating… ${avatarDone} done`
+              : avatarStatus === "done"
+              ? `Done — ${avatarDone} avatars generated`
+              : (avatarStats.data?.missing ?? 0) === 0
+              ? "All authors have photos ✓"
+              : `Generate Avatars (${avatarStats.data?.missing ?? "?"} missing)`}
+          </button>
+        </Card>
+      </div>
     </div>
   );
 }

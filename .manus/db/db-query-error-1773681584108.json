@@ -1,0 +1,8 @@
+{
+  "query": "\nSELECT \n  COUNT(*) as total_books,\n  SUM(CASE WHEN enriched_at IS NOT NULL THEN 1 ELSE 0 END) as enriched,\n  SUM(CASE WHEN cover_image_url IS NOT NULL AND cover_image_url != '' THEN 1 ELSE 0 END) as with_cover,\n  SUM(CASE WHEN s3_cover_url IS NOT NULL AND s3_cover_url != '' THEN 1 ELSE 0 END) as mirrored_to_s3,\n  SUM(CASE WHEN cover_image_url IS NOT NULL AND cover_image_url != '' AND (s3_cover_url IS NULL OR s3_cover_url = '') THEN 1 ELSE 0 END) as pending_mirror\nFROM book_profiles;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 46FBtXPMNF6LwZ8.root --database ehSrGoKN2NYhXg8UYLtWGw --execute \nSELECT \n  COUNT(*) as total_books,\n  SUM(CASE WHEN enriched_at IS NOT NULL THEN 1 ELSE 0 END) as enriched,\n  SUM(CASE WHEN cover_image_url IS NOT NULL AND cover_image_url != '' THEN 1 ELSE 0 END) as with_cover,\n  SUM(CASE WHEN s3_cover_url IS NOT NULL AND s3_cover_url != '' THEN 1 ELSE 0 END) as mirrored_to_s3,\n  SUM(CASE WHEN cover_image_url IS NOT NULL AND cover_image_url != '' AND (s3_cover_url IS NULL OR s3_cover_url = '') THEN 1 ELSE 0 END) as pending_mirror\nFROM book_profiles;\n",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 2: Unknown column 'enriched_at' in ''"
+  ]
+}
