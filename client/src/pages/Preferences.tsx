@@ -1,10 +1,14 @@
 /**
  * Preferences Page
- * Three tabs: Themes | Icons | About
+ * Four tabs: Themes | Icons | Storage | About
  * Uses AppSettingsContext for persistent theme + icon set selection.
+ * Storage tab gives power users access to S3 mirror controls.
  */
 
+import { useState, useCallback } from "react";
 import { useAppSettings, type ThemeName, type IconSetId } from "@/contexts/AppSettingsContext";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
 import PageHeader from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -16,6 +20,12 @@ import {
   GearIcon,
   BookOpenIcon,
   CheckIcon,
+  HardDrivesIcon,
+  ArrowsClockwiseIcon,
+  CheckCircleIcon,
+  WarningCircleIcon,
+  ImageIcon,
+  UserCircleIcon,
 } from "@phosphor-icons/react";
 
 // ── Theme definitions ─────────────────────────────────────────────────────────
@@ -225,6 +235,214 @@ function IconSetCard({
   );
 }
 
+// ── Storage mirror card ───────────────────────────────────────────────────────
+
+type MirrorJobStatus = "idle" | "running" | "done" | "error";
+
+function MirrorCard({
+  title,
+  description,
+  icon: Icon,
+  stats,
+  onRun,
+  status,
+  done,
+  total,
+}: {
+  title: string;
+  description: string;
+  icon: React.ElementType;
+  stats: { withCover?: number; mirrored?: number; pending?: number; withPhoto?: number } | undefined;
+  onRun: () => void;
+  status: MirrorJobStatus;
+  done: number;
+  total: number;
+}) {
+  const pending = stats?.pending ?? null;
+  const mirrored = stats?.mirrored ?? null;
+  const allDone = pending === 0;
+
+  return (
+    <Card className="p-5">
+      <div className="flex items-start gap-3 mb-4">
+        <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+          <Icon size={18} className="text-foreground" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="text-sm font-semibold text-foreground mb-0.5">{title}</h3>
+          <p className="text-xs text-muted-foreground">{description}</p>
+        </div>
+      </div>
+
+      {/* Stats row */}
+      <div className="flex items-center gap-4 mb-4 text-xs text-muted-foreground">
+        {mirrored !== null && (
+          <span className="flex items-center gap-1">
+            <CheckCircleIcon size={13} className="text-green-500" />
+            {mirrored} on S3
+          </span>
+        )}
+        {pending !== null && pending > 0 && (
+          <span className="flex items-center gap-1">
+            <WarningCircleIcon size={13} className="text-amber-500" />
+            {pending} pending
+          </span>
+        )}
+        {allDone && (
+          <span className="flex items-center gap-1 text-green-600">
+            <CheckCircleIcon size={13} />
+            All images on S3
+          </span>
+        )}
+      </div>
+
+      {/* Progress bar (while running) */}
+      {status === "running" && total > 0 && (
+        <div className="mb-3">
+          <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
+            <span>Mirroring {done} of {total}…</span>
+            <span>{Math.round((done / total) * 100)}%</span>
+          </div>
+          <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all duration-300"
+              style={{ width: `${Math.round((done / total) * 100)}%`, backgroundColor: "var(--primary)" }}
+            />
+          </div>
+        </div>
+      )}
+
+      <button
+        onClick={onRun}
+        disabled={status === "running" || allDone}
+        className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium border border-border hover:bg-muted/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {status === "running" ? (
+          <ArrowsClockwiseIcon size={14} className="animate-spin" />
+        ) : status === "done" || allDone ? (
+          <CheckCircleIcon size={14} className="text-green-600" />
+        ) : (
+          <ArrowsClockwiseIcon size={14} />
+        )}
+        {status === "running"
+          ? `Mirroring… ${done} done`
+          : status === "done"
+          ? "Mirror complete"
+          : allDone
+          ? "All images on S3 ✓"
+          : `Run Mirror${pending !== null ? ` (${pending} pending)` : ""}`}
+      </button>
+    </Card>
+  );
+}
+
+// ── Storage tab ───────────────────────────────────────────────────────────────
+
+function StorageTab() {
+  const [coverStatus, setCoverStatus] = useState<MirrorJobStatus>("idle");
+  const [coverDone, setCoverDone] = useState(0);
+  const [coverTotal, setCoverTotal] = useState(0);
+  const [photoStatus, setPhotoStatus] = useState<MirrorJobStatus>("idle");
+  const [photoDone, setPhotoDone] = useState(0);
+  const [photoTotal, setPhotoTotal] = useState(0);
+
+  const mirrorCoversMutation = trpc.bookProfiles.mirrorCovers.useMutation();
+  const mirrorPhotosMutation = trpc.authorProfiles.mirrorPhotos.useMutation();
+  const coverStats = trpc.bookProfiles.getMirrorCoverStats.useQuery(undefined, { staleTime: 30_000 });
+  const photoStats = trpc.authorProfiles.getMirrorPhotoStats.useQuery(undefined, { staleTime: 30_000 });
+
+  const runMirrorCovers = useCallback(async () => {
+    if (coverStatus === "running") return;
+    const total = coverStats.data?.pending ?? 0;
+    if (total === 0) return;
+    setCoverStatus("running");
+    setCoverDone(0);
+    setCoverTotal(total);
+    let done = 0;
+    try {
+      while (true) {
+        const result = await mirrorCoversMutation.mutateAsync({ batchSize: 10 });
+        done += result.mirrored;
+        setCoverDone(done);
+        if (result.total === 0 || result.mirrored === 0) break;
+      }
+      setCoverStatus("done");
+      void coverStats.refetch();
+      toast.success(`Mirrored ${done} book covers to S3 CDN.`);
+    } catch {
+      setCoverStatus("error");
+      toast.error("Cover mirroring failed. Check the console for details.");
+    }
+  }, [coverStatus, mirrorCoversMutation, coverStats]);
+
+  const runMirrorPhotos = useCallback(async () => {
+    if (photoStatus === "running") return;
+    const total = photoStats.data?.pending ?? 0;
+    if (total === 0) return;
+    setPhotoStatus("running");
+    setPhotoDone(0);
+    setPhotoTotal(total);
+    let done = 0;
+    try {
+      while (true) {
+        const result = await mirrorPhotosMutation.mutateAsync({ batchSize: 10 });
+        done += result.mirrored;
+        setPhotoDone(done);
+        if (result.total === 0 || result.mirrored === 0) break;
+      }
+      setPhotoStatus("done");
+      void photoStats.refetch();
+      toast.success(`Mirrored ${done} author photos to S3 CDN.`);
+    } catch {
+      setPhotoStatus("error");
+      toast.error("Photo mirroring failed. Check the console for details.");
+    }
+  }, [photoStatus, mirrorPhotosMutation, photoStats]);
+
+  return (
+    <div className="space-y-4">
+      <div className="mb-2">
+        <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-1">
+          S3 CDN Mirror
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Book covers and author photos are fetched from external sources (Amazon, Wikipedia) and mirrored
+          to the Manus S3 CDN for reliable, fast delivery. Mirroring runs automatically after enrichment.
+          Use these controls to force a manual sync if images appear broken or missing.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <MirrorCard
+          title="Book Covers"
+          description="Mirror book cover images from Amazon and Google Books to the S3 CDN."
+          icon={ImageIcon}
+          stats={coverStats.data}
+          onRun={runMirrorCovers}
+          status={coverStatus}
+          done={coverDone}
+          total={coverTotal}
+        />
+        <MirrorCard
+          title="Author Photos"
+          description="Mirror author headshots from Wikipedia and publisher sites to the S3 CDN."
+          icon={UserCircleIcon}
+          stats={photoStats.data}
+          onRun={runMirrorPhotos}
+          status={photoStatus}
+          done={photoDone}
+          total={photoTotal}
+        />
+      </div>
+
+      <p className="text-xs text-muted-foreground pt-1">
+        Mirrored images are served from the Manus CDN and will not be affected by third-party rate limits or hotlink blocks.
+        Original source URLs are preserved in the database as a fallback.
+      </p>
+    </div>
+  );
+}
+
 // ── Main Preferences page ─────────────────────────────────────────────────────
 
 export default function Preferences() {
@@ -246,6 +464,7 @@ export default function Preferences() {
         <TabsList className="mb-6">
           <TabsTrigger value="themes">Themes</TabsTrigger>
           <TabsTrigger value="icons">Icons</TabsTrigger>
+          <TabsTrigger value="storage">Storage</TabsTrigger>
           <TabsTrigger value="about">About</TabsTrigger>
         </TabsList>
 
@@ -287,6 +506,11 @@ export default function Preferences() {
           <p className="text-xs text-muted-foreground pt-2">
             Icon style changes apply to navigation and UI icons throughout the app.
           </p>
+        </TabsContent>
+
+        {/* ── Storage tab ── */}
+        <TabsContent value="storage">
+          <StorageTab />
         </TabsContent>
 
         {/* ── About tab ── */}

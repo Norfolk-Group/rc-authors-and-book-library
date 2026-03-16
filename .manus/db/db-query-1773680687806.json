@@ -1,0 +1,24 @@
+{
+  "query": "\nSELECT \n  'book_profiles' as table_name,\n  COUNT(*) as total,\n  SUM(CASE WHEN coverImageUrl IS NOT NULL THEN 1 ELSE 0 END) as has_external_cover,\n  SUM(CASE WHEN s3CoverUrl IS NOT NULL THEN 1 ELSE 0 END) as has_s3_cover,\n  SUM(CASE WHEN coverImageUrl IS NOT NULL AND s3CoverUrl IS NULL THEN 1 ELSE 0 END) as needs_mirroring\nFROM book_profiles\nUNION ALL\nSELECT \n  'author_profiles' as table_name,\n  COUNT(*) as total,\n  SUM(CASE WHEN photoUrl IS NOT NULL THEN 1 ELSE 0 END) as has_external_photo,\n  SUM(CASE WHEN s3PhotoUrl IS NOT NULL THEN 1 ELSE 0 END) as has_s3_photo,\n  SUM(CASE WHEN photoUrl IS NOT NULL AND s3PhotoUrl IS NULL THEN 1 ELSE 0 END) as needs_mirroring\nFROM author_profiles;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 46FBtXPMNF6LwZ8.root --database ehSrGoKN2NYhXg8UYLtWGw --execute \nSELECT \n  'book_profiles' as table_name,\n  COUNT(*) as total,\n  SUM(CASE WHEN coverImageUrl IS NOT NULL THEN 1 ELSE 0 END) as has_external_cover,\n  SUM(CASE WHEN s3CoverUrl IS NOT NULL THEN 1 ELSE 0 END) as has_s3_cover,\n  SUM(CASE WHEN coverImageUrl IS NOT NULL AND s3CoverUrl IS NULL THEN 1 ELSE 0 END) as needs_mirroring\nFROM book_profiles\nUNION ALL\nSELECT \n  'author_profiles' as table_name,\n  COUNT(*) as total,\n  SUM(CASE WHEN photoUrl IS NOT NULL THEN 1 ELSE 0 END) as has_external_photo,\n  SUM(CASE WHEN s3PhotoUrl IS NOT NULL THEN 1 ELSE 0 END) as has_s3_photo,\n  SUM(CASE WHEN photoUrl IS NOT NULL AND s3PhotoUrl IS NULL THEN 1 ELSE 0 END) as needs_mirroring\nFROM author_profiles;\n",
+  "rows": [
+    {
+      "table_name": "book_profiles",
+      "total": "146",
+      "has_external_cover": "146",
+      "has_s3_cover": "89",
+      "needs_mirroring": "57"
+    },
+    {
+      "table_name": "author_profiles",
+      "total": "110",
+      "has_external_cover": "0",
+      "has_s3_cover": "0",
+      "needs_mirroring": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "table_name\ttotal\thas_external_cover\thas_s3_cover\tneeds_mirroring\nbook_profiles\t146\t146\t89\t57\nauthor_profiles\t110\t0\t0\t0\n",
+  "stderr": "",
+  "execution_time_ms": 100
+}

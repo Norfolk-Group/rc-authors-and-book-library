@@ -92,3 +92,24 @@ export const bookProfiles = mysqlTable("book_profiles", {
 
 export type BookProfile = typeof bookProfiles.$inferSelect;
 export type InsertBookProfile = typeof bookProfiles.$inferInsert;
+
+// Sync status — tracks background Drive scan jobs
+export const syncStatus = mysqlTable("sync_status", {
+  id: varchar("id", { length: 36 }).primaryKey(), // UUID
+  /** Job type: 'drive-scan' | 'mirror-covers' | 'mirror-photos' */
+  jobType: varchar("jobType", { length: 64 }).notNull().default("drive-scan"),
+  status: mysqlEnum("status", ["pending", "running", "completed", "failed"]).notNull().default("pending"),
+  /** 0-100 progress percentage */
+  progress: int("progress").notNull().default(0),
+  totalItems: int("totalItems"),
+  processedItems: int("processedItems").notNull().default(0),
+  /** Summary message shown to user */
+  message: text("message"),
+  /** Error message if failed */
+  error: text("error"),
+  startedAt: timestamp("startedAt").defaultNow().notNull(),
+  completedAt: timestamp("completedAt"),
+});
+
+export type SyncStatus = typeof syncStatus.$inferSelect;
+export type InsertSyncStatus = typeof syncStatus.$inferInsert;

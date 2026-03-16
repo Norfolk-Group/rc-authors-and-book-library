@@ -290,6 +290,37 @@ export const authorProfilesRouter = router({
         }
       }
 
+      // Auto-mirror newly enriched author photos to S3 in the background (fire-and-forget)
+      const succeededCount = results.filter((r) => r.success).length;
+      if (succeededCount > 0) {
+        void (async () => {
+          try {
+            const pending = await db
+              .select({ id: authorProfiles.id, photoUrl: authorProfiles.photoUrl, s3PhotoKey: authorProfiles.s3PhotoKey })
+              .from(authorProfiles)
+              .where(or(isNull(authorProfiles.s3PhotoUrl), eq(authorProfiles.s3PhotoUrl, "")))
+              .limit(succeededCount);
+            const toMirror = pending.filter((a) => a.photoUrl?.startsWith("http"));
+            if (toMirror.length > 0) {
+              const mirrorResults = await mirrorBatchToS3(
+                toMirror.map((a) => ({ id: a.id, sourceUrl: a.photoUrl!, existingKey: a.s3PhotoKey })),
+                "author-photos"
+              );
+              for (const r of mirrorResults) {
+                if (r.url && r.key) {
+                  await db.update(authorProfiles)
+                    .set({ s3PhotoUrl: r.url, s3PhotoKey: r.key })
+                    .where(eq(authorProfiles.id, r.id));
+                }
+              }
+              console.log(`[auto-mirror] Mirrored ${mirrorResults.filter((r) => r.url).length} author photos to S3`);
+            }
+          } catch (err) {
+            console.error("[auto-mirror] Author photo mirror failed:", err);
+          }
+        })();
+      }
+
       return {
         results,
         total: results.length,

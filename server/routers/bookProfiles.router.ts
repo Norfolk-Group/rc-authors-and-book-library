@@ -369,6 +369,37 @@ export const bookProfilesRouter = router({
         }
       }
 
+      // Auto-mirror newly enriched covers to S3 in the background (fire-and-forget)
+      const enrichedCount = results.filter((r) => r.status === "enriched").length;
+      if (enrichedCount > 0) {
+        void (async () => {
+          try {
+            const pending = await db
+              .select({ id: bookProfiles.id, coverImageUrl: bookProfiles.coverImageUrl, s3CoverKey: bookProfiles.s3CoverKey })
+              .from(bookProfiles)
+              .where(or(isNull(bookProfiles.s3CoverUrl), eq(bookProfiles.s3CoverUrl, "")))
+              .limit(enrichedCount);
+            const toMirror = pending.filter((b) => b.coverImageUrl?.startsWith("http"));
+            if (toMirror.length > 0) {
+              const mirrorResults = await mirrorBatchToS3(
+                toMirror.map((b) => ({ id: b.id, sourceUrl: b.coverImageUrl!, existingKey: b.s3CoverKey })),
+                "book-covers"
+              );
+              for (const r of mirrorResults) {
+                if (r.url && r.key) {
+                  await db.update(bookProfiles)
+                    .set({ s3CoverUrl: r.url, s3CoverKey: r.key })
+                    .where(eq(bookProfiles.id, r.id));
+                }
+              }
+              console.log(`[auto-mirror] Mirrored ${mirrorResults.filter((r) => r.url).length} book covers to S3`);
+            }
+          } catch (err) {
+            console.error("[auto-mirror] Book cover mirror failed:", err);
+          }
+        })();
+      }
+
       return results;
     }),
 });
