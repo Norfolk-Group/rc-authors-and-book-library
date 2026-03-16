@@ -194,3 +194,15 @@
 - [ ] Wire trpc.apify.scrapeBook mutation into book detail drawer with loading state and toast feedback
 - [ ] Show scraped cover image immediately in the drawer after successful scrape
 - [ ] Save Amazon URL to bookProfiles DB after scrape
+
+## Session March 16, 2026 — S3 Mirror for Book Covers & Author Photos
+- [x] Add s3CoverUrl/s3CoverKey columns to book_profiles table
+- [x] Add s3PhotoUrl/s3PhotoKey columns to author_profiles table
+- [x] Push DB migration
+- [x] Build server/mirrorToS3.ts: fetch external URL → upload to S3 → return CDN URL
+- [x] Add bookProfiles.mirrorCovers tRPC procedure (batch, with stats query)
+- [x] Add authorProfiles.mirrorPhotos tRPC procedure (batch, with stats query)
+- [x] Update bookCoverMap in Home.tsx to prefer s3CoverUrl over external coverUrl
+- [x] Add "Mirror Covers" and "Mirror Photos" buttons in sidebar footer with status indicators
+- [x] Fix context consolidation: AppSettingsContext absorbs ThemeContext, no stale useTheme errors
+- [x] 105 tests still passing

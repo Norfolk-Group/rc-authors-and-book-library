@@ -1,15 +1,22 @@
 /**
- * AppSettingsContext — Global App Preferences
+ * AppSettingsContext — Unified App Preferences
  *
- * Single source of truth for:
- *   - Active theme name (manus | norfolk-ai | noir-dark)
+ * Single source of truth for ALL app-wide settings:
+ *   - Active named theme (manus | norfolk-ai | noir-dark)
+ *   - Color mode (light | dark) — applies .dark class to <html>
  *   - Active icon set (phosphor-regular | phosphor-duotone)
  *
- * Persists to localStorage. Applies theme class to <html> element.
+ * Replaces the former ThemeContext (light/dark toggle).
+ * Persists to localStorage. Applies theme + color-mode classes to <html>.
  *
  * Usage:
- *   const { settings, updateSettings } = useAppSettings();
- *   updateSettings({ theme: "noir-dark" });
+ *   const { settings, updateSettings, toggleColorMode } = useAppSettings();
+ *   updateSettings({ theme: "noir-dark", colorMode: "dark" });
+ *
+ * Migration note:
+ *   - Former useTheme() → use useAppSettings(); access settings.colorMode
+ *   - Former appTheme (light|dark) → settings.colorMode
+ *   - Former ThemeProvider → replaced by AppSettingsProvider in main.tsx
  */
 
 import React, {
@@ -23,26 +30,36 @@ import React, {
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export type ThemeName = "manus" | "norfolk-ai" | "noir-dark";
+export type ColorMode = "light" | "dark";
 export type IconSetId = "phosphor-regular" | "phosphor-duotone";
 
 export interface AppSettings {
+  /** Named palette: controls brand colors and CSS variable set */
   theme: ThemeName;
+  /** Light/dark mode: applies .dark class to <html> for Tailwind/shadcn */
+  colorMode: ColorMode;
+  /** Icon set: which Phosphor variant to use globally */
   iconSet: IconSetId;
 }
 
 interface AppSettingsContextType {
   settings: AppSettings;
   updateSettings: (patch: Partial<AppSettings>) => void;
+  /** Convenience toggle for light ↔ dark */
+  toggleColorMode: () => void;
 }
 
 // ── Defaults ──────────────────────────────────────────────────────────────────
 
 const DEFAULT_SETTINGS: AppSettings = {
-  theme: "manus",        // Manus is the default theme
+  theme: "manus",
+  colorMode: "light",
   iconSet: "phosphor-regular",
 };
 
-const STORAGE_KEY = "app-settings-v1";
+const STORAGE_KEY = "app-settings-v2";
+const LEGACY_KEY_V1 = "app-settings-v1";
+const LEGACY_THEME_KEY = "ncg-app-theme";
 
 // ── Context ───────────────────────────────────────────────────────────────────
 
@@ -51,23 +68,42 @@ const AppSettingsContext = createContext<AppSettingsContextType | null>(null);
 export function AppSettingsProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<AppSettings>(() => {
     try {
+      // Try new storage key first
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored) as Partial<AppSettings>;
         return { ...DEFAULT_SETTINGS, ...parsed };
       }
+      // Migrate from legacy keys
+      const legacyV1 = localStorage.getItem(LEGACY_KEY_V1);
+      const base = legacyV1
+        ? { ...DEFAULT_SETTINGS, ...(JSON.parse(legacyV1) as Partial<AppSettings>) }
+        : { ...DEFAULT_SETTINGS };
+      const legacyTheme = localStorage.getItem(LEGACY_THEME_KEY);
+      if (legacyTheme === "dark" || legacyTheme === "noir-dark") {
+        base.colorMode = "dark";
+      }
+      return base;
     } catch {
       // ignore parse errors
     }
     return DEFAULT_SETTINGS;
   });
 
-  // Apply theme class to <html> whenever theme changes
+  // Apply theme + color-mode classes to <html> whenever settings change
   useEffect(() => {
     const root = document.documentElement;
-    // Remove all known theme classes
-    root.classList.remove("theme-manus", "theme-norfolk-ai", "theme-noir-dark");
+    // Remove all known theme and color-mode classes
+    root.classList.remove(
+      "theme-manus", "theme-norfolk-ai", "theme-noir-dark",
+      "dark", "light", "norfolk-ai", "noir-dark"
+    );
+    // Apply named theme class
     root.classList.add(`theme-${settings.theme}`);
+    // Apply color mode (.dark used by Tailwind + shadcn)
+    if (settings.colorMode === "dark") {
+      root.classList.add("dark");
+    }
     // Persist
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
@@ -80,8 +116,15 @@ export function AppSettingsProvider({ children }: { children: React.ReactNode })
     setSettings((prev) => ({ ...prev, ...patch }));
   }, []);
 
+  const toggleColorMode = useCallback(() => {
+    setSettings((prev) => ({
+      ...prev,
+      colorMode: prev.colorMode === "dark" ? "light" : "dark",
+    }));
+  }, []);
+
   return (
-    <AppSettingsContext.Provider value={{ settings, updateSettings }}>
+    <AppSettingsContext.Provider value={{ settings, updateSettings, toggleColorMode }}>
       {children}
     </AppSettingsContext.Provider>
   );
@@ -91,4 +134,20 @@ export function useAppSettings(): AppSettingsContextType {
   const ctx = useContext(AppSettingsContext);
   if (!ctx) throw new Error("useAppSettings must be used within AppSettingsProvider");
   return ctx;
+}
+
+// ── Compatibility shim: replaces useTheme() from former ThemeContext ──────────
+/**
+ * @deprecated Use useAppSettings() instead.
+ * Provided for backward compatibility — mirrors the old useTheme() API.
+ */
+export function useThemeCompat() {
+  const { settings, updateSettings, toggleColorMode } = useAppSettings();
+  return {
+    appTheme: settings.colorMode,
+    theme: settings.colorMode,
+    setAppTheme: (t: ColorMode) => updateSettings({ colorMode: t }),
+    toggleTheme: toggleColorMode,
+    switchable: true,
+  };
 }

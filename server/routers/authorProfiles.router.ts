@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { eq, ne } from "drizzle-orm";
+import { eq, ne, isNull, or } from "drizzle-orm";
+import { mirrorBatchToS3 } from "../mirrorToS3";
 import { getDb } from "../db";
 import { authorProfiles } from "../../drizzle/schema";
 import { publicProcedure, router } from "../_core/trpc";
@@ -194,6 +195,59 @@ export const authorProfilesRouter = router({
       .from(authorProfiles)
       .where(ne(authorProfiles.bio, ""));
     return rows.map((r) => r.authorName);
+  }),
+
+  /**
+   * Mirror author photos to Manus S3 for stable CDN serving.
+   * Processes authors that have a photoUrl but no s3PhotoUrl yet.
+   */
+  mirrorPhotos: publicProcedure
+    .input(z.object({ batchSize: z.number().min(1).max(20).default(10) }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const pending = await db
+        .select({
+          id: authorProfiles.id,
+          photoUrl: authorProfiles.photoUrl,
+          s3PhotoKey: authorProfiles.s3PhotoKey,
+        })
+        .from(authorProfiles)
+        .where(or(isNull(authorProfiles.s3PhotoUrl), eq(authorProfiles.s3PhotoUrl, "")))
+        .limit(input.batchSize);
+      const toMirror = pending.filter((a) => a.photoUrl?.startsWith("http"));
+      if (toMirror.length === 0) {
+        return { mirrored: 0, skipped: pending.length, failed: 0, total: pending.length };
+      }
+      const results = await mirrorBatchToS3(
+        toMirror.map((a) => ({ id: a.id, sourceUrl: a.photoUrl!, existingKey: a.s3PhotoKey })),
+        "author-photos"
+      );
+      let mirrored = 0;
+      let failed = 0;
+      for (const result of results) {
+        if (result.url && result.key) {
+          await db.update(authorProfiles)
+            .set({ s3PhotoUrl: result.url, s3PhotoKey: result.key })
+            .where(eq(authorProfiles.id, result.id));
+          mirrored++;
+        } else {
+          failed++;
+        }
+      }
+      return { mirrored, skipped: pending.length - toMirror.length, failed, total: pending.length };
+    }),
+
+  /** Count how many author photos still need S3 mirroring */
+  getMirrorPhotoStats: publicProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) return { withPhoto: 0, mirrored: 0, pending: 0 };
+    const all = await db
+      .select({ photoUrl: authorProfiles.photoUrl, s3PhotoUrl: authorProfiles.s3PhotoUrl })
+      .from(authorProfiles);
+    const withPhoto = all.filter((a) => a.photoUrl?.startsWith("http")).length;
+    const mirrored = all.filter((a) => a.s3PhotoUrl?.startsWith("http")).length;
+    return { withPhoto, mirrored, pending: withPhoto - mirrored };
   }),
 
   /** Batch enrich a list of authors (up to 20 at a time to avoid timeout) */

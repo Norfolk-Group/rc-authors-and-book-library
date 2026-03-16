@@ -8,7 +8,8 @@ import { z } from "zod";
 import { publicProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 import { bookProfiles } from "../../drizzle/schema";
-import { eq, inArray, isNotNull } from "drizzle-orm";
+import { eq, inArray, isNotNull, isNull, or } from "drizzle-orm";
+import { mirrorBatchToS3 } from "../mirrorToS3";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -263,6 +264,59 @@ export const bookProfilesRouter = router({
 
       return { skipped: false, profile: updated[0] };
     }),
+
+  /**
+   * Mirror book cover images to Manus S3 for stable CDN serving.
+   * Processes books that have a coverImageUrl but no s3CoverUrl yet.
+   */
+  mirrorCovers: publicProcedure
+    .input(z.object({ batchSize: z.number().min(1).max(20).default(10) }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const pending = await db
+        .select({
+          id: bookProfiles.id,
+          coverImageUrl: bookProfiles.coverImageUrl,
+          s3CoverKey: bookProfiles.s3CoverKey,
+        })
+        .from(bookProfiles)
+        .where(or(isNull(bookProfiles.s3CoverUrl), eq(bookProfiles.s3CoverUrl, "")))
+        .limit(input.batchSize);
+      const toMirror = pending.filter((b) => b.coverImageUrl?.startsWith("http"));
+      if (toMirror.length === 0) {
+        return { mirrored: 0, skipped: pending.length, failed: 0, total: pending.length };
+      }
+      const results = await mirrorBatchToS3(
+        toMirror.map((b) => ({ id: b.id, sourceUrl: b.coverImageUrl!, existingKey: b.s3CoverKey })),
+        "book-covers"
+      );
+      let mirrored = 0;
+      let failed = 0;
+      for (const result of results) {
+        if (result.url && result.key) {
+          await db.update(bookProfiles)
+            .set({ s3CoverUrl: result.url, s3CoverKey: result.key })
+            .where(eq(bookProfiles.id, result.id));
+          mirrored++;
+        } else {
+          failed++;
+        }
+      }
+      return { mirrored, skipped: pending.length - toMirror.length, failed, total: pending.length };
+    }),
+
+  /** Count how many book covers still need S3 mirroring */
+  getMirrorCoverStats: publicProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) return { withCover: 0, mirrored: 0, pending: 0 };
+    const all = await db
+      .select({ coverImageUrl: bookProfiles.coverImageUrl, s3CoverUrl: bookProfiles.s3CoverUrl })
+      .from(bookProfiles);
+    const withCover = all.filter((b) => b.coverImageUrl?.startsWith("http")).length;
+    const mirrored = all.filter((b) => b.s3CoverUrl?.startsWith("http")).length;
+    return { withCover, mirrored, pending: withCover - mirrored };
+  }),
 
   /** Enrich a batch of books (up to 10 at a time) */
   enrichBatch: publicProcedure

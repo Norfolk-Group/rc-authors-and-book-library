@@ -64,7 +64,7 @@ import {
 import { AUDIO_BOOKS, type AudioBook } from "@/lib/audioData";
 import { getAuthorPhoto } from "@/lib/authorPhotos";
 import { canonicalName } from "@/lib/authorAliases";
-import { useTheme, type AppTheme } from "@/contexts/ThemeContext";
+import { useAppSettings, type ColorMode as AppTheme } from "@/contexts/AppSettingsContext";
 import { CategoryChart } from "@/components/CategoryChart";
 import {
   Search,
@@ -947,7 +947,7 @@ type BookSort = "name-asc" | "name-desc" | "author" | "content-desc";
 type TabType = "authors" | "books" | "audio";
 
 export default function Home() {
-  const { appTheme } = useTheme();
+  const { settings: { colorMode: appTheme } } = useAppSettings();
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<TabType>("authors");
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
@@ -998,12 +998,25 @@ export default function Home() {
   const bookCoverMap = useMemo(() => {
     const map = new Map<string, string>();
     for (const p of bookCoversQuery.data ?? []) {
-      if (p.coverImageUrl) map.set(p.bookTitle, p.coverImageUrl);
+      // Prefer S3-mirrored URL (stable CDN) over external URL (may block hotlinking)
+      const url = (p as { s3CoverUrl?: string | null }).s3CoverUrl || p.coverImageUrl;
+      if (url) map.set(p.bookTitle, url);
     }
     return map;
   }, [bookCoversQuery.data]);
 
-  // ── Batch enrich books state ──────────────────────────────────
+  // ── S3 mirror state ───────────────────────────────────────────
+  type MirrorStatus = "idle" | "running" | "done" | "error";
+  const [coverMirrorStatus, setCoverMirrorStatus] = useState<MirrorStatus>("idle");
+  const [coverMirrorDone, setCoverMirrorDone] = useState(0);
+  const [photoMirrorStatus, setPhotoMirrorStatus] = useState<MirrorStatus>("idle");
+  const [photoMirrorDone, setPhotoMirrorDone] = useState(0);
+  const mirrorCoversMutation = trpc.bookProfiles.mirrorCovers.useMutation();
+  const mirrorPhotosMutation = trpc.authorProfiles.mirrorPhotos.useMutation();
+  const coverMirrorStats = trpc.bookProfiles.getMirrorCoverStats.useQuery(undefined, { staleTime: 30_000 });
+  const photoMirrorStats = trpc.authorProfiles.getMirrorPhotoStats.useQuery(undefined, { staleTime: 30_000 });
+
+  // ── Batch enrich books state ────────────────────────────
   const [bookEnrichStatus, setBookEnrichStatus] = useState<EnrichStatus>("idle");
   const [bookEnrichProgress, setBookEnrichProgress] = useState(0);
   const [bookEnrichDone, setBookEnrichDone] = useState(0);
@@ -1012,6 +1025,51 @@ export default function Home() {
   const bookEnrichBatchMutation = trpc.bookProfiles.enrichBatch.useMutation();
 
   const utils = trpc.useUtils();
+
+  const mirrorAllCovers = useCallback(async () => {
+    setCoverMirrorStatus("running");
+    setCoverMirrorDone(0);
+    let totalMirrored = 0;
+    try {
+      // Run in batches of 10 until no more pending
+      for (let i = 0; i < 50; i++) {
+        const result = await mirrorCoversMutation.mutateAsync({ batchSize: 10 });
+        totalMirrored += result.mirrored;
+        setCoverMirrorDone(totalMirrored);
+        // Stop when batch returns nothing to mirror (mirrored=0 means all done or all failed)
+        if (result.mirrored === 0 && result.skipped === result.total) break;
+        if (result.total === 0) break;
+      }
+      setCoverMirrorStatus("done");
+      void utils.bookProfiles.getMany.invalidate();
+      void coverMirrorStats.refetch();
+      toast.success(`Mirrored ${totalMirrored} book covers to S3`);
+    } catch {
+      setCoverMirrorStatus("error");
+      toast.error("Failed to mirror book covers");
+    }
+  }, [mirrorCoversMutation, utils, coverMirrorStats]);
+
+  const mirrorAllPhotos = useCallback(async () => {
+    setPhotoMirrorStatus("running");
+    setPhotoMirrorDone(0);
+    let totalMirrored = 0;
+    try {
+      for (let i = 0; i < 50; i++) {
+        const result = await mirrorPhotosMutation.mutateAsync({ batchSize: 10 });
+        totalMirrored += result.mirrored;
+        setPhotoMirrorDone(totalMirrored);
+        if (result.mirrored === 0 && result.skipped === result.total) break;
+        if (result.total === 0) break;
+      }
+      setPhotoMirrorStatus("done");
+      void photoMirrorStats.refetch();
+      toast.success(`Mirrored ${totalMirrored} author photos to S3`);
+    } catch {
+      setPhotoMirrorStatus("error");
+      toast.error("Failed to mirror author photos");
+    }
+  }, [mirrorPhotosMutation, photoMirrorStats]);
   const enrichAllBios = useCallback(async () => {
     if (enrichStatus === "running") return;
     // Build unique author names from the library data
@@ -1518,6 +1576,55 @@ export default function Home() {
             {bookEnrichStatus === "done" && bookEnrichFailed > 0 && (
               <p className="text-[10px] text-muted-foreground mt-1">{bookEnrichFailed} books could not be enriched.</p>
             )}
+
+            {/* ── Mirror to S3 buttons ── */}
+            <div className="mt-2 pt-2 border-t border-border/30">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1.5">S3 Mirror</p>
+              {/* Mirror Book Covers */}
+              <button
+                onClick={mirrorAllCovers}
+                disabled={coverMirrorStatus === "running" || (coverMirrorStats.data?.pending ?? 1) === 0}
+                className="w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium border border-border hover:bg-muted/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title={`Mirror book covers to S3 CDN (${coverMirrorStats.data?.pending ?? "?"} pending)`}
+              >
+                {coverMirrorStatus === "running" ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                ) : coverMirrorStatus === "done" ? (
+                  <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
+                ) : (
+                  <BookOpen className="w-3.5 h-3.5" />
+                )}
+                {coverMirrorStatus === "running"
+                  ? `Mirroring… ${coverMirrorDone}`
+                  : coverMirrorStatus === "done"
+                  ? `Covers mirrored (${coverMirrorDone})`
+                  : coverMirrorStats.data?.pending === 0
+                  ? "Covers: all on S3 ✓"
+                  : `Mirror Covers (${coverMirrorStats.data?.pending ?? "?"})`}
+              </button>
+              {/* Mirror Author Photos */}
+              <button
+                onClick={mirrorAllPhotos}
+                disabled={photoMirrorStatus === "running" || (photoMirrorStats.data?.pending ?? 1) === 0}
+                className="w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium border border-border hover:bg-muted/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-1"
+                title={`Mirror author photos to S3 CDN (${photoMirrorStats.data?.pending ?? "?"} pending)`}
+              >
+                {photoMirrorStatus === "running" ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                ) : photoMirrorStatus === "done" ? (
+                  <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
+                ) : (
+                  <Users className="w-3.5 h-3.5" />
+                )}
+                {photoMirrorStatus === "running"
+                  ? `Mirroring… ${photoMirrorDone}`
+                  : photoMirrorStatus === "done"
+                  ? `Photos mirrored (${photoMirrorDone})`
+                  : photoMirrorStats.data?.pending === 0
+                  ? "Photos: all on S3 ✓"
+                  : `Mirror Photos (${photoMirrorStats.data?.pending ?? "?"})`}
+              </button>
+            </div>
 
             {/* ── Preferences link ── */}
             <div className="mt-3 pt-3 border-t border-border/50">

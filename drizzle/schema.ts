@@ -38,6 +38,10 @@ export const authorProfiles = mysqlTable("author_profiles", {
   photoUrl: varchar("photoUrl", { length: 1024 }),
   /** Source URL where the photo was found */
   photoSourceUrl: varchar("photoSourceUrl", { length: 1024 }),
+  /** S3-mirrored photo URL — served from Manus CDN for reliability */
+  s3PhotoUrl: varchar("s3PhotoUrl", { length: 1024 }),
+  /** S3 key for the mirrored photo (used for deduplication/cleanup) */
+  s3PhotoKey: varchar("s3PhotoKey", { length: 512 }),
   enrichedAt: timestamp("enrichedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -69,8 +73,12 @@ export const bookProfiles = mysqlTable("book_profiles", {
   resourceUrl: varchar("resourceUrl", { length: 512 }),
   /** Label for the resource URL */
   resourceLabel: varchar("resourceLabel", { length: 128 }),
-  /** Book cover image URL from Google Books */
+  /** Book cover image URL from Google Books or Apify scrape */
   coverImageUrl: varchar("coverImageUrl", { length: 1024 }),
+  /** S3-mirrored cover URL — served from Manus CDN for reliability */
+  s3CoverUrl: varchar("s3CoverUrl", { length: 1024 }),
+  /** S3 key for the mirrored cover (used for deduplication/cleanup) */
+  s3CoverKey: varchar("s3CoverKey", { length: 512 }),
   /** Published date string, e.g. "2023-04-18" */
   publishedDate: varchar("publishedDate", { length: 32 }),
   /** ISBN-13 */
