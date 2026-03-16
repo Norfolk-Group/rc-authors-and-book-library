@@ -108,43 +108,44 @@
   --sidebar-ring: oklch(0.87 0.17 85);
 }
 
-/* ── Noir Dark Executive Theme ── */
+/* ── Noir Dark Executive Theme — Monochrome Clean Cut ── */
 :root.noir-dark {
-  --radius: 0.4rem;
+  --radius: 0.75rem;                           /* rounder corners for pill-ish feel */
 
-  --background: oklch(0.10 0.005 240);         /* near-black #0a0a0f */
-  --foreground: oklch(0.92 0.005 240);         /* near-white #e8e8f0 */
-  --card: oklch(0.14 0.008 240);               /* dark card #111118 */
-  --card-foreground: oklch(0.92 0.005 240);    /* near-white */
-  --popover: oklch(0.16 0.008 240);
-  --popover-foreground: oklch(0.92 0.005 240);
+  /* Pure white canvas */
+  --background: oklch(1 0 0);                  /* #ffffff pure white */
+  --foreground: oklch(0.09 0 0);               /* #111111 near-black */
+  --card: oklch(1 0 0);                        /* white cards */
+  --card-foreground: oklch(0.09 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.09 0 0);
 
-  /* Primary = Gold */
-  --primary: oklch(0.78 0.14 85);             /* #c9a84c gold */
-  --primary-foreground: oklch(0.10 0.005 240); /* near-black on gold */
+  /* Primary = pure black (active buttons, selected states) */
+  --primary: oklch(0.09 0 0);                  /* #111111 black */
+  --primary-foreground: oklch(1 0 0);          /* white on black */
 
-  /* Secondary = elevated surface */
-  --secondary: oklch(0.18 0.008 240);
-  --secondary-foreground: oklch(0.92 0.005 240);
-  --muted: oklch(0.18 0.008 240);
-  --muted-foreground: oklch(0.55 0.01 240);    /* #7a7a8a muted */
-  --accent: oklch(0.78 0.14 85);              /* gold accent */
-  --accent-foreground: oklch(0.10 0.005 240);
+  /* Secondary = light grey surface */
+  --secondary: oklch(0.96 0 0);               /* #f5f5f5 */
+  --secondary-foreground: oklch(0.09 0 0);
+  --muted: oklch(0.96 0 0);                   /* #f5f5f5 */
+  --muted-foreground: oklch(0.45 0 0);        /* #6b6b6b medium grey */
+  --accent: oklch(0.09 0 0);                  /* black accent */
+  --accent-foreground: oklch(1 0 0);          /* white on black */
   --destructive: oklch(0.55 0.22 25);
-  --destructive-foreground: oklch(0.92 0.005 240);
-  --border: oklch(0.22 0.01 240);             /* #2a2a35 subtle */
-  --input: oklch(0.22 0.01 240);
-  --ring: oklch(0.78 0.14 85);               /* gold ring */
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.82 0 0);                  /* #d0d0d0 medium grey border */
+  --input: oklch(0.82 0 0);
+  --ring: oklch(0.09 0 0);                    /* black focus ring */
 
-  /* Sidebar — deepest black with gold accents */
-  --sidebar: oklch(0.08 0.005 240);           /* #080810 deepest */
-  --sidebar-foreground: oklch(0.88 0.005 240);
-  --sidebar-primary: oklch(0.78 0.14 85);     /* gold */
-  --sidebar-primary-foreground: oklch(0.10 0.005 240);
-  --sidebar-accent: oklch(0.14 0.008 240);    /* slightly lighter on hover */
-  --sidebar-accent-foreground: oklch(0.92 0.005 240);
-  --sidebar-border: oklch(0.18 0.008 240);
-  --sidebar-ring: oklch(0.78 0.14 85);
+  /* Sidebar — white with black text, black active states */
+  --sidebar: oklch(0.98 0 0);                 /* #fafafa off-white sidebar */
+  --sidebar-foreground: oklch(0.09 0 0);
+  --sidebar-primary: oklch(0.09 0 0);         /* black active */
+  --sidebar-primary-foreground: oklch(1 0 0); /* white on black */
+  --sidebar-accent: oklch(0.93 0 0);          /* #ededed hover grey */
+  --sidebar-accent-foreground: oklch(0.09 0 0);
+  --sidebar-border: oklch(0.88 0 0);          /* #e0e0e0 */
+  --sidebar-ring: oklch(0.09 0 0);
 }
 
 @layer base {

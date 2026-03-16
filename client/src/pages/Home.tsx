@@ -1562,6 +1562,12 @@ export default function Home() {
                 </a>
               </div>
             </div>
+            {/* Powered by Norfolk AI */}
+            <div className="mt-3 pt-3 border-t border-border/30">
+              <p className="text-[10px] text-muted-foreground/60 text-center tracking-wide">
+                Powered by Norfolk AI
+              </p>
+            </div>
           </SidebarFooter>
         </Sidebar>
 

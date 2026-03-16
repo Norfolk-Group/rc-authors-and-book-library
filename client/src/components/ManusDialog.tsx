@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-interface ManusDialogProps {
+interface NorfolkDialogProps {
   title?: string;
   logo?: string;
   open?: boolean;
@@ -25,7 +25,7 @@ export function ManusDialog({
   onLogin,
   onOpenChange,
   onClose,
-}: ManusDialogProps) {
+}: NorfolkDialogProps) {
   const [internalOpen, setInternalOpen] = useState(open);
 
   useEffect(() => {
@@ -57,7 +57,7 @@ export function ManusDialog({
             <div className="w-16 h-16 bg-white rounded-xl border border-[rgba(0,0,0,0.08)] flex items-center justify-center">
               <img
                 src={logo}
-                alt="Dialog graphic"
+                alt="NCG Library"
                 className="w-10 h-10 rounded-md"
               />
             </div>
@@ -70,18 +70,22 @@ export function ManusDialog({
             </DialogTitle>
           ) : null}
           <DialogDescription className="text-sm text-[#858481] leading-5 tracking-[-0.154px]">
-            Please login with Manus to continue
+            Sign in to access the NCG Knowledge Library
           </DialogDescription>
         </div>
 
-        <DialogFooter className="px-5 py-5">
+        <DialogFooter className="px-5 py-5 flex flex-col gap-2">
           {/* Login button */}
           <Button
             onClick={onLogin}
             className="w-full h-10 bg-[#1a1a19] hover:bg-[#1a1a19]/90 text-white rounded-[10px] text-sm font-medium leading-5 tracking-[-0.154px]"
           >
-            Login with Manus
+            Sign In
           </Button>
+          {/* Powered by Norfolk AI */}
+          <p className="text-[10px] text-[#b0aea9] tracking-wide text-center mt-1">
+            Powered by Norfolk AI
+          </p>
         </DialogFooter>
       </DialogContent>
     </Dialog>

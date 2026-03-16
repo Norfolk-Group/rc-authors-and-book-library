@@ -110,3 +110,22 @@
 - [x] Persist theme selection to localStorage
 - [x] Audit all UI components to use CSS token classes (no hardcoded colors)
 - [x] Test both themes in browser — cards, chart, modals, sidebar, badges, buttons
+
+## Session March 15, 2026 — Noir Monochrome Redesign
+- [ ] Rewrite Noir CSS variables: white bg, black fg, grey surfaces, black borders
+- [ ] Round-rectangular buttons: active = black fill + white text, inactive = white + black border
+- [ ] Duotone Lucide icons: black primary stroke + light grey secondary fill in Noir theme
+- [ ] Sidebar in Noir: white bg, black text, black active pill, grey hover
+- [ ] Cards in Noir: white bg, black border (1px), no category pastel bg, no left-color border
+- [ ] Category pills in Noir: black active, grey inactive, rounded-full
+- [ ] Category chart in Noir: black bars, grey grid lines, black labels
+- [ ] Modals in Noir: white bg, black headings, grey dividers
+- [ ] Stat cards in Noir: white bg, black numbers, grey labels
+- [ ] Remove all color accents except from avatars/covers in Noir
+- [ ] Verify both themes render correctly in browser
+
+## Session March 15, 2026 — Remove Manus Branding
+- [ ] Remove Manus logo and name from app header/sidebar
+- [ ] Remove "Powered by Manus" or any Manus references in UI
+- [ ] Replace with NCG Library identity (name, logo placeholder)
+- [ ] Update page title and favicon reference
