@@ -66,6 +66,7 @@ import { getAuthorPhoto } from "@/lib/authorPhotos";
 import { canonicalName } from "@/lib/authorAliases";
 import { useAppSettings, type ColorMode as AppTheme } from "@/contexts/AppSettingsContext";
 import { CategoryChart } from "@/components/CategoryChart";
+import { AvatarUpload } from "@/components/AvatarUpload";
 import {
   Search,
   BookOpen,
@@ -342,22 +343,26 @@ function AuthorCard({ author, query, onBioClick, isEnriched }: { author: AuthorE
         </div>
         {/* Author photo + name row */}
         <div className="flex items-center gap-2.5 mb-1">
-          {photoUrl ? (
-            <img
-              src={photoUrl}
-              alt={displayName}
-              className="w-10 h-10 rounded-full object-cover flex-shrink-0 ring-2 ring-offset-1"
-              style={{ '--tw-ring-color': color + '55' } as React.CSSProperties}
-              loading="lazy"
-            />
-          ) : (
-            <div
-              className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold"
-              style={{ backgroundColor: color + '22', color }}
-            >
-              {displayName.charAt(0)}
-            </div>
-          )}
+          <AvatarUpload authorName={displayName} currentPhotoUrl={photoUrl} size={40}>
+            {(url) =>
+              url ? (
+                <img
+                  src={url}
+                  alt={displayName}
+                  className="w-10 h-10 rounded-full object-cover ring-2 ring-offset-1"
+                  style={{ '--tw-ring-color': color + '55' } as React.CSSProperties}
+                  loading="lazy"
+                />
+              ) : (
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold"
+                  style={{ backgroundColor: color + '22', color }}
+                >
+                  {displayName.charAt(0)}
+                </div>
+              )
+            }
+          </AvatarUpload>
           <div className="flex-1 min-w-0">
             <h3 className="text-sm font-semibold leading-snug tracking-tight">
               {highlight(displayName)}
@@ -627,13 +632,25 @@ function AuthorBioPanel({ author, onClose }: { author: typeof AUTHORS[number]; o
       {/* Header */}
       <DialogHeader>
         <div className="flex items-center gap-4 mb-1">
-          {photoUrl ? (
-            <img src={photoUrl} alt={displayName} className="w-20 h-20 rounded-full object-cover ring-2 ring-offset-2 flex-shrink-0" style={{ '--tw-ring-color': color + '66' } as React.CSSProperties} />
-          ) : (
-            <div className="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold flex-shrink-0" style={{ backgroundColor: color + '22', color }}>
-              {displayName.charAt(0)}
-            </div>
-          )}
+          <AvatarUpload authorName={displayName} currentPhotoUrl={photoUrl} size={80}>
+            {(url) =>
+              url ? (
+                <img
+                  src={url}
+                  alt={displayName}
+                  className="w-20 h-20 rounded-full object-cover ring-2 ring-offset-2"
+                  style={{ '--tw-ring-color': color + '66' } as React.CSSProperties}
+                />
+              ) : (
+                <div
+                  className="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold"
+                  style={{ backgroundColor: color + '22', color }}
+                >
+                  {displayName.charAt(0)}
+                </div>
+              )
+            }
+          </AvatarUpload>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ backgroundColor: color + '22', color }}>{author.category}</span>

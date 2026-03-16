@@ -206,3 +206,9 @@
 - [x] Add "Mirror Covers" and "Mirror Photos" buttons in sidebar footer with status indicators
 - [x] Fix context consolidation: AppSettingsContext absorbs ThemeContext, no stale useTheme errors
 - [x] 105 tests still passing
+
+## Session March 16, 2026 — Custom Author Avatar Upload
+- [ ] Add uploadAuthorPhoto tRPC mutation (multipart base64 → S3 → DB)
+- [ ] Build AvatarUpload component with click-to-upload overlay on author photo
+- [ ] Wire AvatarUpload into AuthorCard and author bio modal
+- [ ] Write vitest tests for uploadAuthorPhoto

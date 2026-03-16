@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { eq, ne, isNull, or, sql } from "drizzle-orm";
 import { mirrorBatchToS3 } from "../mirrorToS3";
+import { storagePut } from "../storage";
 import { getDb } from "../db";
 import { authorProfiles } from "../../drizzle/schema";
 import { publicProcedure, router } from "../_core/trpc";
@@ -499,5 +500,53 @@ export const authorProfilesRouter = router({
         aiGenerated: results.filter((r) => r.isAiGenerated).length,
         results,
       };
+    }),
+
+  // ── Upload a custom author photo (base64) ─────────────────────────────
+  uploadPhoto: publicProcedure
+    .input(
+      z.object({
+        authorName: z.string().min(1),
+        // base64-encoded image data (without data: prefix)
+        imageBase64: z.string().min(1),
+        // mime type e.g. "image/jpeg", "image/png", "image/webp"
+        mimeType: z.enum(["image/jpeg", "image/png", "image/webp", "image/gif"]),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database unavailable");
+
+      // Decode base64 → Buffer
+      const buffer = Buffer.from(input.imageBase64, "base64");
+
+      // Enforce 5 MB size limit
+      if (buffer.byteLength > 5 * 1024 * 1024) {
+        throw new Error("Image too large — maximum size is 5 MB");
+      }
+
+      // Build a unique S3 key
+      const ext = input.mimeType.split("/")[1] ?? "jpg";
+      const slug = input.authorName
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "");
+      const key = `author-photos/custom/${slug}-${Date.now()}.${ext}`;
+
+      // Upload to S3
+      const { url } = await storagePut(key, buffer, input.mimeType);
+
+      // Persist to DB — mark as custom so waterfall won't overwrite it
+      await db
+        .update(authorProfiles)
+        .set({
+          photoUrl: url,
+          s3PhotoUrl: url,
+          s3PhotoKey: key,
+          enrichedAt: new Date(),
+        })
+        .where(eq(authorProfiles.authorName, input.authorName));
+
+      return { url, key };
     }),
 });
