@@ -147,10 +147,10 @@
 - [x] Verify 90 tests still pass after theme migration
 
 ## Session March 15, 2026 — Swiss Modernist Typography Hierarchy
-- [ ] Apply font-display class to all stat numbers in StatCard
-- [ ] Apply font-display class to all card titles (author names, book titles)
-- [ ] Apply font-display class to section headings and modal titles
-- [ ] Apply font-display class to sidebar header and category labels
+- [x] Apply font-display class to all stat numbers in StatCard
+- [x] Apply font-display class to all card titles (author names, book titles)
+- [x] Apply font-display class to section headings and modal titles
+- [x] Apply font-display class to sidebar header and category labels
 
 ## Session March 16, 2026 — Apify Web Scraping Integration
 - [x] Install apify-client npm package
@@ -162,3 +162,16 @@
 - [ ] Add "Scrape from Amazon" button to book detail panel
 - [ ] Add "Find Real Photo" button to author bio modal
 - [x] Write vitest tests for Apify helper (15 tests, 105 total passing)
+
+## Session March 16, 2026 — Preferences System & Theme Skill
+- [x] Audit current ThemeContext and AppSettings state
+- [x] Build AppSettingsContext (theme + iconSet, persisted to localStorage)
+- [x] Add Manus theme CSS variables (.theme-manus class) to index.css
+- [x] Fix Noir Dark theme: white background, black/dark accents, black selected buttons with white font
+- [x] Enforce rounded-rectangle buttons globally across all themes (border-radius: 6px)
+- [x] Build Preferences page with tabs: Themes, Icons, About
+- [x] Themes tab: theme cards (Manus default | Norfolk AI | Noir Dark), color hierarchy display
+- [x] Icons tab: icon set selector (Phosphor Regular | Phosphor Duotone) with live preview
+- [x] Add Preferences entry to sidebar navigation
+- [x] Set Manus as the default theme on first load
+- [x] Create webdev-theme-system skill documenting the full pattern

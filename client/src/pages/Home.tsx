@@ -115,6 +115,7 @@ import {
   Palette,
   Sun,
   Moon,
+  Settings,
 } from "lucide-react";
 
 // ── Icon map for categories ──────────────────────────────────
@@ -249,7 +250,7 @@ function StatCard({ label, value, icon: Icon }: { label: string; value: number |
         <Icon className="w-3.5 h-3.5" />
         <span className="text-xs font-medium uppercase tracking-widest">{label}</span>
       </div>
-      <span className="text-xl sm:text-2xl font-extrabold tracking-tight">
+      <span className="text-xl sm:text-2xl font-extrabold font-display tracking-tight">
         {value}
       </span>
     </div>
@@ -650,7 +651,7 @@ function AuthorBioPanel({ author, onClose }: { author: typeof AUTHORS[number]; o
             <div className="flex items-center gap-2 mb-1">
               <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ backgroundColor: color + '22', color }}>{author.category}</span>
             </div>
-            <DialogTitle className="text-xl font-bold leading-snug">{displayName}</DialogTitle>
+            <DialogTitle className="text-xl font-bold font-display leading-snug">{displayName}</DialogTitle>
             {specialty && <DialogDescription className="text-sm mt-0.5">{specialty}</DialogDescription>}
           </div>
         </div>
@@ -795,7 +796,7 @@ function BookDetailPanel({ book, onClose }: { book: typeof BOOKS[number]; onClos
             <div className="flex items-center gap-2 mb-1">
               <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ backgroundColor: color + "22", color }}>{book.category}</span>
             </div>
-            <DialogTitle className="text-lg font-bold leading-snug">{displayTitle}</DialogTitle>
+            <DialogTitle className="text-lg font-bold font-display leading-snug">{displayTitle}</DialogTitle>
             {bookAuthor && <DialogDescription className="text-sm mt-0.5">by {bookAuthor}</DialogDescription>}
             {/* Rating */}
             {profile?.rating && (
@@ -929,7 +930,7 @@ type BookSort = "name-asc" | "name-desc" | "author" | "content-desc";
 type TabType = "authors" | "books" | "audio";
 
 export default function Home() {
-  const { appTheme, setAppTheme } = useTheme();
+  const { appTheme } = useTheme();
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<TabType>("authors");
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
@@ -1255,7 +1256,7 @@ export default function Home() {
               </div>
               <div className="group-data-[collapsible=icon]:hidden">
                 <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Norfolk CG</p>
-                <p className="text-sm font-bold leading-tight tracking-tight">
+                <p className="text-sm font-bold font-display leading-tight tracking-tight">
                   Knowledge Library
                 </p>
               </div>
@@ -1501,39 +1502,16 @@ export default function Home() {
               <p className="text-[10px] text-muted-foreground mt-1">{bookEnrichFailed} books could not be enriched.</p>
             )}
 
-            {/* ── Preferences: Theme Switcher ── */}
+            {/* ── Preferences link ── */}
             <div className="mt-3 pt-3 border-t border-border/50">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Preferences</p>
-              <div className="flex flex-col gap-1">
-                <button
-                  onClick={() => setAppTheme("light")}
-                  className={`w-full flex items-center gap-2 text-xs px-2 py-1.5 rounded transition-colors ${
-                    appTheme === "light"
-                      ? "bg-accent/20 text-accent-foreground font-semibold"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
-                  }`}
-                >
-                  <Sun className="w-3.5 h-3.5 flex-shrink-0" />
-                  Light
-                  {appTheme === "light" && (
-                    <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />
-                  )}
-                </button>
-                <button
-                  onClick={() => setAppTheme("dark")}
-                  className={`w-full flex items-center gap-2 text-xs px-2 py-1.5 rounded transition-colors ${
-                    appTheme === "dark"
-                      ? "bg-accent/20 text-accent-foreground font-semibold"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
-                  }`}
-                >
-                  <Moon className="w-3.5 h-3.5 flex-shrink-0" />
-                  Dark
-                  {appTheme === "dark" && (
-                    <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />
-                  )}
-                </button>
-              </div>
+              <a
+                href="/preferences"
+                className="w-full flex items-center gap-2 text-xs px-2 py-1.5 rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/60"
+              >
+                <Settings className="w-3.5 h-3.5 flex-shrink-0" />
+                Preferences
+                <ChevronRight className="w-3 h-3 ml-auto opacity-50" />
+              </a>
             </div>
 
             {/* Drive Media Folders */}
@@ -1659,7 +1637,7 @@ export default function Home() {
             {/* Section header */}
             <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
               <div className="flex items-baseline gap-3">
-                <h1 className="text-xl font-extrabold tracking-tight">
+                <h1 className="text-xl font-extrabold font-display tracking-tight">
                   {activeTab === "authors" ? "Authors" : activeTab === "books" ? "Books" : "Books Audio"}
                 </h1>
                 <span className="text-sm text-muted-foreground">
