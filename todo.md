@@ -290,3 +290,16 @@
 - [x] Update webdev-norfolk-ai-branding skill with real logo CDN URLs and pulse pattern
 - [x] 118 tests passing
 - [x] Save checkpoint
+
+## Session March 16, 2026 — Cover Expand Tooltip on Mini Thumbnails
+- [x] Wrap each mini cover thumbnail in Radix Tooltip with enlarged 90×126px cover image
+- [x] Show book title as caption below the enlarged cover in the tooltip
+- [x] Show placeholder with book icon when no cover URL available
+- [x] Save checkpoint (completed in previous session 621d90cd)
+
+## Session March 16, 2026 — Ricardo Cidale Avatar
+- [x] Upload ricardocidalecartoon.png to CDN (https://d2xsxph8kpxj0f.cloudfront.net/...)
+- [x] Set avatar as VITE_APP_LOGO (built-in secret; hardcoded CDN URL in sidebar header instead)
+- [x] Add avatar to sidebar header next to library name (rounded-full, ring-2 ring-primary/20)
+- [x] Use avatar as favicon (favicon.ico in client/public + CDN PNG link in index.html)
+- [x] Save checkpoint

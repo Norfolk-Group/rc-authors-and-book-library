@@ -423,30 +423,56 @@ function AuthorCard({ author, query, onBioClick, isEnriched, coverMap, onBookCli
                   : book.name.trim();
                 const coverUrl = coverMap.get(titleKey);
                 return (
-                  <button
-                    key={book.id}
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); onBookClick ? onBookClick(book.id, titleKey) : window.open(`https://drive.google.com/drive/folders/${book.id}?view=grid`, "_blank"); }}
-                    title={titleKey}
-                    className="flex-shrink-0 group/cover cursor-pointer"
-                  >
-                    {coverUrl ? (
-                      <img
-                        src={coverUrl}
-                        alt={titleKey}
-                        className="w-8 h-11 object-cover rounded shadow-sm ring-1 ring-border group-hover/cover:ring-2 transition-all duration-150"
-                        style={{ '--tw-ring-color': color + '55' } as React.CSSProperties}
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div
-                        className="w-8 h-11 rounded shadow-sm ring-1 ring-border flex items-center justify-center group-hover/cover:ring-2 transition-all duration-150"
-                        style={{ backgroundColor: color + '18', '--tw-ring-color': color + '55' } as React.CSSProperties}
+                  <Tooltip key={book.id} delayDuration={200}>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); onBookClick ? onBookClick(book.id, titleKey) : window.open(`https://drive.google.com/drive/folders/${book.id}?view=grid`, "_blank"); }}
+                        className="flex-shrink-0 group/cover cursor-pointer"
                       >
-                        <BookOpen className="w-3.5 h-3.5" style={{ color, opacity: 0.7 }} />
+                        {coverUrl ? (
+                          <img
+                            src={coverUrl}
+                            alt={titleKey}
+                            className="w-8 h-11 object-cover rounded shadow-sm ring-1 ring-border group-hover/cover:ring-2 transition-all duration-150"
+                            style={{ '--tw-ring-color': color + '55' } as React.CSSProperties}
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div
+                            className="w-8 h-11 rounded shadow-sm ring-1 ring-border flex items-center justify-center group-hover/cover:ring-2 transition-all duration-150"
+                            style={{ backgroundColor: color + '18', '--tw-ring-color': color + '55' } as React.CSSProperties}
+                          >
+                            <BookOpen className="w-3.5 h-3.5" style={{ color, opacity: 0.7 }} />
+                          </div>
+                        )}
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent
+                      side="top"
+                      sideOffset={8}
+                      className="p-0 bg-transparent border-0 shadow-none rounded-lg overflow-hidden"
+                    >
+                      <div className="flex flex-col items-center gap-1.5 p-2 bg-popover rounded-xl shadow-xl border border-border/60" style={{ backdropFilter: 'blur(8px)' }}>
+                        {coverUrl ? (
+                          <img
+                            src={coverUrl}
+                            alt={titleKey}
+                            className="w-[90px] h-[126px] object-cover rounded-md shadow-md"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div
+                            className="w-[90px] h-[126px] rounded-md shadow-md flex items-center justify-center"
+                            style={{ backgroundColor: color + '22' }}
+                          >
+                            <BookOpen className="w-8 h-8" style={{ color, opacity: 0.5 }} />
+                          </div>
+                        )}
+                        <p className="text-[10px] font-medium text-popover-foreground text-center max-w-[90px] leading-tight line-clamp-2">{titleKey}</p>
                       </div>
-                    )}
-                  </button>
+                    </TooltipContent>
+                  </Tooltip>
                 );
               })}
             </div>
@@ -1506,13 +1532,15 @@ export default function Home() {
         <Sidebar collapsible="offcanvas" className="border-r border-sidebar-border">
           <SidebarHeader className="px-4 py-4 border-b border-sidebar-border">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center flex-shrink-0">
-                <Library className="w-4 h-4 text-primary-foreground" />
-              </div>
+              <img
+                src="https://d2xsxph8kpxj0f.cloudfront.net/310519663270229297/ehSrGoKN2NYhXg8UYLtWGw/ricardocidalecartoon_330eb604.png"
+                alt="Ricardo Cidale"
+                className="w-9 h-9 rounded-full object-cover flex-shrink-0 ring-2 ring-primary/20"
+              />
               <div className="group-data-[collapsible=icon]:hidden">
-                <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Norfolk CG</p>
+                <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Ricardo Cidale</p>
                 <p className="text-sm font-bold font-display leading-tight tracking-tight">
-                  Knowledge Library
+                  Personal Library
                 </p>
               </div>
             </div>
