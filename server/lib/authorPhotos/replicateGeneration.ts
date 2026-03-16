@@ -1,6 +1,10 @@
 /**
  * Tier 5: Replicate AI Portrait Generation — last resort, ~$0.003/image
  * Generates a realistic professional headshot when no real photo is found.
+ *
+ * NOTE: The Replicate SDK (>=1.0) returns FileOutput objects, not plain strings.
+ * FileOutput.toString() returns the URL string directly.
+ * FileOutput.url() returns a URL object (not a string) — do NOT call .slice() on it.
  */
 import Replicate from "replicate";
 
@@ -39,6 +43,20 @@ export interface GeneratedPortrait {
   isAiGenerated: true;
 }
 
+/**
+ * Extract URL string from a Replicate output item.
+ * Handles both legacy string outputs and new FileOutput objects.
+ */
+function extractUrl(item: unknown): string | null {
+  if (!item) return null;
+  // Plain string (legacy SDK behaviour)
+  if (typeof item === "string") return item;
+  // FileOutput: toString() returns the URL string directly
+  const str = String(item);
+  if (str.startsWith("http")) return str;
+  return null;
+}
+
 export async function generateAIPortrait(
   authorName: string
 ): Promise<GeneratedPortrait | null> {
@@ -56,19 +74,19 @@ export async function generateAIPortrait(
       },
     });
 
-    // flux-schnell returns an array of URLs or a ReadableStream
+    // flux-schnell returns an array of FileOutput objects (SDK >=1.0)
+    // or plain strings (older SDK). Use extractUrl() to handle both.
     let imageUrl: string | null = null;
     if (Array.isArray(output) && output.length > 0) {
-      const first = output[0];
-      if (typeof first === "string") imageUrl = first;
-      else if (first && typeof (first as { url?: () => Promise<string> }).url === "function") {
-        imageUrl = await (first as { url: () => Promise<string> }).url();
-      }
-    } else if (typeof output === "string") {
-      imageUrl = output;
+      imageUrl = extractUrl(output[0]);
+    } else if (output) {
+      imageUrl = extractUrl(output);
     }
 
-    if (!imageUrl) return null;
+    if (!imageUrl) {
+      console.error(`[Replicate] No URL extracted from output for ${authorName}`, output);
+      return null;
+    }
     return { url: imageUrl, isAiGenerated: true };
   } catch (err) {
     console.error(`[Replicate] Portrait generation error for ${authorName}:`, err);

@@ -8,6 +8,7 @@
  */
 
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { fireConfetti } from "@/hooks/useConfetti";
 import authorBios from "@/lib/authorBios.json";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -246,7 +247,7 @@ function BookSubfolderRow({ book }: { book: { name: string; id: string; contentT
 // ── Stat Card ────────────────────────────────────────────────
 function StatCard({ label, value, icon: Icon }: { label: string; value: number | string; icon: React.ElementType }) {
   return (
-    <div className="flex flex-col gap-1 px-3 sm:px-5 py-3 sm:py-4 bg-card rounded-lg border border-border shadow-sm">
+    <div className="flex flex-col gap-1 px-3 sm:px-5 py-3 sm:py-4 bg-card rounded-lg border border-border shadow-sm stat-card-3d">
       <div className="flex items-center gap-2 text-muted-foreground">
         <Icon className="w-3.5 h-3.5" />
         <span className="text-xs font-medium uppercase tracking-widest">{label}</span>
@@ -500,6 +501,24 @@ function BookCard({ book, query, onDetailClick, coverImageUrl, isEnriched, amazo
   const displayTitle = dashIdx !== -1 ? book.name.slice(0, dashIdx) : book.name;
   const bookAuthor = dashIdx !== -1 ? book.name.slice(dashIdx + 3) : "";
 
+  // 3D mouse-tracking tilt
+  const bookCardRef = useRef<HTMLDivElement>(null);
+  const handleBookMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const el = bookCardRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    el.style.transform = `perspective(700px) rotateY(${x * 10}deg) rotateX(${-y * 8}deg) scale(1.025)`;
+    el.classList.add("tilt-shadow-active");
+  }, []);
+  const handleBookMouseLeave = useCallback(() => {
+    const el = bookCardRef.current;
+    if (!el) return;
+    el.style.transform = "perspective(700px) rotateY(0deg) rotateX(0deg) scale(1)";
+    el.classList.remove("tilt-shadow-active");
+  }, []);
+
   const highlight = (text: string) => {
     if (!query) return <>{text}</>;
     const idx = text.toLowerCase().indexOf(query.toLowerCase());
@@ -516,8 +535,11 @@ function BookCard({ book, query, onDetailClick, coverImageUrl, isEnriched, amazo
   const hasContent = Object.keys(book.contentTypes).length > 0;
   return (
     <div
-      className="card-animate card-lift group rounded-lg border border-border shadow-sm overflow-hidden cursor-pointer relative bg-card"
-      style={{ borderLeftWidth: 3, borderLeftColor: color }}
+      ref={bookCardRef}
+      onMouseMove={handleBookMouseMove}
+      onMouseLeave={handleBookMouseLeave}
+      className="card-animate book-card-tilt group rounded-lg border border-border shadow-sm overflow-hidden cursor-pointer relative bg-card"
+      style={{ borderLeftWidth: 3, borderLeftColor: color, transition: "transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease", willChange: "transform" }}
       onClick={() => onDetailClick?.(book)}
     >
       {/* Watermark (only when no cover) */}
@@ -618,9 +640,28 @@ function BookCard({ book, query, onDetailClick, coverImageUrl, isEnriched, amazo
     </div>
   );
 }
-// ── Audio Book Cardd ──────────────────────────────────────────
+// ── Audio Book Card ──────────────────────────────────────────
 function AudioCard({ audio, query }: { audio: AudioBook; query: string }) {
   const driveUrl = `https://drive.google.com/drive/folders/${audio.id}?view=grid`;
+
+  // 3D mouse-tracking tilt
+  const audioCardRef = useRef<HTMLAnchorElement>(null);
+  const handleAudioMouseMove = useCallback((e: React.MouseEvent<HTMLAnchorElement>) => {
+    const el = audioCardRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    el.style.transform = `perspective(700px) rotateY(${x * 10}deg) rotateX(${-y * 8}deg) scale(1.025)`;
+    el.classList.add("tilt-shadow-active");
+  }, []);
+  const handleAudioMouseLeave = useCallback(() => {
+    const el = audioCardRef.current;
+    if (!el) return;
+    el.style.transform = "perspective(700px) rotateY(0deg) rotateX(0deg) scale(1)";
+    el.classList.remove("tilt-shadow-active");
+  }, []);
+
   const highlight = (text: string) => {
     if (!query) return <>{text}</>;
     const idx = text.toLowerCase().indexOf(query.toLowerCase());
@@ -638,10 +679,14 @@ function AudioCard({ audio, query }: { audio: AudioBook; query: string }) {
 
   return (
     <a
+      ref={audioCardRef}
+      onMouseMove={handleAudioMouseMove}
+      onMouseLeave={handleAudioMouseLeave}
       href={driveUrl}
       target="_blank"
       rel="noopener noreferrer"
-      className="card-animate card-lift group rounded-lg border border-border shadow-sm overflow-hidden block cursor-pointer relative bg-card border-l-[3px] border-l-primary"
+      className="card-animate audio-card-tilt group rounded-lg border border-border shadow-sm overflow-hidden block cursor-pointer relative bg-card border-l-[3px] border-l-primary"
+      style={{ transition: "transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease", willChange: "transform" }}
     >
       {/* Watermark */}
       <div className="pointer-events-none absolute bottom-2 right-2 select-none watermark-icon" aria-hidden>
@@ -726,6 +771,7 @@ function AuthorBioPanel({ author, onClose }: { author: typeof AUTHORS[number]; o
     onSuccess: (data) => {
       setGeneratedPhotoUrl(data.url);
       toast.success("AI portrait generated and saved!");
+      fireConfetti("portrait");
     },
     onError: (e) => toast.error("Portrait generation failed: " + e.message),
   });
@@ -753,7 +799,7 @@ function AuthorBioPanel({ author, onClose }: { author: typeof AUTHORS[number]; o
                   <img
                     src={url}
                     alt={displayName}
-                    className="w-20 h-20 rounded-full object-cover ring-2 ring-offset-2"
+                    className="w-20 h-20 rounded-full object-cover ring-2 ring-offset-2 author-avatar-3d"
                     style={{ '--tw-ring-color': color + '66' } as React.CSSProperties}
                   />
                 ) : (
@@ -776,7 +822,7 @@ function AuthorBioPanel({ author, onClose }: { author: typeof AUTHORS[number]; o
               >
                 {generatePortraitMutation.isPending
                   ? <RefreshCw className="w-3 h-3 animate-spin" />
-                  : <Sparkles className="w-3 h-3" style={{ color }} />}
+                  : <Sparkles className="w-3 h-3 sparkle-spin" style={{ color }} />}
               </button>
             )}
           </div> {/* end relative wrapper */}
@@ -909,6 +955,7 @@ function BookDetailPanel({ book, onClose }: { book: typeof BOOKS[number]; onClos
         if (data.coverUrl) setScrapedCoverUrl(data.coverUrl);
         if (data.asin) setScrapedAsin(data.asin);
         toast.success(`Found on Amazon: ${data.matchedTitle ?? displayTitle}`);
+        fireConfetti("scrape");
         refetchProfile();
         // Invalidate bookCovers so author card strips update too
         void utilsInner.bookProfiles.getMany.invalidate();
@@ -934,7 +981,7 @@ function BookDetailPanel({ book, onClose }: { book: typeof BOOKS[number]; onClos
               <img
                 src={effectiveCoverUrl}
                 alt={displayTitle}
-                className="w-20 h-28 object-cover rounded-md shadow-md ring-1 ring-border"
+                className="w-20 h-28 object-cover rounded-md shadow-md ring-1 ring-border book-cover-3d"
                 loading="lazy"
               />
             ) : (
@@ -1246,6 +1293,7 @@ export default function Home() {
       }
       setEnrichStatus("done");
       toast.success(`Enriched ${done} author bios${failed > 0 ? ` (${failed} failed)` : ""}.`);
+      if (done > 0) fireConfetti("enrich");
       // Refresh the enrichment indicators
       void utils.authorProfiles.getAllEnrichedNames.invalidate();
     } catch (err) {
@@ -1288,6 +1336,7 @@ export default function Home() {
       }
       setBookEnrichStatus("done");
       toast.success(`Enriched ${done} book profiles${failed > 0 ? ` (${failed} failed)` : ""}.`);
+      if (done > 0) fireConfetti("enrich");
       void utils.bookProfiles.getAllEnrichedTitles.invalidate();
       void utils.bookProfiles.getMany.invalidate();
     } catch (err) {
@@ -1350,6 +1399,7 @@ export default function Home() {
       toast.success(
         `Generated ${done} portrait${done !== 1 ? "s" : ""}${failed > 0 ? ` (${failed} failed)` : ""}.`
       );
+      if (done > 0) fireConfetti("batch");
     } catch (err) {
       setPortraitStatus("error");
       setPortraitCurrent(null);
@@ -1535,7 +1585,7 @@ export default function Home() {
               <img
                 src="https://d2xsxph8kpxj0f.cloudfront.net/310519663270229297/ehSrGoKN2NYhXg8UYLtWGw/ricardocidalecartoon_330eb604.png"
                 alt="Ricardo Cidale"
-                className="w-9 h-9 rounded-full object-cover flex-shrink-0 ring-2 ring-primary/20"
+                className="w-9 h-9 rounded-full object-cover flex-shrink-0 ring-2 ring-primary/20 avatar-bob"
               />
               <div className="group-data-[collapsible=icon]:hidden">
                 <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Ricardo Cidale</p>
@@ -1722,8 +1772,8 @@ export default function Home() {
                 </div>
                 <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
                   <div
-                    className="h-full rounded-full transition-all duration-500"
-                    style={{ width: `${enrichProgress}%`, backgroundColor: "var(--accent)" }}
+                    className="h-full rounded-full progress-shimmer"
+                    style={{ width: `${enrichProgress}%` }}
                   />
                 </div>
                 {enrichFailed > 0 && (
@@ -1771,8 +1821,8 @@ export default function Home() {
                 </div>
                 <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
                   <div
-                    className="h-full rounded-full transition-all duration-500"
-                    style={{ width: `${bookEnrichProgress}%`, backgroundColor: "var(--primary)" }}
+                    className="h-full rounded-full progress-shimmer"
+                    style={{ width: `${bookEnrichProgress}%` }}
                   />
                 </div>
                 {bookEnrichFailed > 0 && (
@@ -1819,8 +1869,8 @@ export default function Home() {
                 </div>
                 <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
                   <div
-                    className="h-full rounded-full transition-all duration-500"
-                    style={{ width: `${portraitProgress}%`, backgroundColor: "var(--accent)" }}
+                    className="h-full rounded-full progress-shimmer"
+                    style={{ width: `${portraitProgress}%` }}
                   />
                 </div>
                 {portraitFailed > 0 && (

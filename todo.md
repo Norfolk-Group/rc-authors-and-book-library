@@ -303,3 +303,31 @@
 - [x] Add avatar to sidebar header next to library name (rounded-full, ring-2 ring-primary/20)
 - [x] Use avatar as favicon (favicon.ico in client/public + CDN PNG link in index.html)
 - [x] Save checkpoint
+
+## Session March 16, 2026 — Fix Portrait Generation + Confetti + 3D Effects
+- [x] Diagnose Replicate portrait generation failure (10/10 failing) — FileOutput SDK change
+- [x] Fix portrait generation — .toString() on FileOutput, confirmed working
+- [x] Add confetti on: single portrait generated, batch portraits done, batch enrichment done, Amazon scrape success, mirror covers/photos done
+- [x] Audit current 3D/motion effects and identified gaps
+- [x] Run tests and save checkpoint
+
+## Session March 16, 2026 — Confetti + 3D Effects (Implementation)
+
+- [x] Wire confetti "portrait" mode to single portrait generation success
+- [x] Wire confetti "enrich" mode to batch author bio enrichment completion
+- [x] Wire confetti "enrich" mode to batch book enrichment completion
+- [x] Wire confetti "batch" mode to batch portrait generation completion
+- [x] Wire confetti "scrape" mode to Amazon scrape success in BookDetailPanel
+- [x] Wire confetti "enrich" mode to mirror covers/photos completion in Preferences.tsx
+- [x] Wire confetti "batch" mode to avatar generation completion in Preferences.tsx
+- [x] Add 3D mouse-tracking tilt to BookCard (perspective 700px, rotateY 10deg, rotateX 8deg)
+- [x] Add 3D mouse-tracking tilt to AudioCard (same pattern)
+- [x] Add floating/bob animation to sidebar avatar (Ricardo Cidale) — avatar-bob CSS
+- [x] Add 3D depth shadow + hover to StatCards — stat-card-3d CSS
+- [x] Add 3D perspective tilt to book cover in BookDetailPanel — book-cover-3d CSS
+- [x] Add 3D perspective tilt to author avatar in AuthorBioPanel — author-avatar-3d CSS
+- [x] Add 3D mouse-tracking tilt to ThemeCard and IconSetCard in Preferences — pref-card-3d CSS
+- [x] Add animated gradient shimmer to progress bars while running — progress-shimmer CSS
+- [x] Add sparkle-spin animation to the "Generate AI Portrait" Sparkles icon
+- [x] 118 tests passing
+- [x] Save checkpoint

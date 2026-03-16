@@ -5,7 +5,8 @@
  * Storage tab gives power users access to S3 mirror controls.
  */
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
+import { fireConfetti } from "@/hooks/useConfetti";
 import { useAppSettings, type ThemeName, type IconSetId } from "@/contexts/AppSettingsContext";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -132,13 +133,31 @@ function ThemeCard({
   selected: boolean;
   onSelect: () => void;
 }) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const el = cardRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    el.style.transform = `perspective(600px) rotateY(${x * 8}deg) rotateX(${-y * 6}deg) scale(1.02)`;
+  };
+  const handleMouseLeave = () => {
+    const el = cardRef.current;
+    if (!el) return;
+    el.style.transform = "perspective(600px) rotateY(0deg) rotateX(0deg) scale(1)";
+  };
   return (
     <Card
-      className={`p-4 cursor-pointer transition-all border-2 ${
+      ref={cardRef}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      className={`p-4 cursor-pointer transition-all border-2 pref-card-3d ${
         selected
           ? "border-foreground shadow-md"
           : "border-border hover:border-muted-foreground"
       }`}
+      style={{ transition: "transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease", willChange: "transform" }}
       onClick={onSelect}
     >
       {/* Preview strip */}
@@ -199,13 +218,31 @@ function IconSetCard({
   selected: boolean;
   onSelect: () => void;
 }) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const el = cardRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    el.style.transform = `perspective(600px) rotateY(${x * 8}deg) rotateX(${-y * 6}deg) scale(1.02)`;
+  };
+  const handleMouseLeave = () => {
+    const el = cardRef.current;
+    if (!el) return;
+    el.style.transform = "perspective(600px) rotateY(0deg) rotateX(0deg) scale(1)";
+  };
   return (
     <Card
-      className={`p-4 cursor-pointer transition-all border-2 ${
+      ref={cardRef}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      className={`p-4 cursor-pointer transition-all border-2 pref-card-3d ${
         selected
           ? "border-foreground shadow-md"
           : "border-border hover:border-muted-foreground"
       }`}
+      style={{ transition: "transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease", willChange: "transform" }}
       onClick={onSelect}
     >
       <div className="flex items-start justify-between mb-3">
@@ -305,8 +342,8 @@ function MirrorCard({
           </div>
           <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
             <div
-              className="h-full rounded-full transition-all duration-300"
-              style={{ width: `${Math.round((done / total) * 100)}%`, backgroundColor: "var(--primary)" }}
+              className="h-full rounded-full progress-shimmer"
+              style={{ width: `${Math.round((done / total) * 100)}%` }}
             />
           </div>
         </div>
@@ -379,6 +416,7 @@ function StorageTab() {
       setCoverStatus("done");
       void coverStats.refetch();
       toast.success(`Mirrored ${done} book covers to S3 CDN.`);
+      if (done > 0) fireConfetti("enrich");
     } catch {
       setCoverStatus("error");
       toast.error("Cover mirroring failed. Check the console for details.");
@@ -403,6 +441,7 @@ function StorageTab() {
       setPhotoStatus("done");
       void photoStats.refetch();
       toast.success(`Mirrored ${done} author photos to S3 CDN.`);
+      if (done > 0) fireConfetti("enrich");
     } catch {
       setPhotoStatus("error");
       toast.error("Photo mirroring failed. Check the console for details.");
@@ -437,6 +476,7 @@ function StorageTab() {
       setAvatarStatus("done");
       void avatarStats.refetch();
       toast.success(`Generated ${done} author avatars via waterfall.`);
+      if (done > 0) fireConfetti("batch");
     } catch {
       setAvatarStatus("error");
       toast.error("Avatar generation failed. Check the console for details.");
