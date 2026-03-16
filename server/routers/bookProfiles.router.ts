@@ -10,6 +10,7 @@ import { getDb } from "../db";
 import { bookProfiles } from "../../drizzle/schema";
 import { eq, inArray, isNotNull, isNull, or } from "drizzle-orm";
 import { mirrorBatchToS3 } from "../mirrorToS3";
+import { invokeLLM } from "../_core/llm";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -59,12 +60,41 @@ interface GoogleBooksResponse {
 }
 
 /**
+ * Generate book summary using LLM when Google Books returns nothing.
+ */
+async function generateBookSummaryWithLLM(bookTitle: string, authorName: string, model?: string): Promise<string> {
+  try {
+    const result = await invokeLLM({
+      model,
+      messages: [
+        {
+          role: "system",
+          content: "You are a concise book reference assistant. Write factual, engaging book summaries in 2-3 sentences. Focus on the book's main argument, target audience, and key takeaway.",
+        },
+        {
+          role: "user",
+          content: `Write a 2-sentence summary for the book "${bookTitle}" by ${authorName || "unknown author"}. Focus on the main thesis and what readers will gain. Keep it under 400 characters.`,
+        },
+      ],
+    });
+    const raw = result?.choices?.[0]?.message?.content ?? "";
+    const content = typeof raw === "string" ? raw : "";
+    return content.trim().slice(0, 600);
+  } catch (err) {
+    console.error(`[bookEnrich] LLM summary generation failed for "${bookTitle}":`, err);
+    return "";
+  }
+}
+
+/**
  * Fetch book data from Google Books API (no API key required for basic queries).
  * Returns enriched metadata including cover image URL, summary, and publication info.
+ * Falls back to LLM-generated summary when Google Books returns no description.
  */
 export async function enrichBookViaGoogleBooks(
   bookTitle: string,
-  authorName: string
+  authorName: string,
+  model?: string
 ): Promise<BookEnrichmentData> {
   const result: BookEnrichmentData = {
     summary: "",
@@ -176,6 +206,12 @@ export async function enrichBookViaGoogleBooks(
     console.error(`[bookEnrich] Failed to enrich "${bookTitle}":`, err);
   }
 
+  // LLM fallback: if Google Books returned no summary, generate one with the selected model
+  if (!result.summary) {
+    console.log(`[bookEnrich] No Google Books summary for "${bookTitle}", using LLM fallback (model: ${model ?? "default"})`);
+    result.summary = await generateBookSummaryWithLLM(bookTitle, authorName, model);
+  }
+
   return result;
 }
 
@@ -222,7 +258,7 @@ export const bookProfilesRouter = router({
 
   /** Enrich a single book — auto-skips if enriched within 30 days */
   enrich: publicProcedure
-    .input(z.object({ bookTitle: z.string(), authorName: z.string().optional() }))
+    .input(z.object({ bookTitle: z.string(), authorName: z.string().optional(), model: z.string().optional() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
@@ -238,7 +274,7 @@ export const bookProfilesRouter = router({
         return { skipped: true, profile: existing[0] };
       }
 
-      const enriched = await enrichBookViaGoogleBooks(input.bookTitle, input.authorName ?? "");
+      const enriched = await enrichBookViaGoogleBooks(input.bookTitle, input.authorName ?? "", input.model);
 
       await db
         .insert(bookProfiles)
@@ -321,9 +357,12 @@ export const bookProfilesRouter = router({
   /** Enrich a batch of books (up to 10 at a time) */
   enrichBatch: publicProcedure
     .input(
-      z.array(
-        z.object({ bookTitle: z.string(), authorName: z.string().optional() })
-      ).max(10)
+      z.object({
+        books: z.array(
+          z.object({ bookTitle: z.string(), authorName: z.string().optional() })
+        ).max(10),
+        model: z.string().optional(),
+      })
     )
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -332,7 +371,7 @@ export const bookProfilesRouter = router({
 
       const results: { bookTitle: string; status: "enriched" | "skipped" | "error" }[] = [];
 
-      for (const item of input) {
+      for (const item of input.books) {
         try {
           const existing = await db
             .select()
@@ -345,7 +384,7 @@ export const bookProfilesRouter = router({
             continue;
           }
 
-          const enriched = await enrichBookViaGoogleBooks(item.bookTitle, item.authorName ?? "");
+          const enriched = await enrichBookViaGoogleBooks(item.bookTitle, item.authorName ?? "", input.model);
 
           await db
             .insert(bookProfiles)

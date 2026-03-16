@@ -353,3 +353,23 @@
 - [x] Add "Test selected model" button with latency display and success/error feedback
 - [x] 118 tests passing
 - [x] Save checkpoint
+
+## Session March 16, 2026 — Wire Selected Gemini Model into Enrichment
+- [x] Add optional `model` param to authorProfiles.enrich and authorProfiles.enrichBatch tRPC procedures
+- [x] Add optional `model` param to bookProfiles.enrich and bookProfiles.enrichBatch tRPC procedures
+- [x] Pass `settings.geminiModel` from client in all enrichment mutation calls in Home.tsx
+- [x] LLM fallback in author bio enrichment: when Wikipedia returns empty bio, generate with selected Gemini model
+- [x] LLM fallback in book summary enrichment: when Google Books returns empty summary, generate with selected Gemini model
+- [x] Run tests and save checkpoint
+
+## Session March 16, 2026 — Framer Motion + Cover Lightbox
+- [x] Install framer-motion, @react-three/fiber, @react-three/drei packages
+- [x] Replace manual useRef/mousemove tilt on AuthorCard with motion.div useMotionValue + useSpring
+- [x] Replace manual tilt on BookCard with Framer Motion spring physics
+- [x] Replace manual tilt on AudioCard with Framer Motion spring physics
+- [x] Build CoverLightbox component: full-size overlay with Framer Motion scale + rotateY spring animation
+- [x] Wire cover thumbnails in AuthorCard mini strip to open CoverLightbox on click
+- [x] Wire BookCard cover image to open CoverLightbox on click (cursor-zoom-in, ring highlight)
+- [x] Show book title and close button in lightbox overlay
+- [x] 118 tests passing
+- [x] Save checkpoint

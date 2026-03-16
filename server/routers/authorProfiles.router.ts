@@ -6,6 +6,7 @@ import { getDb } from "../db";
 import { authorProfiles } from "../../drizzle/schema";
 import { publicProcedure, router } from "../_core/trpc";
 import { processAuthorPhotoWaterfall } from "../lib/authorPhotos/waterfall";
+import { invokeLLM } from "../_core/llm";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface AuthorInfo {
@@ -18,10 +19,37 @@ interface AuthorInfo {
 // ── Wikipedia + Wikidata enrichment ──────────────────────────────────────────
 
 /**
- * Fetch author bio from Wikipedia REST API and social/website links from Wikidata.
- * Falls back gracefully if any request fails.
+ * Generate author bio using LLM when Wikipedia returns nothing.
  */
-export async function enrichAuthorViaWikipedia(authorName: string): Promise<AuthorInfo> {
+async function generateBioWithLLM(authorName: string, model?: string): Promise<string> {
+  try {
+    const result = await invokeLLM({
+      model,
+      messages: [
+        {
+          role: "system",
+          content: "You are a concise literary reference assistant. Write factual, professional author bios in 2-3 sentences. Focus on their main field, notable works, and impact. No fluff.",
+        },
+        {
+          role: "user",
+          content: `Write a 2-sentence professional bio for the author "${authorName}". Include their main field of expertise and 1-2 notable works if known. Keep it under 300 characters.`,
+        },
+      ],
+    });
+    const raw = result?.choices?.[0]?.message?.content ?? "";
+    const content = typeof raw === "string" ? raw : "";
+    return content.trim().slice(0, 400);
+  } catch (err) {
+    console.error(`[authorEnrich] LLM bio generation failed for "${authorName}":`, err);
+    return "";
+  }
+}
+
+/**
+ * Fetch author bio from Wikipedia REST API and social/website links from Wikidata.
+ * Falls back to LLM generation when Wikipedia returns no content.
+ */
+export async function enrichAuthorViaWikipedia(authorName: string, model?: string): Promise<AuthorInfo> {
   const result: AuthorInfo = { bio: "", websiteUrl: "", twitterUrl: "", linkedinUrl: "" };
 
   try {
@@ -112,6 +140,12 @@ export async function enrichAuthorViaWikipedia(authorName: string): Promise<Auth
     console.error(`[authorEnrich] Failed to enrich "${authorName}":`, err);
   }
 
+  // LLM fallback: if Wikipedia returned no bio, generate one with the selected model
+  if (!result.bio) {
+    console.log(`[authorEnrich] No Wikipedia bio for "${authorName}", using LLM fallback (model: ${model ?? "default"})`);
+    result.bio = await generateBioWithLLM(authorName, model);
+  }
+
   return result;
 }
 
@@ -143,9 +177,9 @@ export const authorProfilesRouter = router({
       return rows.filter((r) => nameSet.has(r.authorName));
     }),
 
-  /** Enrich a single author via LLM and upsert into DB */
+  /** Enrich a single author via Wikipedia + LLM fallback and upsert into DB */
   enrich: publicProcedure
-    .input(z.object({ authorName: z.string() }))
+    .input(z.object({ authorName: z.string(), model: z.string().optional() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) return { success: false, cached: false, profile: null };
@@ -162,8 +196,8 @@ export const authorProfilesRouter = router({
         return { success: true, cached: true, profile: existing[0] };
       }
 
-      // Enrich via Wikipedia/Wikidata
-      const info = await enrichAuthorViaWikipedia(input.authorName);
+      // Enrich via Wikipedia/Wikidata (with LLM fallback for missing bios)
+      const info = await enrichAuthorViaWikipedia(input.authorName, input.model);
       const now = new Date();
 
       if (existing[0]) {
@@ -254,7 +288,7 @@ export const authorProfilesRouter = router({
 
   /** Batch enrich a list of authors (up to 20 at a time to avoid timeout) */
   enrichBatch: publicProcedure
-    .input(z.object({ authorNames: z.array(z.string()).max(20) }))
+    .input(z.object({ authorNames: z.array(z.string()).max(20), model: z.string().optional() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) return { results: [], total: 0, succeeded: 0 };
@@ -275,7 +309,7 @@ export const authorProfilesRouter = router({
             continue;
           }
 
-          const info = await enrichAuthorViaWikipedia(authorName);
+          const info = await enrichAuthorViaWikipedia(authorName, input.model);
           const now = new Date();
 
           if (existing[0]) {

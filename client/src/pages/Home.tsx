@@ -8,6 +8,8 @@
  */
 
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { motion, useMotionValue, useSpring, useTransform, AnimatePresence } from "framer-motion";
+import { CoverLightbox } from "@/components/CoverLightbox";
 import { fireConfetti } from "@/hooks/useConfetti";
 import authorBios from "@/lib/authorBios.json";
 import { trpc } from "@/lib/trpc";
@@ -271,6 +273,27 @@ function EmptyState({ query }: { query: string }) {
   );
 }
 
+// ── Framer Motion 3D Tilt Hook ────────────────────────────────
+function useCardTilt(maxDeg = 14) {
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const rotateX = useSpring(useTransform(y, [-0.5, 0.5], [maxDeg, -maxDeg]), { stiffness: 300, damping: 25, mass: 0.5 });
+  const rotateY = useSpring(useTransform(x, [-0.5, 0.5], [-maxDeg, maxDeg]), { stiffness: 300, damping: 25, mass: 0.5 });
+  const scale = useSpring(1, { stiffness: 300, damping: 25, mass: 0.5 });
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    x.set((e.clientX - rect.left) / rect.width - 0.5);
+    y.set((e.clientY - rect.top) / rect.height - 0.5);
+    scale.set(1.06);
+  }, [x, y, scale]);
+  const handleMouseLeave = useCallback(() => {
+    x.set(0);
+    y.set(0);
+    scale.set(1);
+  }, [x, y, scale]);
+  return { rotateX, rotateY, scale, handleMouseMove, handleMouseLeave };
+}
+
 // ── Author Card ──────────────────────────────────────────────
 function AuthorCard({ author, query, onBioClick, isEnriched, coverMap, onBookClick, dbPhotoMap }: { author: AuthorEntry; query: string; onBioClick: (a: AuthorEntry) => void; isEnriched?: boolean; coverMap?: Map<string, string>; onBookClick?: (bookId: string, titleKey: string) => void; dbPhotoMap?: Map<string, string> }) {
   const color = CATEGORY_COLORS[author.category] ?? "hsl(var(--muted-foreground))";
@@ -284,25 +307,8 @@ function AuthorCard({ author, query, onBioClick, isEnriched, coverMap, onBookCli
   // Look up author photo: DB-first (generated portraits) then static map fallback
   const photoUrl = dbPhotoMap?.get(displayName.toLowerCase()) ?? getAuthorPhoto(displayName);
 
-  // Scale-up on hover + spring-back
-  const cardRef = useRef<HTMLDivElement>(null);
-  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    const el = cardRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width - 0.5;
-    const y = (e.clientY - rect.top) / rect.height - 0.5;
-    el.style.transform = `perspective(800px) rotateY(${x * 12}deg) rotateX(${-y * 10}deg) scale(1.06) translateZ(10px)`;
-    el.style.boxShadow = "0 20px 60px -10px rgba(0,0,0,0.22), 0 8px 20px -4px rgba(0,0,0,0.12)";
-    el.style.zIndex = "20";
-  }, []);
-  const handleMouseLeave = useCallback(() => {
-    const el = cardRef.current;
-    if (!el) return;
-    el.style.transform = "perspective(800px) rotateY(0deg) rotateX(0deg) scale(1) translateZ(0px)";
-    el.style.boxShadow = "";
-    el.style.zIndex = "";
-  }, []);
+  // Framer Motion spring tilt
+  const { rotateX, rotateY, scale, handleMouseMove, handleMouseLeave } = useCardTilt(14);
 
   const highlight = (text: string) => {
     if (!query) return <>{text}</>;
@@ -320,12 +326,11 @@ function AuthorCard({ author, query, onBioClick, isEnriched, coverMap, onBookCli
   const hasBooks = author.books && author.books.length > 0;
 
   return (
-    <div
-      ref={cardRef}
+    <motion.div
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       className="card-animate group relative"
-      style={{ transition: "transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.35s ease", willChange: "transform", transformStyle: "preserve-3d" }}
+      style={{ rotateX, rotateY, scale, willChange: "transform" }}
     >
     <div
       className="rounded-lg border border-border shadow-sm overflow-hidden relative bg-card h-full"
@@ -532,10 +537,11 @@ function AuthorCard({ author, query, onBioClick, isEnriched, coverMap, onBookCli
         </div>
       )}
     </div>
-    </div>
+    </motion.div>
   );
-}// ── Book Card ──────────────────────────────────────────────
-function BookCard({ book, query, onDetailClick, coverImageUrl, isEnriched, amazonUrl }: { book: BookRecord; query: string; onDetailClick?: (b: BookRecord) => void; coverImageUrl?: string; isEnriched?: boolean; amazonUrl?: string }) {
+}
+// -- Book Card --
+function BookCard({ book, query, onDetailClick, coverImageUrl, isEnriched, amazonUrl, onCoverClick }: { book: BookRecord; query: string; onDetailClick?: (b: BookRecord) => void; coverImageUrl?: string; isEnriched?: boolean; amazonUrl?: string; onCoverClick?: (url: string, title: string, color: string) => void }) {
   const color = CATEGORY_COLORS[book.category] ?? "hsl(var(--muted-foreground))";
   const iconName = CATEGORY_ICONS[book.category] ?? "book-open";
   const Icon = ICON_MAP[iconName] ?? BookMarked;
@@ -545,25 +551,8 @@ function BookCard({ book, query, onDetailClick, coverImageUrl, isEnriched, amazo
   const displayTitle = dashIdx !== -1 ? book.name.slice(0, dashIdx) : book.name;
   const bookAuthor = dashIdx !== -1 ? book.name.slice(dashIdx + 3) : "";
 
-  // Scale-up on hover + spring-back
-  const bookCardRef = useRef<HTMLDivElement>(null);
-  const handleBookMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    const el = bookCardRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width - 0.5;
-    const y = (e.clientY - rect.top) / rect.height - 0.5;
-    el.style.transform = `perspective(800px) rotateY(${x * 12}deg) rotateX(${-y * 10}deg) scale(1.06) translateZ(10px)`;
-    el.style.boxShadow = "0 20px 60px -10px rgba(0,0,0,0.22), 0 8px 20px -4px rgba(0,0,0,0.12)";
-    el.style.zIndex = "20";
-  }, []);
-  const handleBookMouseLeave = useCallback(() => {
-    const el = bookCardRef.current;
-    if (!el) return;
-    el.style.transform = "perspective(800px) rotateY(0deg) rotateX(0deg) scale(1) translateZ(0px)";
-    el.style.boxShadow = "";
-    el.style.zIndex = "";
-  }, []);
+  // Framer Motion spring tilt
+  const { rotateX: bookRotX, rotateY: bookRotY, scale: bookScale, handleMouseMove: handleBookMouseMove, handleMouseLeave: handleBookMouseLeave } = useCardTilt(14);
 
   const highlight = (text: string) => {
     if (!query) return <>{text}</>;
@@ -580,12 +569,11 @@ function BookCard({ book, query, onDetailClick, coverImageUrl, isEnriched, amazo
 
   const hasContent = Object.keys(book.contentTypes).length > 0;
   return (
-    <div
-      ref={bookCardRef}
+    <motion.div
       onMouseMove={handleBookMouseMove}
       onMouseLeave={handleBookMouseLeave}
       className="card-animate group relative cursor-pointer"
-      style={{ transition: "transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.35s ease", willChange: "transform", transformStyle: "preserve-3d" }}
+      style={{ rotateX: bookRotX, rotateY: bookRotY, scale: bookScale, willChange: "transform" }}
       onClick={() => onDetailClick?.(book)}
     >
     <div
@@ -623,11 +611,16 @@ function BookCard({ book, query, onDetailClick, coverImageUrl, isEnriched, amazo
         {/* Cover + title row */}
         <div className="flex items-start gap-3 mb-2">
           {coverImageUrl && (
-            <div className="cover-zoom-wrap flex-shrink-0 w-12 h-16">
+            <div
+              className="cover-zoom-wrap flex-shrink-0 w-12 h-16 cursor-zoom-in"
+              onClick={(e) => { e.stopPropagation(); onCoverClick?.(coverImageUrl, displayTitle, color); }}
+              title="Click to enlarge cover"
+            >
               <img
                 src={coverImageUrl}
                 alt={displayTitle}
-                className="w-12 h-16 object-cover rounded shadow-sm ring-1 ring-border"
+                className="w-12 h-16 object-cover rounded shadow-sm ring-1 ring-border hover:ring-2 transition-all duration-150"
+                style={{ '--tw-ring-color': color + '55' } as React.CSSProperties}
                 loading="lazy"
               />
             </div>
@@ -688,32 +681,15 @@ function BookCard({ book, query, onDetailClick, coverImageUrl, isEnriched, amazo
         )}
       </div>
     </div>
-    </div>
+    </motion.div>
   );
 }
 // ── Audio Book Card ──────────────────────────────────────────────
 function AudioCard({ audio, query }: { audio: AudioBook; query: string }) {
   const driveUrl = `https://drive.google.com/drive/folders/${audio.id}?view=grid`;
 
-  // Scale-up on hover + spring-back
-  const audioCardRef = useRef<HTMLDivElement>(null);
-  const handleAudioMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    const el = audioCardRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width - 0.5;
-    const y = (e.clientY - rect.top) / rect.height - 0.5;
-    el.style.transform = `perspective(800px) rotateY(${x * 12}deg) rotateX(${-y * 10}deg) scale(1.06) translateZ(10px)`;
-    el.style.boxShadow = "0 20px 60px -10px rgba(0,0,0,0.22), 0 8px 20px -4px rgba(0,0,0,0.12)";
-    el.style.zIndex = "20";
-  }, []);
-  const handleAudioMouseLeave = useCallback(() => {
-    const el = audioCardRef.current;
-    if (!el) return;
-    el.style.transform = "perspective(800px) rotateY(0deg) rotateX(0deg) scale(1) translateZ(0px)";
-    el.style.boxShadow = "";
-    el.style.zIndex = "";
-  }, []);
+  // Framer Motion spring tilt
+  const { rotateX: audioRotX, rotateY: audioRotY, scale: audioScale, handleMouseMove: handleAudioMouseMove, handleMouseLeave: handleAudioMouseLeave } = useCardTilt(14);
 
   const highlight = (text: string) => {
     if (!query) return <>{text}</>;
@@ -731,12 +707,11 @@ function AudioCard({ audio, query }: { audio: AudioBook; query: string }) {
   const totalFiles = Object.values(audio.formats).reduce((sum, f) => sum + f.fileCount, 0);
 
   return (
-    <div
-      ref={audioCardRef}
+    <motion.div
       onMouseMove={handleAudioMouseMove}
       onMouseLeave={handleAudioMouseLeave}
       className="card-animate group relative"
-      style={{ transition: "transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.35s ease", willChange: "transform", transformStyle: "preserve-3d" }}
+      style={{ rotateX: audioRotX, rotateY: audioRotY, scale: audioScale, willChange: "transform" }}
     >
     <a
       href={driveUrl}
@@ -797,7 +772,7 @@ function AudioCard({ audio, query }: { audio: AudioBook; query: string }) {
         </div>
       </div>
     </a>
-    </div>
+    </motion.div>
   );
 }
 
@@ -1217,7 +1192,7 @@ type BookSort = "name-asc" | "name-desc" | "author" | "content-desc";
 type TabType = "authors" | "books" | "audio";
 
 export default function Home() {
-  const { settings: { colorMode: appTheme } } = useAppSettings();
+  const { settings: { colorMode: appTheme, geminiModel } } = useAppSettings();
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<TabType>("authors");
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
@@ -1230,6 +1205,8 @@ export default function Home() {
   // Book detail panel state
   const [selectedBook, setSelectedBook] = useState<typeof BOOKS[number] | null>(null);
   const [bookSheetOpen, setBookSheetOpen] = useState(false);
+  // Cover lightbox state
+  const [lightboxCover, setLightboxCover] = useState<{ url: string | null; title: string; author?: string; color?: string; amazonUrl?: string } | null>(null);
 
   // ── Batch enrich bios state ──────────────────────────────────
   type EnrichStatus = "idle" | "running" | "done" | "error";
@@ -1341,7 +1318,7 @@ export default function Home() {
     try {
       for (let i = 0; i < names.length; i += BATCH_SIZE) {
         const batch = names.slice(i, i + BATCH_SIZE);
-        const result = await enrichBatchMutation.mutateAsync({ authorNames: batch });
+        const result = await enrichBatchMutation.mutateAsync({ authorNames: batch, model: geminiModel });
         done += result.succeeded;
         failed += result.total - result.succeeded;
         setEnrichDone(done);
@@ -1382,9 +1359,9 @@ export default function Home() {
           const authorName = book?.name.includes(" - ") ? book.name.split(" - ").slice(1).join(" - ") : "";
           return { bookTitle, authorName };
         });
-        const result = await bookEnrichBatchMutation.mutateAsync(batch);
-        const succeeded = result.filter((r) => r.status === "enriched").length;
-        const batchFailed = result.filter((r) => r.status === "error").length;
+        const result = await bookEnrichBatchMutation.mutateAsync({ books: batch, model: geminiModel });
+        const succeeded = result.filter((r: { status: string }) => r.status === "enriched").length;
+        const batchFailed = result.filter((r: { status: string }) => r.status === "error").length;
         done += succeeded;
         failed += batchFailed;
         setBookEnrichDone(done);
@@ -2150,10 +2127,12 @@ export default function Home() {
                         coverMap={bookCoverMap}
                         dbPhotoMap={dbPhotoMap}
                         onBookClick={(bookId, titleKey) => {
-                          // Try to find the BookRecord by id first, then by title key
+                          // Open cover lightbox for mini thumbnail clicks
                           const found = booksByIdMap.get(bookId)
                             ?? BOOKS.find((b) => b.name.split(" - ")[0].trim().toLowerCase() === titleKey.toLowerCase());
-                          if (found) { setSelectedBook(found); setBookSheetOpen(true); }
+                          const coverUrl = bookCoverMap?.get(titleKey) ?? null;
+                          const color = found ? (CATEGORY_COLORS[found.category] ?? undefined) : undefined;
+                          setLightboxCover({ url: coverUrl, title: titleKey, color });
                         }}
                       />
                     </div>
@@ -2190,6 +2169,7 @@ export default function Home() {
                           coverImageUrl={bookCoverMap.get(titleKey)}
                           isEnriched={enrichedTitlesSet.has(titleKey)}
                           amazonUrl={amazonUrlMap.get(titleKey)}
+                          onCoverClick={(url, title, color) => setLightboxCover({ url, title, color })}
                         />
                       </div>
                     );
@@ -2236,6 +2216,18 @@ export default function Home() {
         )}
       </DialogContent>
     </Dialog>
+
+    {/* ── Cover Lightbox ────────────────────── */}
+    {lightboxCover && (
+      <CoverLightbox
+        coverUrl={lightboxCover.url}
+        title={lightboxCover.title}
+        author={lightboxCover.author}
+        color={lightboxCover.color}
+        amazonUrl={lightboxCover.amazonUrl}
+        onClose={() => setLightboxCover(null)}
+      />
+    )}
     </>
   );
 }
