@@ -1,11 +1,10 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 
-export type AppTheme = "norfolk-ai" | "noir-dark";
+export type AppTheme = "light" | "dark";
 
 interface ThemeContextType {
   appTheme: AppTheme;
   setAppTheme: (theme: AppTheme) => void;
-  // Legacy light/dark compatibility
   theme: "light" | "dark";
   toggleTheme?: () => void;
   switchable: boolean;
@@ -29,20 +28,21 @@ export function ThemeProvider({
   const [appTheme, setAppThemeState] = useState<AppTheme>(() => {
     try {
       const stored = localStorage.getItem(THEME_STORAGE_KEY);
-      if (stored === "norfolk-ai" || stored === "noir-dark") return stored;
+      // Support legacy values from old theme system
+      if (stored === "noir-dark" || stored === "dark") return "dark";
+      if (stored === "norfolk-ai" || stored === "light") return "light";
     } catch {}
-    return "norfolk-ai";
+    return defaultTheme ?? "light";
   });
 
-  const theme: "light" | "dark" = appTheme === "noir-dark" ? "dark" : "light";
+  const theme: "light" | "dark" = appTheme;
 
   useEffect(() => {
     const root = document.documentElement;
-    // Remove all theme classes first
-    root.classList.remove("dark", "norfolk-ai", "noir-dark");
-    // Apply the correct theme classes
-    root.classList.add(appTheme);
-    if (appTheme === "noir-dark") {
+    // Remove all theme classes first (including legacy ones)
+    root.classList.remove("dark", "light", "norfolk-ai", "noir-dark");
+    // Apply standard .dark class for dark mode (used by Tailwind + shadcn)
+    if (appTheme === "dark") {
       root.classList.add("dark");
     }
     try {
@@ -53,7 +53,7 @@ export function ThemeProvider({
   const setAppTheme = (t: AppTheme) => setAppThemeState(t);
 
   const toggleTheme = switchable
-    ? () => setAppThemeState(prev => prev === "norfolk-ai" ? "noir-dark" : "norfolk-ai")
+    ? () => setAppThemeState(prev => prev === "dark" ? "light" : "dark")
     : undefined;
 
   return (

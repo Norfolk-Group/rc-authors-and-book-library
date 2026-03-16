@@ -129,3 +129,19 @@
 - [x] Remove "Powered by Manus" or any Manus references in UI
 - [x] Replace with NCG Library identity (name, logo placeholder)
 - [x] Add "Powered by Norfolk AI" to login dialog and sidebar footer
+
+## Session March 15, 2026 — Perplexity Photo & Cover Research
+- [ ] Identify all authors missing headshots
+- [ ] Identify all books missing covers
+- [ ] Use Perplexity API to find photo URLs for missing authors
+- [ ] Use Perplexity API to find cover URLs for missing books
+- [ ] Download images and upload to Drive + CDN
+- [ ] Update authorPhotos.ts and bookProfiles DB with new URLs
+
+## Session March 15, 2026 — Apply Manus/Delano Swiss Modernist Theme
+- [x] Extract theme from L+B Hospitality (Delano Hotel Room Design App)
+- [x] Add IBM Plex Sans + Inter + JetBrains Mono font imports to index.html
+- [x] Rewrite index.css with Swiss Modernist design system (Manus theme)
+- [x] Update ThemeContext to use standard light/dark classes (remove norfolk-ai/noir-dark)
+- [x] Fix all Home.tsx theme references to use new light/dark values
+- [x] Verify 90 tests still pass after theme migration

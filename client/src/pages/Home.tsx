@@ -64,6 +64,7 @@ import {
 } from "@/lib/libraryData";
 import { AUDIO_BOOKS, type AudioBook } from "@/lib/audioData";
 import { getAuthorPhoto } from "@/lib/authorPhotos";
+import { canonicalName } from "@/lib/authorAliases";
 import { useTheme, type AppTheme } from "@/contexts/ThemeContext";
 import { CategoryChart } from "@/components/CategoryChart";
 import {
@@ -274,12 +275,11 @@ function AuthorCard({ author, query, onBioClick, isEnriched }: { author: AuthorE
   const Icon = ICON_MAP[iconName] ?? Briefcase;
   const driveUrl = `https://drive.google.com/drive/folders/${author.id}?view=grid`;
   const { appTheme } = useTheme();
-  const isNoir = appTheme === "noir-dark";
+  const isNoir = appTheme === "dark";
 
-  // Extract display name (before the dash) and specialty (after the dash)
-  const dashIdx = author.name.indexOf(" - ");
-  const displayName = dashIdx !== -1 ? author.name.slice(0, dashIdx) : author.name;
-  const specialty = dashIdx !== -1 ? author.name.slice(dashIdx + 3) : "";
+  // Resolve canonical display name (handles aliases, suffix variants, misspellings)
+  const displayName = canonicalName(author.name);
+  const specialty = author.name.includes(" - ") ? author.name.slice(author.name.indexOf(" - ") + 3) : "";
 
   // Look up author photo
   const photoUrl = getAuthorPhoto(displayName);
@@ -413,7 +413,7 @@ function BookCard({ book, query, onDetailClick, coverImageUrl, isEnriched }: { b
   const Icon = ICON_MAP[iconName] ?? BookMarked;
   const driveUrl = `https://drive.google.com/drive/folders/${book.id}?view=grid`;
   const { appTheme } = useTheme();
-  const isNoir = appTheme === "noir-dark";
+  const isNoir = appTheme === "dark";
 
   // Extract title and author from book name (format: "Title - Author Name")
   const dashIdx = book.name.indexOf(" - ");
@@ -605,9 +605,9 @@ function AudioCard({ audio, query }: { audio: AudioBook; query: string }) {
 
 // ── Author Bio Modal ──────────────────────────────────────
 function AuthorBioPanel({ author, onClose }: { author: typeof AUTHORS[number]; onClose: () => void }) {
-  const dashIdx = author.name.indexOf(" - ");
-  const displayName = dashIdx !== -1 ? author.name.slice(0, dashIdx) : author.name;
-  const specialty = dashIdx !== -1 ? author.name.slice(dashIdx + 3) : "";
+  // Resolve canonical display name (handles aliases, suffix variants, misspellings)
+  const displayName = canonicalName(author.name);
+  const specialty = author.name.includes(" - ") ? author.name.slice(author.name.indexOf(" - ") + 3) : "";
   const photoUrl = getAuthorPhoto(displayName);
   const color = CATEGORY_COLORS[author.category] ?? "#374151";
   const driveUrl = `https://drive.google.com/drive/folders/${author.id}?view=grid`;
@@ -1112,7 +1112,7 @@ export default function Home() {
     const seen = new Map<string, typeof AUTHORS[number]>();
     const booksSeen = new Map<string, Set<string>>(); // track book IDs per author
     for (const a of AUTHORS) {
-      const baseName = a.name.split(" - ")[0].trim().toLowerCase();
+      const baseName = canonicalName(a.name).toLowerCase();
       const existing = seen.get(baseName);
       if (!existing) {
         seen.set(baseName, { ...a, books: [...a.books] });
@@ -1506,31 +1506,31 @@ export default function Home() {
               <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Preferences</p>
               <div className="flex flex-col gap-1">
                 <button
-                  onClick={() => setAppTheme("norfolk-ai")}
+                  onClick={() => setAppTheme("light")}
                   className={`w-full flex items-center gap-2 text-xs px-2 py-1.5 rounded transition-colors ${
-                    appTheme === "norfolk-ai"
+                    appTheme === "light"
                       ? "bg-accent/20 text-accent-foreground font-semibold"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
                   }`}
                 >
                   <Sun className="w-3.5 h-3.5 flex-shrink-0" />
-                  Norfolk AI
-                  {appTheme === "norfolk-ai" && (
-                    <span className="ml-auto w-1.5 h-1.5 rounded-full bg-ncg-yellow" />
+                  Light
+                  {appTheme === "light" && (
+                    <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />
                   )}
                 </button>
                 <button
-                  onClick={() => setAppTheme("noir-dark")}
+                  onClick={() => setAppTheme("dark")}
                   className={`w-full flex items-center gap-2 text-xs px-2 py-1.5 rounded transition-colors ${
-                    appTheme === "noir-dark"
+                    appTheme === "dark"
                       ? "bg-accent/20 text-accent-foreground font-semibold"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
                   }`}
                 >
                   <Moon className="w-3.5 h-3.5 flex-shrink-0" />
-                  Noir Dark Executive
-                  {appTheme === "noir-dark" && (
-                    <span className="ml-auto w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "oklch(0.78 0.14 85)" }} />
+                  Dark
+                  {appTheme === "dark" && (
+                    <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />
                   )}
                 </button>
               </div>
