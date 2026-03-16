@@ -125,7 +125,7 @@
 - [ ] Verify both themes render correctly in browser
 
 ## Session March 15, 2026 — Remove Manus Branding
-- [ ] Remove Manus logo and name from app header/sidebar
-- [ ] Remove "Powered by Manus" or any Manus references in UI
-- [ ] Replace with NCG Library identity (name, logo placeholder)
-- [ ] Update page title and favicon reference
+- [x] Remove Manus logo and name from app header/sidebar
+- [x] Remove "Powered by Manus" or any Manus references in UI
+- [x] Replace with NCG Library identity (name, logo placeholder)
+- [x] Add "Powered by Norfolk AI" to login dialog and sidebar footer
