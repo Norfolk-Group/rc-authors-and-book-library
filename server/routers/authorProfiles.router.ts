@@ -502,6 +502,38 @@ export const authorProfilesRouter = router({
       };
     }),
 
+  // ── Generate an AI portrait via Replicate (last-resort fallback) ────────
+  generatePortrait: publicProcedure
+    .input(z.object({ authorName: z.string().min(1) }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database unavailable");
+
+      // Generate via Replicate flux-schnell
+      const { generateAIPortrait } = await import("../lib/authorPhotos/replicateGeneration");
+      const generated = await generateAIPortrait(input.authorName);
+      if (!generated) throw new Error("Portrait generation failed — please try again");
+
+      // Mirror to S3 immediately (Replicate URLs expire after ~1 hour)
+      const res = await fetch(generated.url, { signal: AbortSignal.timeout(20_000) });
+      if (!res.ok) throw new Error("Failed to download generated portrait");
+      const buffer = Buffer.from(await res.arrayBuffer());
+      const slug = input.authorName
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "");
+      const key = `author-photos/ai-${slug}-${Date.now()}.webp`;
+      const { url } = await storagePut(key, buffer, "image/webp");
+
+      // Persist to DB
+      await db
+        .update(authorProfiles)
+        .set({ photoUrl: url, s3PhotoUrl: url, s3PhotoKey: key, enrichedAt: new Date() })
+        .where(eq(authorProfiles.authorName, input.authorName));
+
+      return { url, key, isAiGenerated: true };
+    }),
+
   // ── Upload a custom author photo (base64) ─────────────────────────────
   uploadPhoto: publicProcedure
     .input(

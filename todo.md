@@ -233,3 +233,18 @@
 - [x] Use bookCoverMap to resolve cover URLs per book title
 - [x] Show fallback placeholder (category-colored icon) when no cover available
 - [x] Clicking a cover opens the book's Google Drive folder directly
+
+## Session March 16, 2026 — Cover Thumbnails Open Book Detail Dialog
+- [ ] Add onBookClick callback prop to AuthorCard
+- [ ] Wire cover thumbnails to call onBookClick(BookRecord) instead of linking to Drive
+- [ ] Build BOOKS_BY_TITLE lookup map to resolve BookRecord from book name
+- [ ] Pass onBookClick from parent (Home) that calls setSelectedBook + setBookSheetOpen
+
+## Session March 16, 2026 — Replicate Portrait Generation for Missing Authors
+- [x] Build server/replicate.ts helper with generateAuthorPortrait(authorName, bio?) function
+- [x] Add authorProfiles.generatePortrait tRPC procedure (calls Replicate, mirrors to S3, saves s3PhotoUrl)
+- [x] Add "Generate Portrait" button (Sparkles icon) to author bio modal (shown only when no real photo exists)
+- [x] Show loading spinner during generation, toast on success/error
+- [x] Display generated portrait immediately on success (optimistic state update)
+- [x] Write vitest tests for Replicate helper (6 tests, 111 total passing)
+- [x] Save checkpoint

@@ -657,6 +657,15 @@ function AuthorBioPanel({ author, onClose }: { author: typeof AUTHORS[number]; o
     onError: (e) => toast.error("Failed to load bio: " + e.message),
   });
 
+  const [generatedPhotoUrl, setGeneratedPhotoUrl] = useState<string | null>(null);
+  const generatePortraitMutation = trpc.authorProfiles.generatePortrait.useMutation({
+    onSuccess: (data) => {
+      setGeneratedPhotoUrl(data.url);
+      toast.success("AI portrait generated and saved!");
+    },
+    onError: (e) => toast.error("Portrait generation failed: " + e.message),
+  });
+
   // Auto-trigger DB enrichment only if no JSON bio and no DB profile
   const hasTriggered = useRef(false);
   useEffect(() => {
@@ -666,30 +675,47 @@ function AuthorBioPanel({ author, onClose }: { author: typeof AUTHORS[number]; o
     }
   }, [jsonBio, isLoading, profile]);
 
+  const effectivePhotoUrl = generatedPhotoUrl ?? photoUrl;
+
   return (
     <div className="flex flex-col gap-5 pt-2">
       {/* Header */}
       <DialogHeader>
         <div className="flex items-center gap-4 mb-1">
-          <AvatarUpload authorName={displayName} currentPhotoUrl={photoUrl} size={80}>
-            {(url) =>
-              url ? (
-                <img
-                  src={url}
-                  alt={displayName}
-                  className="w-20 h-20 rounded-full object-cover ring-2 ring-offset-2"
-                  style={{ '--tw-ring-color': color + '66' } as React.CSSProperties}
-                />
-              ) : (
-                <div
-                  className="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold"
-                  style={{ backgroundColor: color + '22', color }}
-                >
-                  {displayName.charAt(0)}
-                </div>
-              )
-            }
-          </AvatarUpload>
+          <div className="relative group/avatar">
+            <AvatarUpload authorName={displayName} currentPhotoUrl={effectivePhotoUrl} size={80}>
+              {(url) =>
+                url ? (
+                  <img
+                    src={url}
+                    alt={displayName}
+                    className="w-20 h-20 rounded-full object-cover ring-2 ring-offset-2"
+                    style={{ '--tw-ring-color': color + '66' } as React.CSSProperties}
+                  />
+                ) : (
+                  <div
+                    className="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold"
+                    style={{ backgroundColor: color + '22', color }}
+                  >
+                    {displayName.charAt(0)}
+                  </div>
+                )
+              }
+            </AvatarUpload>
+            {/* Generate Portrait button — shown when no real photo exists */}
+            {!effectivePhotoUrl && (
+              <button
+                onClick={() => generatePortraitMutation.mutate({ authorName: displayName })}
+                disabled={generatePortraitMutation.isPending}
+                title="Generate AI portrait"
+                className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center shadow-md border border-border bg-background hover:bg-muted transition-colors disabled:opacity-50"
+              >
+                {generatePortraitMutation.isPending
+                  ? <RefreshCw className="w-3 h-3 animate-spin" />
+                  : <Sparkles className="w-3 h-3" style={{ color }} />}
+              </button>
+            )}
+          </div> {/* end relative wrapper */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ backgroundColor: color + '22', color }}>{author.category}</span>
