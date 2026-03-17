@@ -1289,6 +1289,14 @@ export default function Home() {
     }
     return map;
   }, [bookCoversQuery.data]);
+  // Book summary map: lowercase bookTitle → summary (for cover thumbnail tooltips)
+  const bookSummaryMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const p of bookCoversQuery.data ?? []) {
+      if (p.summary) map.set(p.bookTitle.toLowerCase(), p.summary);
+    }
+    return map;
+  }, [bookCoversQuery.data]);
   // Lookup map: book.id → BookRecord (for cover thumbnail click → detail dialog)
   const booksByIdMap = useMemo(() => {
     const map = new Map<string, typeof BOOKS[number]>();
@@ -2335,6 +2343,7 @@ export default function Home() {
                         }
                         coverMap={bookCoverMap}
                         dbPhotoMap={dbPhotoMap}
+                        bookSummaryMap={bookSummaryMap}
                         onBookClick={(bookId, titleKey) => {
                           const found = booksByIdMap.get(bookId)
                             ?? BOOKS.find((b) => b.name.split(" - ")[0].trim().toLowerCase() === titleKey.toLowerCase());

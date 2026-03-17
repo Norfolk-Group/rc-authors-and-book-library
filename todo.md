@@ -628,3 +628,11 @@
 - [x] Pass bio prop to FlowbiteAuthorCard using JSON bio first, DB bio as fallback
 - [x] Verify tooltip appears for authors enriched only via LLM/Wikipedia (not in authorBios.json)
 - [x] Run tests and save checkpoint
+
+## Session March 17, 2026 — Book Cover Hover Tooltip
+
+- [x] Add bookSummaryMap prop (Map<string, string>) to FlowbiteAuthorCard
+- [x] Wrap each book cover thumbnail in a Radix Tooltip showing title + one-line summary
+- [x] Pass bookSummaryMap from Home.tsx using existing bookCoversQuery data (summary field)
+- [x] Tooltip only appears when a summary is available; gracefully skip if not
+- [x] Run tests and save checkpoint

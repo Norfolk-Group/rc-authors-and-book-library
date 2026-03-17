@@ -250,6 +250,8 @@ export interface FlowbiteAuthorCardProps {
   dbPhotoMap?: Map<string, string>;
   /** Short bio text to show in hover tooltip (first ~200 chars). Only shown when isEnriched is true. */
   bio?: string | null;
+  /** Map of lowercase book title → one-line summary for cover thumbnail tooltips. */
+  bookSummaryMap?: Map<string, string>;
 }
 
 // ── Main component ─────────────────────────────────────────────────────────────
@@ -261,6 +263,7 @@ export function FlowbiteAuthorCard({
   coverMap,
   dbPhotoMap,
   bio,
+  bookSummaryMap,
 }: FlowbiteAuthorCardProps) {
   const iconName = CATEGORY_ICONS[author.category] ?? "briefcase";
   const Icon = (ICON_MAP[iconName] ?? Briefcase) as LucideIcon;
@@ -534,17 +537,28 @@ export function FlowbiteAuthorCard({
                       : book.name;
                     const titleKey = rawTitle.trim().toLowerCase();
                     const coverUrl = coverMap.get(titleKey);
+                    const summary = bookSummaryMap?.get(titleKey);
+                    // Trim summary to first sentence (up to ~120 chars)
+                    const summarySnippet = summary
+                      ? (() => {
+                          const s = summary.trim();
+                          const dot = Math.min(
+                            s.indexOf('. ') > 0 ? s.indexOf('. ') + 1 : s.length,
+                            120
+                          );
+                          return s.slice(0, dot) + (dot < s.length ? '' : '');
+                        })()
+                      : null;
                     const bookMini: BookModalBook = {
                       id: book.id,
                       titleKey,
                       coverUrl,
                       contentTypes: book.contentTypes ?? {},
                     };
-                    return (
+                    const coverEl = (
                       <div
                         key={book.id}
                         className="relative h-11 w-8 flex-shrink-0 cursor-pointer"
-                        title={rawTitle.trim()}
                         onClick={(e) => { e.stopPropagation(); handleBookClick(bookMini); }}
                       >
                         {coverUrl ? (
@@ -577,6 +591,22 @@ export function FlowbiteAuthorCard({
                           </div>
                         )}
                       </div>
+                    );
+                    if (!summarySnippet) {
+                      return <div key={book.id}>{coverEl}</div>;
+                    }
+                    return (
+                      <Tooltip key={book.id}>
+                        <TooltipTrigger asChild>{coverEl}</TooltipTrigger>
+                        <TooltipContent
+                          side="top"
+                          className="max-w-[220px] p-2.5 z-50"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <p className="font-semibold text-xs mb-1 leading-snug">{rawTitle.trim()}</p>
+                          <p className="text-xs leading-relaxed text-muted-foreground">{summarySnippet}</p>
+                        </TooltipContent>
+                      </Tooltip>
                     );
                   })}
                 </div>
