@@ -539,3 +539,30 @@
 - [x] Verify oxc-parser no longer in dependency tree (pnpm why oxc-parser → empty)
 - [x] Verify pnpm build succeeds (Vite 6.4.1, no native binding errors)
 - [x] Run tests (118 passing) and save checkpoint
+
+## Session March 17, 2026 — Batch Book Cover Scrape (Amazon)
+- [ ] Audit existing scrapeBook procedure and book_profiles schema
+- [ ] Build batchScrapeCovers tRPC procedure: iterate all books without coverUrl, scrape Amazon, upload to S3, update DB
+- [ ] Add "Scrape All Covers" button to sidebar with progress bar (X/Y books done)
+- [ ] Test on 3-book sample before full batch
+- [ ] Run full batch for all 178 books
+- [ ] Run tests and save checkpoint
+
+## Session March 17, 2026 — Promote Flowbite Layout as Default
+- [ ] Audit FlowbiteDemo page vs Home.tsx Authors tab — understand all differences
+- [ ] Make FlowbiteAuthorCard grid the default (and only) Authors view in Home.tsx
+- [ ] Remove legacy AuthorCard and accordion toggle from Authors tab
+- [ ] Wire search query, category filter, and sort controls into FlowbiteAuthorCard grid
+- [ ] Keep Books and Audio tabs unchanged
+- [ ] Run tests and save checkpoint
+
+## Session March 17, 2026 — Flowbite Redesign + Research Cascade Panel
+- [x] Audit FlowbiteDemo page — captured full component structure
+- [x] Audit enrichment waterfall code (authorPhotos/waterfall.ts, bookProfiles router, apify.ts)
+- [x] Promote FlowbiteAuthorCard grid as default Authors view in Home.tsx
+- [x] Remove legacy card/accordion view toggle from Authors tab
+- [x] Keep Books and Audio tabs unchanged
+- [x] Build cascade.router.ts with authorStats + bookStats procedures (live DB counts)
+- [x] Build ResearchCascade page (/research-cascade) with visual waterfall + live stats
+- [x] Wire ResearchCascade into sidebar (GitMerge icon) and App.tsx route
+- [x] Run tests (118 passing) and save checkpoint

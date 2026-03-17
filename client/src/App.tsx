@@ -6,6 +6,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import FlowbiteDemo from "./pages/FlowbiteDemo";
 import Home from "./pages/Home";
 import Preferences from "./pages/Preferences";
+import ResearchCascade from "./pages/ResearchCascade";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -14,6 +15,7 @@ function Router() {
       <Route path={"/"} component={Home} />
       <Route path={"/preferences"} component={Preferences} />
       <Route path={"/flowbite-demo"} component={FlowbiteDemo} />
+      <Route path={"/research-cascade"} component={ResearchCascade} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>

@@ -124,6 +124,8 @@ import {
   Sun,
   Moon,
   Settings,
+  GitMerge,
+  ImageIcon,
 } from "lucide-react";
 
 // ── Icon map for categories ──────────────────────────────────
@@ -1310,6 +1312,15 @@ export default function Home() {
   const bookEnrichBatchMutation = trpc.bookProfiles.enrichBatch.useMutation();
   const utils = trpc.useUtils();
 
+  // ── Scrape covers state ──────────────────────────────────────────────────
+  const [scrapeCoversStatus, setScrapeCoversStatus] = useState<"idle" | "running" | "done" | "error">("idle");
+  const [scrapeCoversProgress, setScrapeCoversProgress] = useState(0);
+  const [scrapeCoversScraped, setScrapeCoversScraped] = useState(0);
+  const [scrapeCoversTotal, setScrapeCoversTotal] = useState(0);
+  const [scrapeCoversCurrentBook, setScrapeCoversCurrentBook] = useState<string | null>(null);
+  const batchScrapeStats = trpc.apify.getBatchScrapeStats.useQuery(undefined, { refetchInterval: scrapeCoversStatus === "running" ? 5000 : false });
+  const scrapeNextMutation = trpc.apify.scrapeNextMissingCover.useMutation();
+
   // ── Batch portrait generation state ─────────────────────────────────────
   const [portraitStatus, setPortraitStatus] = useState<"idle" | "running" | "done" | "error">("idle");
   const [portraitProgress, setPortraitProgress] = useState(0);
@@ -1980,6 +1991,17 @@ export default function Home() {
                 <ChevronRight className="w-3 h-3 ml-auto opacity-50" />
               </a>
             </div>
+            {/* ── Research Cascade link ── */}
+            <div className="mt-1">
+              <a
+                href="/research-cascade"
+                className="w-full flex items-center gap-2 text-xs px-2 py-1.5 rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/60"
+              >
+                <GitMerge className="w-3.5 h-3.5 flex-shrink-0" />
+                Research Cascade
+                <ChevronRight className="w-3 h-3 ml-auto opacity-50" />
+              </a>
+            </div>
             {/* ── Flowbite Demo link ── */}
             <div className="mt-1">
               <a
@@ -2142,45 +2164,6 @@ export default function Home() {
               </div>
               {activeTab !== "audio" && (
                 <div className="flex items-center gap-1.5">
-                  {/* View mode toggle — only shown on authors tab */}
-                  {activeTab === "authors" && (
-                    <div className="flex items-center rounded-md border border-border overflow-hidden">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            type="button"
-                            onClick={() => setAuthorViewMode("card")}
-                            className={`p-1.5 transition-colors ${
-                              authorViewMode === "card"
-                                ? "bg-muted text-foreground"
-                                : "text-muted-foreground hover:bg-muted/50"
-                            }`}
-                            aria-label="Card view"
-                          >
-                            <LayoutGrid className="w-3.5 h-3.5" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">Card view</TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            type="button"
-                            onClick={() => setAuthorViewMode("accordion")}
-                            className={`p-1.5 transition-colors ${
-                              authorViewMode === "accordion"
-                                ? "bg-muted text-foreground"
-                                : "text-muted-foreground hover:bg-muted/50"
-                            }`}
-                            aria-label="List view"
-                          >
-                            <LayoutList className="w-3.5 h-3.5" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">List view</TooltipContent>
-                      </Tooltip>
-                    </div>
-                  )}
                   <ArrowUpDown className="w-3.5 h-3.5 text-muted-foreground" />
                   {activeTab === "authors" ? (
                     <Select value={authorSort} onValueChange={(v) => setAuthorSort(v as AuthorSort)}>
@@ -2217,25 +2200,8 @@ export default function Home() {
             {activeTab === "authors" ? (
               filteredAuthors.length === 0 ? (
                 <EmptyState query={query} />
-              ) : authorViewMode === "accordion" ? (
-                /* ── Accordion / list view ── */
-                <div className="rounded-lg border border-border bg-card shadow-sm overflow-hidden tab-content-enter">
-                  {filteredAuthors.map((a) => (
-                    <AuthorAccordionRow
-                      key={a.id}
-                      author={a}
-                      query={query}
-                      isEnriched={enrichedSet.has(
-                        a.name.includes(" - ") ? a.name.slice(0, a.name.indexOf(" - ")) : a.name
-                      )}
-                      coverMap={bookCoverMap}
-                      dbPhotoMap={dbPhotoMap}
-                      onBioClick={(author) => { setSelectedAuthor(author); setBioSheetOpen(true); }}
-                    />
-                  ))}
-                </div>
               ) : (
-                /* ── Card grid view ── */
+                /* ── Flowbite card grid (default) ── */
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 tab-content-enter">
                   {filteredAuthors.map((a, i) => (
                     <div key={a.id + i} style={{ animationDelay: `${Math.min(i * 30, 400)}ms` }}>

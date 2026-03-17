@@ -13,6 +13,7 @@ import { authorProfilesRouter } from "./authorProfiles.router";
 import { bookProfilesRouter } from "./bookProfiles.router";
 import { apifyRouter } from "./apify.router";
 import { llmRouter } from "./llm.router";
+import { cascadeRouter } from "./cascade.router";
 
 export const appRouter = router({
   system: systemRouter,
@@ -31,6 +32,7 @@ export const appRouter = router({
   bookProfiles: bookProfilesRouter,
   apify: apifyRouter,
   llm: llmRouter,
+  cascade: cascadeRouter,
 });
 
 export type AppRouter = typeof appRouter;
