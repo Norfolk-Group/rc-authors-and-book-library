@@ -250,8 +250,8 @@ export interface FlowbiteAuthorCardProps {
   dbPhotoMap?: Map<string, string>;
   /** Short bio text to show in hover tooltip (first ~200 chars). Only shown when isEnriched is true. */
   bio?: string | null;
-  /** Map of lowercase book title → one-line summary for cover thumbnail tooltips. */
-  bookSummaryMap?: Map<string, string>;
+  /** Map of lowercase book title → { summary, rating, ratingCount } for cover thumbnail tooltips. */
+  bookInfoMap?: Map<string, { summary?: string; rating?: string; ratingCount?: string }>;
 }
 
 // ── Main component ─────────────────────────────────────────────────────────────
@@ -263,7 +263,7 @@ export function FlowbiteAuthorCard({
   coverMap,
   dbPhotoMap,
   bio,
-  bookSummaryMap,
+  bookInfoMap,
 }: FlowbiteAuthorCardProps) {
   const iconName = CATEGORY_ICONS[author.category] ?? "briefcase";
   const Icon = (ICON_MAP[iconName] ?? Briefcase) as LucideIcon;
@@ -537,7 +537,10 @@ export function FlowbiteAuthorCard({
                       : book.name;
                     const titleKey = rawTitle.trim().toLowerCase();
                     const coverUrl = coverMap.get(titleKey);
-                    const summary = bookSummaryMap?.get(titleKey);
+                    const bookInfo = bookInfoMap?.get(titleKey);
+                    const summary = bookInfo?.summary;
+                    const rating = bookInfo?.rating ? parseFloat(bookInfo.rating) : null;
+                    const ratingCount = bookInfo?.ratingCount ? parseInt(bookInfo.ratingCount, 10) : null;
                     // Trim summary to first sentence (up to ~120 chars)
                     const summarySnippet = summary
                       ? (() => {
@@ -592,7 +595,7 @@ export function FlowbiteAuthorCard({
                         )}
                       </div>
                     );
-                    if (!summarySnippet) {
+                    if (!summarySnippet && !rating) {
                       return <div key={book.id}>{coverEl}</div>;
                     }
                     return (
@@ -604,7 +607,18 @@ export function FlowbiteAuthorCard({
                           onClick={(e) => e.stopPropagation()}
                         >
                           <p className="font-semibold text-xs mb-1 leading-snug">{rawTitle.trim()}</p>
-                          <p className="text-xs leading-relaxed text-muted-foreground">{summarySnippet}</p>
+                          {rating !== null && (
+                            <div className="flex items-center gap-1 mb-1">
+                              <span className="text-amber-400 text-xs">{"\u2605".repeat(Math.round(rating))}{"\u2606".repeat(Math.max(0, 5 - Math.round(rating)))}</span>
+                              <span className="text-xs font-medium text-foreground">{rating.toFixed(1)}</span>
+                              {ratingCount !== null && ratingCount > 0 && (
+                                <span className="text-xs text-muted-foreground">({ratingCount.toLocaleString()})</span>
+                              )}
+                            </div>
+                          )}
+                          {summarySnippet && (
+                            <p className="text-xs leading-relaxed text-muted-foreground">{summarySnippet}</p>
+                          )}
                         </TooltipContent>
                       </Tooltip>
                     );

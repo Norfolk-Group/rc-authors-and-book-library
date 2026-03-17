@@ -644,3 +644,19 @@
 - [x] Add "Enrich All Missing Summaries" button to admin sidebar/dashboard with progress display
 - [x] Show real-time progress (X of Y enriched) while running, success/error toast on completion
 - [x] Run tests and save checkpoint
+
+## Session March 17, 2026 — Rating Badge in Cover Tooltips
+
+- [x] Extend bookSummaryMap to bookInfoMap (include rating + ratingCount alongside summary)
+- [x] Show ★ rating + ratingCount in cover tooltip when rating is available
+- [x] Run tests and save checkpoint
+
+## Session March 17, 2026 — Full Audit & Cleanup
+
+- [x] Audit all open todo items — identified 3 real issues: rating badge incomplete, stale TS watcher error, duplicate cover check
+- [x] Confirmed tsc --noEmit is clean (0 errors) — watcher was stuck on old 1:09 PM Babel parse error (stale log, not real)
+- [x] Confirmed no duplicate book covers in DB (only 1 case-variant: "The Jolt Effect" vs "The JOLT Effect" — legitimate multi-author entries)
+- [x] Confirmed cover strip dedup works at both layers: filteredAuthors (Home.tsx) and dedupedBooks (FlowbiteAuthorCard)
+- [x] Completed rating badge: renamed bookSummaryMap → bookInfoMap with { summary, rating, ratingCount }
+- [x] Rating tooltip shows ★★★★☆ stars + numeric rating + review count for 24 books with real ratings
+- [x] 118 tests passing, server clean

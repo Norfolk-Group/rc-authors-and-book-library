@@ -1289,11 +1289,18 @@ export default function Home() {
     }
     return map;
   }, [bookCoversQuery.data]);
-  // Book summary map: lowercase bookTitle → summary (for cover thumbnail tooltips)
-  const bookSummaryMap = useMemo(() => {
-    const map = new Map<string, string>();
+  // Book info map: lowercase bookTitle → { summary, rating, ratingCount } (for cover thumbnail tooltips)
+  const bookInfoMap = useMemo(() => {
+    const map = new Map<string, { summary?: string; rating?: string; ratingCount?: string }>();
     for (const p of bookCoversQuery.data ?? []) {
-      if (p.summary) map.set(p.bookTitle.toLowerCase(), p.summary);
+      const hasRating = p.rating && String(p.rating).trim() !== '' && parseFloat(String(p.rating)) > 0;
+      if (p.summary || hasRating) {
+        map.set(p.bookTitle.toLowerCase(), {
+          summary: p.summary ?? undefined,
+          rating: hasRating ? String(p.rating) : undefined,
+          ratingCount: hasRating && p.ratingCount ? String(p.ratingCount) : undefined,
+        });
+      }
     }
     return map;
   }, [bookCoversQuery.data]);
@@ -2343,7 +2350,7 @@ export default function Home() {
                         }
                         coverMap={bookCoverMap}
                         dbPhotoMap={dbPhotoMap}
-                        bookSummaryMap={bookSummaryMap}
+                        bookInfoMap={bookInfoMap}
                         onBookClick={(bookId, titleKey) => {
                           const found = booksByIdMap.get(bookId)
                             ?? BOOKS.find((b) => b.name.split(" - ")[0].trim().toLowerCase() === titleKey.toLowerCase());
