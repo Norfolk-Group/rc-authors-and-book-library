@@ -432,6 +432,17 @@ export function FlowbiteAuthorCard({
 
   // ── Avatar bio modal state ──
   const [openBio, setOpenBio] = useState(false);
+
+  // ── Book detail modal state ──
+  type BookMini = { id: string; titleKey: string; coverUrl: string | undefined; contentTypes: Record<string, number> };
+  const [activeBook, setActiveBook] = useState<BookMini | null>(null);
+  const handleBookCoverClick = useCallback(
+    (e: React.MouseEvent, book: BookMini) => {
+      e.stopPropagation();
+      setActiveBook(book);
+    },
+    []
+  );
   const handleAvatarClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     setOpenBio(true);
@@ -608,68 +619,55 @@ export function FlowbiteAuthorCard({
                 </div>
               )}
 
-              {/* Mini book cover strip */}
+              {/* Mini book cover strip — each cover scales 4× on hover, click opens book-detail modal */}
               {coverMap && (
-                <div className="flex gap-1.5 overflow-x-auto pb-0.5 cover-strip-scroll w-full">
+                <div className="flex flex-wrap gap-2 w-full">
                   {author.books.map((book) => {
                     const titleKey = book.name.includes(" - ")
                       ? book.name.slice(0, book.name.lastIndexOf(" - ")).trim()
                       : book.name.trim();
                     const coverUrl = coverMap.get(titleKey);
+                    const bookMini = { id: book.id, titleKey, coverUrl, contentTypes: book.contentTypes ?? {} };
                     return (
-                      <Tooltip key={book.id} delayDuration={200}>
-                        <TooltipTrigger asChild>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onBookClick
-                                ? onBookClick(book.id, titleKey)
-                                : window.open(
-                                    `https://drive.google.com/drive/folders/${book.id}?view=grid`,
-                                    "_blank"
-                                  );
-                            }}
-                            className="flex-shrink-0 group/cover cursor-pointer"
+                      <div
+                        key={book.id}
+                        className="relative h-11 w-8 flex-shrink-0 cursor-pointer"
+                        title={titleKey}
+                      >
+                        {coverUrl ? (
+                          <img
+                            src={coverUrl}
+                            alt={titleKey}
+                            onClick={(e) => handleBookCoverClick(e, bookMini)}
+                            className="
+                              h-full w-full rounded-sm object-cover shadow-sm
+                              ring-1 ring-border
+                              transition-transform duration-300 ease-out
+                              hover:scale-[4]
+                              origin-center
+                              cursor-pointer
+                              relative z-20
+                            "
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div
+                            onClick={(e) => handleBookCoverClick(e, bookMini)}
+                            className="
+                              h-full w-full rounded-sm bg-muted shadow-sm
+                              ring-1 ring-border
+                              flex items-center justify-center
+                              transition-transform duration-300 ease-out
+                              hover:scale-[4]
+                              origin-center
+                              cursor-pointer
+                              relative z-20
+                            "
                           >
-                            {coverUrl ? (
-                              <img
-                                src={coverUrl}
-                                alt={titleKey}
-                                className="w-8 h-11 object-cover rounded shadow-sm ring-1 ring-border group-hover/cover:ring-2 group-hover/cover:shadow-md transition-all duration-150"
-                                loading="lazy"
-                              />
-                            ) : (
-                              <div className="w-8 h-11 rounded shadow-sm ring-1 ring-border bg-muted flex items-center justify-center group-hover/cover:ring-2 group-hover/cover:shadow-md transition-all duration-150">
-                                <BookOpen className="w-3.5 h-3.5 text-muted-foreground" />
-                              </div>
-                            )}
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent
-                          side="top"
-                          sideOffset={8}
-                          className="p-0 bg-transparent border-0 shadow-none rounded-lg overflow-hidden"
-                        >
-                          <div className="flex flex-col items-center gap-1.5 p-2 bg-card border border-border rounded-xl shadow-lg">
-                            {coverUrl ? (
-                              <img
-                                src={coverUrl}
-                                alt={titleKey}
-                                className="w-[90px] h-[126px] object-cover rounded-md shadow-md"
-                                loading="lazy"
-                              />
-                            ) : (
-                              <div className="w-[90px] h-[126px] rounded-md bg-muted flex items-center justify-center">
-                                <BookOpen className="w-8 h-8 text-muted-foreground opacity-40" />
-                              </div>
-                            )}
-                            <p className="text-[10px] font-medium text-card-foreground text-center max-w-[90px] leading-tight line-clamp-2">
-                              {titleKey}
-                            </p>
+                            <BookOpen className="w-3 h-3 text-muted-foreground" />
                           </div>
-                        </TooltipContent>
-                      </Tooltip>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
@@ -686,7 +684,7 @@ export function FlowbiteAuthorCard({
         </Card>
       </motion.div>
 
-      {/* ── Flowbite bio modal — rendered outside the card to avoid stacking context issues ── */}
+      {/* ── Flowbite bio modal ── */}
       <AuthorBioModal
         open={openBio}
         onClose={() => setOpenBio(false)}
@@ -696,6 +694,73 @@ export function FlowbiteAuthorCard({
         photoUrl={photoUrl}
         Icon={Icon}
       />
+
+      {/* ── Flowbite book-detail modal ── */}
+      <Modal
+        show={!!activeBook}
+        size="md"
+        onClose={() => setActiveBook(null)}
+        popup
+      >
+        {activeBook && (
+          <>
+            <ModalHeader>
+              <span className="text-sm font-semibold text-card-foreground line-clamp-2">
+                {activeBook.titleKey}
+              </span>
+            </ModalHeader>
+            <ModalBody>
+              <div className="flex flex-col gap-4 text-sm">
+                {/* Cover + title row */}
+                <div className="flex items-start gap-4">
+                  {activeBook.coverUrl ? (
+                    <img
+                      src={activeBook.coverUrl}
+                      alt={activeBook.titleKey}
+                      className="h-28 w-20 rounded-md object-cover shadow-sm ring-1 ring-border flex-shrink-0"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="h-28 w-20 rounded-md bg-muted flex items-center justify-center flex-shrink-0 ring-1 ring-border">
+                      <BookOpen className="w-6 h-6 text-muted-foreground opacity-40" />
+                    </div>
+                  )}
+                  <div className="flex flex-col gap-2 min-w-0 pt-1">
+                    <p className="text-sm font-semibold text-card-foreground leading-snug">
+                      {activeBook.titleKey}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">{author.category}</p>
+                    {/* Content-type pills */}
+                    {Object.keys(normalizeContentTypes(activeBook.contentTypes)).length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-1">
+                        {Object.entries(normalizeContentTypes(activeBook.contentTypes)).map(
+                          ([type, count]) => (
+                            <ResourcePill key={type} type={type} count={count} />
+                          )
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Divider */}
+                <div className="h-px bg-border" />
+
+                {/* Open in Drive link */}
+                <a
+                  href={`https://drive.google.com/drive/folders/${activeBook.id}?view=grid`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-xs text-primary hover:underline"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" />
+                  Open folder in Google Drive
+                </a>
+              </div>
+            </ModalBody>
+          </>
+        )}
+      </Modal>
     </>
   );
 }

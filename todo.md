@@ -434,3 +434,10 @@
 - [x] Wire modal bio from authorBios.json + trpc.authorProfiles.get inline query
 - [x] Ensure Modal uses only theme tokens
 - [x] Run tests and save checkpoint
+
+## Session March 17, 2026 — Book Cover 4× Scale + Book Detail Modal
+- [x] Add activeBook state + handleBookCoverClick to FlowbiteAuthorCard
+- [x] Replace mini cover strip img with hover:scale-[4] origin-center transition-transform cursor-pointer
+- [x] Add Flowbite Modal (book-detail) showing cover, title, content-type pills, Drive link
+- [x] Ensure book modal uses only theme tokens
+- [x] Run tests and save checkpoint
