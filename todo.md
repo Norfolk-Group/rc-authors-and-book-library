@@ -469,3 +469,11 @@
   - [x] Avatar + name click opens AuthorModal (stop propagation)
   - [x] Mini cover click opens BookModal (stop propagation)
 - [x] Run tests and save checkpoint
+
+## Session March 17, 2026 — Grid Column Fix + Skill Meta-Workflow
+- [x] Measure longest category title and determine min card width needed for single-line display
+- [x] Adjust grid columns so category titles never wrap (sm:grid-cols-2 xl:grid-cols-3, removed lg:grid-cols-3)
+- [x] Add whitespace-nowrap to category label in FlowbiteAuthorCard as safety net
+- [x] Create skill-creation-workflow skill using skill-creator
+- [x] Validate and deliver skill
+- [x] Run tests and save checkpoint

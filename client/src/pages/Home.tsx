@@ -2209,7 +2209,7 @@ export default function Home() {
                 </div>
               ) : (
                 /* ── Card grid view ── */
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 tab-content-enter">
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 tab-content-enter">
                   {filteredAuthors.map((a, i) => (
                     <div key={a.id + i} style={{ animationDelay: `${Math.min(i * 30, 400)}ms` }}>
                       <FlowbiteAuthorCard
