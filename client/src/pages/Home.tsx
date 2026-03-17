@@ -66,6 +66,7 @@ import {
   type BookRecord,
 } from "@/lib/libraryData";
 import { AUDIO_BOOKS, type AudioBook } from "@/lib/audioData";
+import { FlowbiteAuthorCard } from "@/components/FlowbiteAuthorCard";
 import { getAuthorPhoto } from "@/lib/authorPhotos";
 import { canonicalName } from "@/lib/authorAliases";
 import { useAppSettings, type ColorMode as AppTheme } from "@/contexts/AppSettingsContext";
@@ -2128,10 +2129,10 @@ export default function Home() {
               filteredAuthors.length === 0 ? (
                 <EmptyState query={query} />
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 tab-content-enter">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 tab-content-enter">
                   {filteredAuthors.map((a, i) => (
                     <div key={a.id + i} style={{ animationDelay: `${Math.min(i * 30, 400)}ms` }}>
-                      <AuthorCard
+                      <FlowbiteAuthorCard
                         author={a}
                         query={query}
                         onBioClick={(author) => { setSelectedAuthor(author); setBioSheetOpen(true); }}

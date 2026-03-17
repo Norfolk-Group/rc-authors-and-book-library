@@ -399,3 +399,9 @@
 - [x] Render Flowbite Pagination component below the card grid
 - [x] Show "Showing X–Y of Z authors" label above the grid
 - [x] Verify build and save checkpoint
+
+## Session March 17, 2026 — Reusable FlowbiteAuthorCard Component
+- [x] Confirm Tailwind + Flowbite wiring is correct (no tailwind.config.js for v4)
+- [x] Create client/src/components/FlowbiteAuthorCard.tsx with all data fields
+- [x] Replace AuthorCard function in Home.tsx with import of new component
+- [x] Verify no TS errors on new component, run tests, save checkpoint
