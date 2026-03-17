@@ -6,6 +6,9 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import Preferences from "./pages/Preferences";
+import FlowEditorPage from "./pages/flow-editor";
+import EChartsPage from "./pages/charts-echarts";
+import NivoChartsPage from "./pages/charts-nivo";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -13,6 +16,9 @@ function Router() {
     <Switch>
       <Route path={"/"} component={Home} />
       <Route path={"/preferences"} component={Preferences} />
+      <Route path={"/flow-editor"} component={FlowEditorPage} />
+      <Route path={"/charts-echarts"} component={EChartsPage} />
+      <Route path={"/charts-nivo"} component={NivoChartsPage} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>

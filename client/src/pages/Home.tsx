@@ -1519,6 +1519,28 @@ export default function Home() {
               <p className="text-[10px] text-muted-foreground mt-1">{bookEnrichFailed} books could not be enriched.</p>
             )}
 
+            {/* ── Visualizations ── */}
+            <div className="mt-3 pt-3 border-t border-border/50">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Visualizations</p>
+              <div className="flex flex-col gap-1">
+                <a href="/flow-editor" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1 px-2 rounded hover:bg-muted/60">
+                  <LayoutGrid className="w-3.5 h-3.5 flex-shrink-0" />
+                  React Flow
+                  <ChevronRight className="w-3 h-3 ml-auto opacity-50" />
+                </a>
+                <a href="/charts-echarts" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1 px-2 rounded hover:bg-muted/60">
+                  <TrendingUp className="w-3.5 h-3.5 flex-shrink-0" />
+                  Apache ECharts
+                  <ChevronRight className="w-3 h-3 ml-auto opacity-50" />
+                </a>
+                <a href="/charts-nivo" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1 px-2 rounded hover:bg-muted/60">
+                  <TrendingUp className="w-3.5 h-3.5 flex-shrink-0" />
+                  Nivo Charts
+                  <ChevronRight className="w-3 h-3 ml-auto opacity-50" />
+                </a>
+              </div>
+            </div>
+
             {/* ── Preferences link ── */}
             <div className="mt-3 pt-3 border-t border-border/50">
               <a
