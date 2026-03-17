@@ -532,3 +532,10 @@
 - [x] Update @vitejs/plugin-react and vite-related devDeps to v6-compatible versions
 - [x] Verify local build succeeds (pnpm build) — ✓ built in 25s
 - [x] Run tests and save checkpoint — 118 passing
+
+## Session March 17, 2026 — Deployment Fix 2 (oxc-parser)
+- [x] Root cause: flowbite-react@0.12.17 introduced oxc-parser as a dependency; its native binding fails in the deployment environment
+- [x] Fix: downgrade flowbite-react to 0.12.16 (last version without oxc-parser)
+- [x] Verify oxc-parser no longer in dependency tree (pnpm why oxc-parser → empty)
+- [x] Verify pnpm build succeeds (Vite 6.4.1, no native binding errors)
+- [x] Run tests (118 passing) and save checkpoint
