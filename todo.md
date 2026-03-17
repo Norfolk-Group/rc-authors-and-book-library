@@ -383,3 +383,11 @@
 - [x] Wired to Home.tsx card grid section in a relative wrapper div
 - [x] 118 tests passing
 - [x] Save checkpoint
+
+## Session March 17, 2026 — Flowbite AuthorCard Demo Page
+- [x] Wire Flowbite CSS import into client/src/index.css
+- [x] Add Flowbite Vite plugin to vite.config.ts
+- [x] Create FlowbiteDemo page with AuthorCard component using flowbite-react Card + Badge
+- [x] Add search/filter bar, category filter chips, dark mode toggle, and stats strip
+- [x] Register /flowbite-demo route in App.tsx
+- [x] Verify build and save checkpoint
