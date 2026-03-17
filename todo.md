@@ -482,3 +482,10 @@
 - [x] Give the card header section (category label + Bio ready badge row) a fixed min-height so all author name titles start at the same Y position across a row
 - [x] Verify alignment holds for cards with 1-line and 2-line category labels
 - [x] Run tests and save checkpoint
+
+## Session March 17, 2026 — Bug Fixes (3 Issues from Screenshot)
+- [x] FIX vertical alignment: changed items-center → items-start on avatar+name flex row so author name h3 is always at top of row, regardless of specialty text length
+- [x] FIX category label clipping: replaced Flowbite Badge 'Bio ready' (text, ~70px wide) with a small green dot indicator (w-2 h-2 rounded-full bg-chart-5), freeing ~60px for the category label
+- [x] FIX missing avatars for split authors: expanded dbPhotoMap in Home.tsx to add individual name keys from combined-name entries (e.g. 'aaron ross' from 'Aaron Ross and Jason Lemkin'); also updated getAuthorPhoto() to do partial match against combined-name keys
+- [x] Fixed avatar container size mismatch (h-9 w-9 → h-10 w-10) to match AvatarUpload size=40
+- [x] Run tests (118 passing) and save checkpoint

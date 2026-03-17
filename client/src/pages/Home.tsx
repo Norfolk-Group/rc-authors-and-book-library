@@ -1279,8 +1279,20 @@ export default function Home() {
   );
   const dbPhotoMap = useMemo(() => {
     const map = new Map<string, string>();
+    const splitSep = /\s+(?:and|&)\s+/i;
     for (const r of authorPhotoMapQuery.data ?? []) {
-      if (r.photoUrl) map.set(r.authorName.toLowerCase(), r.photoUrl);
+      if (!r.photoUrl) continue;
+      // Add the combined name key (e.g. "aaron ross and jason lemkin")
+      map.set(r.authorName.toLowerCase(), r.photoUrl);
+      // Also add individual name keys for split-author cards
+      // e.g. "Aaron Ross and Jason Lemkin" → also add "aaron ross" and "jason lemkin"
+      const parts = r.authorName.split(splitSep).map((p: string) => p.trim()).filter(Boolean);
+      if (parts.length > 1) {
+        for (const part of parts) {
+          const key = part.toLowerCase();
+          if (!map.has(key)) map.set(key, r.photoUrl);
+        }
+      }
     }
     return map;
   }, [authorPhotoMapQuery.data]);

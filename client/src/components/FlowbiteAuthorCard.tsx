@@ -25,7 +25,7 @@
  */
 import { useState, useCallback, useRef, useMemo } from "react";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
-import { Card, Badge } from "flowbite-react";
+import { Card } from "flowbite-react";
 import {
   BookOpen,
   Briefcase,
@@ -338,35 +338,49 @@ export function FlowbiteAuthorCard({
           </div>
 
           {/* ── SECTION 1: Header ── */}
-          <div className="px-4 pt-4 pb-3 flex-shrink-0">
-            {/*
-             * Category row — fixed min-height ensures all author name titles
-             * in the same grid row start at the same vertical position.
-             * min-h-[28px] = icon height (24px) + 4px breathing room.
-             */}
-            <div className="flex items-center justify-between gap-2 mb-3 min-h-[28px]">
-              <div className="flex items-center gap-2">
+          {/*
+           * The header uses a 2-row CSS grid with fixed row heights so that
+           * author name titles align at the same Y position across every card
+           * in the same grid row, regardless of badge presence or label length.
+           *
+           * Row 1 (h-[28px]): category icon + label + badge slot (always rendered)
+           * Row 2 (auto):     avatar + name group
+           */}
+          <div className="px-4 pt-4 pb-3 flex-shrink-0 grid grid-rows-[28px_auto] gap-y-3">
+            {/* Row 1: Category + badge — always exactly 28px tall */}
+            <div className="flex items-center justify-between gap-2 h-[28px]">
+              <div className="flex items-center gap-2 min-w-0">
                 <div className="w-6 h-6 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
                   <Icon className="w-3.5 h-3.5 text-muted-foreground" />
                 </div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground whitespace-nowrap">
+                <p
+                  className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground truncate min-w-0"
+                  title={author.category}
+                >
                   {author.category}
                 </p>
               </div>
-              {isEnriched && (
-                <Badge color="success" className="text-[10px] shrink-0">
-                  Bio ready
-                </Badge>
-              )}
+              {/* Bio-ready dot — always rendered to keep row height constant */}
+              <div className="shrink-0 h-[20px] flex items-center">
+                {isEnriched ? (
+                  <span
+                    title="Bio ready"
+                    className="w-2 h-2 rounded-full bg-chart-5 flex-shrink-0"
+                    aria-label="Bio ready"
+                  />
+                ) : (
+                  <span className="w-2 h-2" aria-hidden />
+                )}
+              </div>
             </div>
 
             {/* HOTSPOT 1: Avatar + name group — stopPropagation so card click doesn't fire */}
             <div
-              className="flex items-center gap-3 mb-3"
+              className="flex items-start gap-3"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Avatar — 1.15× hover scale, click opens AuthorModal */}
-              <div className="relative h-9 w-9 flex-shrink-0">
+              <div className="relative h-10 w-10 flex-shrink-0">
                 <AvatarUpload authorName={displayName} currentPhotoUrl={photoUrl} size={40}>
                   {(url) =>
                     url ? (

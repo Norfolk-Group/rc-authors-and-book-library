@@ -166,5 +166,13 @@ export function getAuthorPhoto(name: string): string | undefined {
   // Try case-insensitive match
   const lower = name.toLowerCase();
   const key = Object.keys(AUTHOR_PHOTOS).find(k => k.toLowerCase() === lower);
-  return key ? AUTHOR_PHOTOS[key] : undefined;
+  if (key) return AUTHOR_PHOTOS[key];
+  // Try partial match: check if any combined-name key contains this name as a part
+  // e.g. "Aaron Ross" matches "Aaron Ross and Jason Lemkin"
+  const splitSep = /\s+(?:and|&)\s+/i;
+  const combinedKey = Object.keys(AUTHOR_PHOTOS).find(k => {
+    const parts = k.split(splitSep).map(p => p.trim().toLowerCase());
+    return parts.length > 1 && parts.includes(lower);
+  });
+  return combinedKey ? AUTHOR_PHOTOS[combinedKey] : undefined;
 }
