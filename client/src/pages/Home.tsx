@@ -67,6 +67,7 @@ import {
 } from "@/lib/libraryData";
 import { AUDIO_BOOKS, type AudioBook } from "@/lib/audioData";
 import { FlowbiteAuthorCard } from "@/components/FlowbiteAuthorCard";
+import { AuthorAccordionRow } from "@/components/AuthorAccordionRow";
 import { getAuthorPhoto } from "@/lib/authorPhotos";
 import { canonicalName } from "@/lib/authorAliases";
 import { useAppSettings, type ColorMode as AppTheme } from "@/contexts/AppSettingsContext";
@@ -78,6 +79,7 @@ import {
   BookOpen,
   Users,
   LayoutGrid,
+  LayoutList,
   Briefcase,
   Brain,
   Handshake,
@@ -1201,6 +1203,8 @@ export default function Home() {
   const [lastSynced, setLastSynced] = useState<Date | null>(null);
   const [authorSort, setAuthorSort] = useState<AuthorSort>("name-asc");
   const [bookSort, setBookSort] = useState<BookSort>("name-asc");
+  // Author view mode: "card" = grid of FlowbiteAuthorCards, "accordion" = compact list
+  const [authorViewMode, setAuthorViewMode] = useState<"card" | "accordion">("card");
   // Author bio panel state
   const [selectedAuthor, setSelectedAuthor] = useState<typeof AUTHORS[number] | null>(null);
   const [bioSheetOpen, setBioSheetOpen] = useState(false);
@@ -2092,6 +2096,45 @@ export default function Home() {
               </div>
               {activeTab !== "audio" && (
                 <div className="flex items-center gap-1.5">
+                  {/* View mode toggle — only shown on authors tab */}
+                  {activeTab === "authors" && (
+                    <div className="flex items-center rounded-md border border-border overflow-hidden">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            onClick={() => setAuthorViewMode("card")}
+                            className={`p-1.5 transition-colors ${
+                              authorViewMode === "card"
+                                ? "bg-muted text-foreground"
+                                : "text-muted-foreground hover:bg-muted/50"
+                            }`}
+                            aria-label="Card view"
+                          >
+                            <LayoutGrid className="w-3.5 h-3.5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">Card view</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            onClick={() => setAuthorViewMode("accordion")}
+                            className={`p-1.5 transition-colors ${
+                              authorViewMode === "accordion"
+                                ? "bg-muted text-foreground"
+                                : "text-muted-foreground hover:bg-muted/50"
+                            }`}
+                            aria-label="List view"
+                          >
+                            <LayoutList className="w-3.5 h-3.5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">List view</TooltipContent>
+                      </Tooltip>
+                    </div>
+                  )}
                   <ArrowUpDown className="w-3.5 h-3.5 text-muted-foreground" />
                   {activeTab === "authors" ? (
                     <Select value={authorSort} onValueChange={(v) => setAuthorSort(v as AuthorSort)}>
@@ -2128,7 +2171,25 @@ export default function Home() {
             {activeTab === "authors" ? (
               filteredAuthors.length === 0 ? (
                 <EmptyState query={query} />
+              ) : authorViewMode === "accordion" ? (
+                /* ── Accordion / list view ── */
+                <div className="rounded-lg border border-border bg-card shadow-sm overflow-hidden tab-content-enter">
+                  {filteredAuthors.map((a) => (
+                    <AuthorAccordionRow
+                      key={a.id}
+                      author={a}
+                      query={query}
+                      isEnriched={enrichedSet.has(
+                        a.name.includes(" - ") ? a.name.slice(0, a.name.indexOf(" - ")) : a.name
+                      )}
+                      coverMap={bookCoverMap}
+                      dbPhotoMap={dbPhotoMap}
+                      onBioClick={(author) => { setSelectedAuthor(author); setBioSheetOpen(true); }}
+                    />
+                  ))}
+                </div>
               ) : (
+                /* ── Card grid view ── */
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 tab-content-enter">
                   {filteredAuthors.map((a, i) => (
                     <div key={a.id + i} style={{ animationDelay: `${Math.min(i * 30, 400)}ms` }}>
@@ -2142,7 +2203,6 @@ export default function Home() {
                         coverMap={bookCoverMap}
                         dbPhotoMap={dbPhotoMap}
                         onBookClick={(bookId, titleKey) => {
-                          // Open cover lightbox for mini thumbnail clicks
                           const found = booksByIdMap.get(bookId)
                             ?? BOOKS.find((b) => b.name.split(" - ")[0].trim().toLowerCase() === titleKey.toLowerCase());
                           const coverUrl = bookCoverMap?.get(titleKey) ?? null;

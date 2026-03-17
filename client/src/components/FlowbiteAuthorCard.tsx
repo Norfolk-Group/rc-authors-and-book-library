@@ -21,7 +21,7 @@
  *   - Framer Motion 3D tilt on card
  */
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { Card, Badge, Modal, ModalBody, ModalHeader } from "flowbite-react";
 import {
@@ -66,6 +66,143 @@ import {
 } from "@/lib/libraryData";
 import { trpc } from "@/lib/trpc";
 import authorBios from "@/lib/authorBios.json";
+
+// ── BookDetailModal — fetches enriched data inline ────────────────────────────
+
+type BookMiniType = { id: string; titleKey: string; coverUrl: string | undefined; contentTypes: Record<string, number> };
+
+function BookDetailModal({
+  book,
+  authorName,
+  category,
+  onClose,
+}: {
+  book: BookMiniType | null;
+  authorName: string;
+  category: string;
+  onClose: () => void;
+}) {
+  const { data: profile, isLoading } = trpc.bookProfiles.get.useQuery(
+    { bookTitle: book?.titleKey ?? "" },
+    { enabled: !!book, staleTime: 5 * 60 * 1000 }
+  );
+
+  const amazonUrl =
+    profile?.amazonUrl ??
+    (book ? `https://www.amazon.com/s?k=${encodeURIComponent(book.titleKey)}` : undefined);
+
+  const goodreadsUrl = profile?.goodreadsUrl ?? undefined;
+
+  return (
+    <Modal show={!!book} size="md" onClose={onClose} popup>
+      {book && (
+        <>
+          <ModalHeader>
+            <span className="text-sm font-semibold text-card-foreground line-clamp-2">
+              {book.titleKey}
+            </span>
+          </ModalHeader>
+          <ModalBody>
+            <div className="flex flex-col gap-4 text-sm">
+              {/* Cover + meta row */}
+              <div className="flex items-start gap-4">
+                {book.coverUrl ? (
+                  <img
+                    src={book.coverUrl}
+                    alt={book.titleKey}
+                    className="h-28 w-20 rounded-md object-cover shadow-sm ring-1 ring-border flex-shrink-0"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="h-28 w-20 rounded-md bg-muted flex items-center justify-center flex-shrink-0 ring-1 ring-border">
+                    <BookOpen className="w-6 h-6 text-muted-foreground opacity-40" />
+                  </div>
+                )}
+                <div className="flex flex-col gap-1.5 min-w-0 pt-1">
+                  <p className="text-sm font-semibold text-card-foreground leading-snug">{book.titleKey}</p>
+                  <p className="text-[11px] text-muted-foreground">{authorName} · {category}</p>
+                  {profile?.publishedDate && (
+                    <p className="text-[11px] text-muted-foreground">{profile.publishedDate.slice(0, 4)}{profile.publisher ? ` · ${profile.publisher}` : ""}</p>
+                  )}
+                  {profile?.rating && (
+                    <p className="text-[11px] text-muted-foreground">★ {profile.rating}{profile.ratingCount ? ` (${profile.ratingCount})` : ""}</p>
+                  )}
+                  {/* Content-type pills */}
+                  {Object.keys(normalizeContentTypes(book.contentTypes)).length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-0.5">
+                      {Object.entries(normalizeContentTypes(book.contentTypes)).map(([type, count]) => (
+                        <ResourcePill key={type} type={type} count={count} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Summary / description */}
+              {isLoading ? (
+                <p className="text-[11px] text-muted-foreground animate-pulse">Loading description…</p>
+              ) : profile?.summary ? (
+                <>
+                  <div className="h-px bg-border" />
+                  <p className="text-[12px] text-muted-foreground leading-relaxed">{profile.summary}</p>
+                </>
+              ) : null}
+
+              {/* Key themes */}
+              {profile?.keyThemes && (
+                <div className="flex flex-wrap gap-1.5">
+                  {profile.keyThemes.split(",").map((t) => t.trim()).filter(Boolean).map((theme) => (
+                    <span key={theme} className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                      {theme}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Divider */}
+              <div className="h-px bg-border" />
+
+              {/* Links */}
+              <div className="flex flex-col gap-2">
+                <a
+                  href={`https://drive.google.com/drive/folders/${book.id}?view=grid`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-xs text-primary hover:underline"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" />
+                  Open folder in Google Drive
+                </a>
+                {amazonUrl && (
+                  <a
+                    href={amazonUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-xs text-primary hover:underline"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" />
+                    {profile?.amazonUrl ? "View on Amazon" : "Search on Amazon"}
+                  </a>
+                )}
+                {goodreadsUrl && (
+                  <a
+                    href={goodreadsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-xs text-primary hover:underline"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" />
+                    View on Goodreads
+                  </a>
+                )}
+              </div>
+            </div>
+          </ModalBody>
+        </>
+      )}
+    </Modal>
+  );
+}
 
 // ── Shared LucideIcon type ─────────────────────────────────────────────────────
 
@@ -461,6 +598,19 @@ export function FlowbiteAuthorCard({
     return totals;
   })();
 
+  // Deduplicated books list — filters out entries with the same titleKey
+  const dedupedBooks = useMemo(() => {
+    const seen = new Set<string>();
+    return (author.books ?? []).filter((book) => {
+      const tk = book.name.includes(" - ")
+        ? book.name.slice(0, book.name.lastIndexOf(" - ")).trim()
+        : book.name.trim();
+      if (seen.has(tk)) return false;
+      seen.add(tk);
+      return true;
+    });
+  }, [author.books]);
+
   const { rotateX, rotateY, scale, handleMouseMove, handleMouseLeave } = useCardTilt(10);
 
   return (
@@ -528,8 +678,8 @@ export function FlowbiteAuthorCard({
               </div>
             </div>
 
-            {/* Author avatar + name + specialty */}
-            <div className="flex items-start gap-3">
+            {/* Author avatar + name + specialty — items-center keeps avatar and name on the same baseline */}
+            <div className="flex items-center gap-3">
               {/* Avatar with 4× hover scale — click opens bio modal */}
               <div className="relative h-9 w-9 flex-shrink-0">
                 <AvatarUpload authorName={displayName} currentPhotoUrl={photoUrl} size={40}>
@@ -619,10 +769,10 @@ export function FlowbiteAuthorCard({
                 </div>
               )}
 
-              {/* Mini book cover strip — each cover scales 4× on hover, click opens book-detail modal */}
+              {/* Mini book cover strip — deduplicated by titleKey, each cover scales 4× on hover */}
               {coverMap && (
                 <div className="flex flex-wrap gap-2 w-full">
-                  {author.books.map((book) => {
+                  {dedupedBooks.map((book: import("@/lib/libraryData").BookEntry) => {
                     const titleKey = book.name.includes(" - ")
                       ? book.name.slice(0, book.name.lastIndexOf(" - ")).trim()
                       : book.name.trim();
@@ -695,72 +845,13 @@ export function FlowbiteAuthorCard({
         Icon={Icon}
       />
 
-      {/* ── Flowbite book-detail modal ── */}
-      <Modal
-        show={!!activeBook}
-        size="md"
+      {/* ── Flowbite book-detail modal — uses BookDetailModal component above ── */}
+      <BookDetailModal
+        book={activeBook}
+        authorName={displayName}
+        category={author.category}
         onClose={() => setActiveBook(null)}
-        popup
-      >
-        {activeBook && (
-          <>
-            <ModalHeader>
-              <span className="text-sm font-semibold text-card-foreground line-clamp-2">
-                {activeBook.titleKey}
-              </span>
-            </ModalHeader>
-            <ModalBody>
-              <div className="flex flex-col gap-4 text-sm">
-                {/* Cover + title row */}
-                <div className="flex items-start gap-4">
-                  {activeBook.coverUrl ? (
-                    <img
-                      src={activeBook.coverUrl}
-                      alt={activeBook.titleKey}
-                      className="h-28 w-20 rounded-md object-cover shadow-sm ring-1 ring-border flex-shrink-0"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="h-28 w-20 rounded-md bg-muted flex items-center justify-center flex-shrink-0 ring-1 ring-border">
-                      <BookOpen className="w-6 h-6 text-muted-foreground opacity-40" />
-                    </div>
-                  )}
-                  <div className="flex flex-col gap-2 min-w-0 pt-1">
-                    <p className="text-sm font-semibold text-card-foreground leading-snug">
-                      {activeBook.titleKey}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground">{author.category}</p>
-                    {/* Content-type pills */}
-                    {Object.keys(normalizeContentTypes(activeBook.contentTypes)).length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mt-1">
-                        {Object.entries(normalizeContentTypes(activeBook.contentTypes)).map(
-                          ([type, count]) => (
-                            <ResourcePill key={type} type={type} count={count} />
-                          )
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Divider */}
-                <div className="h-px bg-border" />
-
-                {/* Open in Drive link */}
-                <a
-                  href={`https://drive.google.com/drive/folders/${activeBook.id}?view=grid`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-xs text-primary hover:underline"
-                >
-                  <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" />
-                  Open folder in Google Drive
-                </a>
-              </div>
-            </ModalBody>
-          </>
-        )}
-      </Modal>
+      />
     </>
   );
 }

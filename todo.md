@@ -441,3 +441,13 @@
 - [x] Add Flowbite Modal (book-detail) showing cover, title, content-type pills, Drive link
 - [x] Ensure book modal uses only theme tokens
 - [x] Run tests and save checkpoint
+
+## Session March 17, 2026 — 5 Improvements
+- [x] Fix avatar+name vertical alignment: all cards use items-center in the avatar row
+- [x] Deduplicate cover strip: filter out books with same titleKey before rendering
+- [x] Add book descriptions to book-detail modal (BookDetailModal fetches bookProfiles.get → summary)
+- [x] Add Amazon search link inside book-detail modal (stored amazonUrl or fallback search URL)
+- [x] Build AuthorAccordionRow component (single line, expands on click with Framer Motion)
+- [x] Add view-mode toggle (Cards / Accordion) to the Authors section header
+- [ ] Persist view-mode preference to localStorage
+- [x] Run tests and save checkpoint
