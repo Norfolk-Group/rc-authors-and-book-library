@@ -417,3 +417,20 @@
 - [x] Replace category watermark colour with text-foreground opacity-[0.04]
 - [x] Verify all three themes (Manus, Norfolk AI, Noir Dark) render correctly
 - [x] Run tests and save checkpoint
+
+## Session March 17, 2026 — Avatar 4× Scale + Flowbite Modal Bio
+- [ ] Add openBio state and handleAvatarClick to FlowbiteAuthorCard
+- [ ] Replace avatar img with hover:scale-[4] + origin-center + click handler
+- [ ] Add Flowbite Modal with ModalHeader + ModalBody showing author photo, category, specialty, bio
+- [ ] Wire bioText from existing author_profiles enriched bio via onBioClick callback pattern
+- [ ] Ensure Modal uses only theme tokens (no hardcoded colours)
+- [ ] Run tests and save checkpoint
+
+## Session March 17, 2026 — Card Top-Justification + Avatar Modal
+- [x] Fix FlowbiteAuthorCard: card content top-justified (flex-col justify-start, no vertical centering)
+- [x] Add openBio state + handleAvatarClick to FlowbiteAuthorCard
+- [x] Replace avatar with hover:scale-[4] origin-center transition-transform cursor-pointer
+- [x] Add Flowbite Modal (Modal/ModalHeader/ModalBody) with bio, photo, category, specialty, links
+- [x] Wire modal bio from authorBios.json + trpc.authorProfiles.get inline query
+- [x] Ensure Modal uses only theme tokens
+- [x] Run tests and save checkpoint
