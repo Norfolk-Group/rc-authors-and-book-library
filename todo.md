@@ -598,3 +598,25 @@
 - [x] Create book-cover-scrape-mirror skill from the batch scrape + S3 mirror workflow used in this session
 - [x] Validate skill with quick_validate.py — passes
 - [x] Deliver skill to user
+
+## Session March 17, 2026 — Execute All Suggestions
+
+### Suggestion 1: Re-enrich photoSource for legacy photos
+- [ ] Add 'tavily' and 'apify' values to photoSource enum in drizzle/schema.ts
+- [ ] Push DB migration (pnpm db:push)
+- [ ] Backfill photoSource for existing records: set 'wikipedia' for photos with wikipedia.org URLs, 'tavily' for tavily-sourced, 'apify' for apify-sourced, leave NULL for truly unknown
+- [ ] Verify ResearchCascade per-tier counts update correctly
+
+### Suggestion 2: Schedule nightly cover scrape cron job
+- [ ] Schedule nightly cron job (2am) to run scrapeNextMissingCover + S3 mirror for any new books
+
+### Suggestion 3: Update skill with multi-project reuse docs
+- [ ] Update book-cover-scrape-mirror SKILL.md with multi-project reuse section (flag overrides, example for different table/column names)
+
+## Session March 17, 2026 — Author Bio Hover Tooltip
+
+- [x] Show author bio in a hover tooltip when mousing over the avatar image on FlowbiteAuthorCard
+- [x] Show author bio in a hover tooltip when mousing over the "Bio ready · click to view" label on FlowbiteAuthorCard
+- [x] Tooltip should display first 2–3 sentences of bio (truncated if long), author name as heading
+- [x] Use Radix Tooltip (already installed) with max-w-xs, theme-aware bg-popover/text-popover-foreground
+- [x] Tooltip should only appear when bio is available (skip for un-enriched authors)

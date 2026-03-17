@@ -2316,6 +2316,7 @@ export default function Home() {
                         isEnriched={enrichedSet.has(
                           a.name.includes(" - ") ? a.name.slice(0, a.name.indexOf(" - ")) : a.name
                         )}
+                        bio={(authorBios as Record<string, string>)[canonicalName(a.name)] ?? null}
                         coverMap={bookCoverMap}
                         dbPhotoMap={dbPhotoMap}
                         onBookClick={(bookId, titleKey) => {

@@ -24,6 +24,11 @@
  *   Book cover hover: scale-[1.2] — subtle, doesn't break layout.
  */
 import { useState, useCallback, useRef, useMemo } from "react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { Card } from "flowbite-react";
 import {
@@ -243,6 +248,8 @@ export interface FlowbiteAuthorCardProps {
   /** Kept for API compatibility — not used for navigation */
   onBookClick?: (bookId: string, titleKey: string) => void;
   dbPhotoMap?: Map<string, string>;
+  /** Short bio text to show in hover tooltip (first ~200 chars). Only shown when isEnriched is true. */
+  bio?: string | null;
 }
 
 // ── Main component ─────────────────────────────────────────────────────────────
@@ -253,6 +260,7 @@ export function FlowbiteAuthorCard({
   isEnriched,
   coverMap,
   dbPhotoMap,
+  bio,
 }: FlowbiteAuthorCardProps) {
   const iconName = CATEGORY_ICONS[author.category] ?? "briefcase";
   const Icon = (ICON_MAP[iconName] ?? Briefcase) as LucideIcon;
@@ -302,6 +310,17 @@ export function FlowbiteAuthorCard({
   }, [author.books]);
 
   const { ref, rotateX, rotateY, scale, handleMouseMove, handleMouseLeave } = useCardTilt(10);
+
+  // Bio tooltip: first 200 chars, trimmed at sentence boundary if possible
+  const bioSnippet = useMemo(() => {
+    if (!bio || !isEnriched) return null;
+    const trimmed = bio.trim();
+    if (trimmed.length <= 200) return trimmed;
+    // Try to cut at last sentence end within 200 chars
+    const cut = trimmed.slice(0, 200);
+    const lastDot = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('! '), cut.lastIndexOf('? '));
+    return lastDot > 80 ? trimmed.slice(0, lastDot + 1) : cut + '…';
+  }, [bio, isEnriched]);
 
   return (
     <>
@@ -374,7 +393,7 @@ export function FlowbiteAuthorCard({
               </div>
             </div>
 
-            {/* HOTSPOT 1: Avatar + name group — stopPropagation so card click doesn't fire */}
+              {/* HOTSPOT 1: Avatar + name group — stopPropagation so card click doesn't fire */}
             <div
               className="flex items-start gap-3"
               onClick={(e) => e.stopPropagation()}
@@ -382,8 +401,8 @@ export function FlowbiteAuthorCard({
               {/* Avatar — 1.15× hover scale, click opens AuthorModal */}
               <div className="relative h-10 w-10 flex-shrink-0">
                 <AvatarUpload authorName={displayName} currentPhotoUrl={photoUrl} size={40}>
-                  {(url) =>
-                    url ? (
+                  {(url) => {
+                    const avatarEl = url ? (
                       <img
                         src={url}
                         alt={displayName}
@@ -415,8 +434,22 @@ export function FlowbiteAuthorCard({
                       >
                         {displayName.charAt(0)}
                       </div>
-                    )
-                  }
+                    );
+                    if (!bioSnippet) return avatarEl;
+                    return (
+                      <Tooltip>
+                        <TooltipTrigger asChild>{avatarEl}</TooltipTrigger>
+                        <TooltipContent
+                          side="right"
+                          className="max-w-[260px] p-3 z-50"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <p className="font-semibold text-xs mb-1">{displayName}</p>
+                          <p className="text-xs leading-relaxed text-muted-foreground">{bioSnippet}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    );
+                  }}
                 </AvatarUpload>
               </div>
 
@@ -436,14 +469,34 @@ export function FlowbiteAuthorCard({
               </div>
             </div>
 
-            {/* Bio status — presentational */}
+            {/* Bio status — presentational (with tooltip on bio-ready label) */}
             <div className="text-[11px]">
               {isEnriched ? (
-                <span className="flex items-center gap-1.5 text-muted-foreground">
-                  <UserCheck className="w-3 h-3" />
-                  <span className="font-medium">Bio ready</span>
-                  <span className="opacity-60">· click to view</span>
-                </span>
+                bioSnippet ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="flex items-center gap-1.5 text-muted-foreground cursor-default">
+                        <UserCheck className="w-3 h-3" />
+                        <span className="font-medium">Bio ready</span>
+                        <span className="opacity-60">· click to view</span>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent
+                      side="bottom"
+                      className="max-w-[260px] p-3 z-50"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <p className="font-semibold text-xs mb-1">{displayName}</p>
+                      <p className="text-xs leading-relaxed text-muted-foreground">{bioSnippet}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                ) : (
+                  <span className="flex items-center gap-1.5 text-muted-foreground cursor-default">
+                    <UserCheck className="w-3 h-3" />
+                    <span className="font-medium">Bio ready</span>
+                    <span className="opacity-60">· click to view</span>
+                  </span>
+                )
               ) : (
                 <span className="flex items-center gap-1.5 text-muted-foreground">
                   <Users className="w-3 h-3" />
