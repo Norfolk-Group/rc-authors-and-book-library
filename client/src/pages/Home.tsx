@@ -10,6 +10,7 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { motion, useMotionValue, useSpring, useTransform, AnimatePresence } from "framer-motion";
 import { CoverLightbox } from "@/components/CoverLightbox";
+import CardGridSparkles from "@/components/CardGridSparkles";
 import { fireConfetti } from "@/hooks/useConfetti";
 import authorBios from "@/lib/authorBios.json";
 import { trpc } from "@/lib/trpc";
@@ -2110,6 +2111,8 @@ export default function Home() {
             </div>
 
             {/* Card grid */}
+            <div className="relative">
+              <CardGridSparkles />
             {activeTab === "authors" ? (
               filteredAuthors.length === 0 ? (
                 <EmptyState query={query} />
@@ -2188,6 +2191,7 @@ export default function Home() {
                 ))}
               </div>
             )}
+            </div>{/* end card grid relative wrapper */}
           </main>
         </SidebarInset>
       </div>

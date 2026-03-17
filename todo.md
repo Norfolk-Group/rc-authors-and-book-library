@@ -373,3 +373,13 @@
 - [x] Show book title and close button in lightbox overlay
 - [x] 118 tests passing
 - [x] Save checkpoint
+
+## Session March 16, 2026 — React Three Fiber Sparkles Canvas
+- [x] Build CardGridSparkles component: R3F Canvas with @react-three/drei Sparkles, pointer-events-none overlay
+- [x] Tune sparkle params: count=70, speed=0.16, size=1.3, opacity=0.50, scale=[30,12,6], noise=0.5
+- [x] Theme-aware color: gold (default), green (norfolk-ai), violet (noir-dark)
+- [x] Position canvas as absolute overlay over the card grid (z-index:5, below cards at z-10+)
+- [x] Canvas is transparent (alpha:true) and pointer-events:none — never blocks card interactions
+- [x] Wired to Home.tsx card grid section in a relative wrapper div
+- [x] 118 tests passing
+- [x] Save checkpoint
