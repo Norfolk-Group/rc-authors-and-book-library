@@ -477,3 +477,8 @@
 - [x] Create skill-creation-workflow skill using skill-creator
 - [x] Validate and deliver skill
 - [x] Run tests and save checkpoint
+
+## Session March 17, 2026 — Vertical Title Alignment in Card Grid
+- [x] Give the card header section (category label + Bio ready badge row) a fixed min-height so all author name titles start at the same Y position across a row
+- [x] Verify alignment holds for cards with 1-line and 2-line category labels
+- [x] Run tests and save checkpoint

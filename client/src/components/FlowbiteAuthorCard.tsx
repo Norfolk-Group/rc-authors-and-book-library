@@ -339,8 +339,12 @@ export function FlowbiteAuthorCard({
 
           {/* ── SECTION 1: Header ── */}
           <div className="px-4 pt-4 pb-3 flex-shrink-0">
-            {/* Category row — presentational */}
-            <div className="flex items-start justify-between gap-2 mb-3">
+            {/*
+             * Category row — fixed min-height ensures all author name titles
+             * in the same grid row start at the same vertical position.
+             * min-h-[28px] = icon height (24px) + 4px breathing room.
+             */}
+            <div className="flex items-center justify-between gap-2 mb-3 min-h-[28px]">
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
                   <Icon className="w-3.5 h-3.5 text-muted-foreground" />
