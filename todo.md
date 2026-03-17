@@ -391,3 +391,11 @@
 - [x] Add search/filter bar, category filter chips, dark mode toggle, and stats strip
 - [x] Register /flowbite-demo route in App.tsx
 - [x] Verify build and save checkpoint
+
+## Session March 17, 2026 — Flowbite Pagination on Demo Page
+- [x] Add currentPage state and PAGE_SIZE=12 constant to FlowbiteDemo
+- [x] Slice filtered authors array to currentPage window
+- [x] Reset currentPage to 1 when search or category filter changes
+- [x] Render Flowbite Pagination component below the card grid
+- [x] Show "Showing X–Y of Z authors" label above the grid
+- [x] Verify build and save checkpoint

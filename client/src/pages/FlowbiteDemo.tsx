@@ -3,8 +3,9 @@
  *
  * Demonstrates the Flowbite React AuthorCard pattern:
  *   - Card + Badge from flowbite-react
- *   - Responsive 4-column grid
- *   - Live search + category filter chips
+ *   - Responsive 4-column grid capped at PAGE_SIZE cards
+ *   - Pagination component (flowbite-react) with page controls
+ *   - Live search + category filter chips (reset page on change)
  *   - Dark mode toggle (DarkThemeToggle)
  *   - Stats strip (total authors, enriched, categories)
  *   - Tooltip on content-type badges
@@ -12,7 +13,7 @@
  *   - Alert for empty search results
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Card,
   Badge,
@@ -23,8 +24,8 @@ import {
   Alert,
   Spinner,
   Progress,
-  Avatar,
   HR,
+  Pagination,
 } from "flowbite-react";
 import {
   Search,
@@ -39,6 +40,10 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { useLocation } from "wouter";
+
+// ── Constants ──────────────────────────────────────────────────────────────────
+
+const PAGE_SIZE = 12;
 
 // ── Sample data ────────────────────────────────────────────────────────────────
 
@@ -57,148 +62,40 @@ type Author = {
 };
 
 const SAMPLE_AUTHORS: Author[] = [
-  {
-    id: 1,
-    name: "Adam Grant",
-    category: "Leadership",
-    books: 6,
-    hasBio: true,
-    avatarInitials: "AG",
-    avatarColor: "bg-blue-500",
-    contentTypes: ["PDF", "Transcript", "Audio"],
-    specialty: "Organizational psychology & workplace culture",
-  },
-  {
-    id: 2,
-    name: "Brené Brown",
-    category: "Leadership",
-    books: 5,
-    hasBio: true,
-    avatarInitials: "BB",
-    avatarColor: "bg-purple-500",
-    contentTypes: ["PDF", "Video", "Transcript"],
-    specialty: "Vulnerability, courage & authentic leadership",
-  },
-  {
-    id: 3,
-    name: "Simon Sinek",
-    category: "Strategy",
-    books: 4,
-    hasBio: true,
-    avatarInitials: "SS",
-    avatarColor: "bg-cyan-600",
-    contentTypes: ["PDF", "Audio"],
-    specialty: "Purpose-driven leadership & the infinite game",
-  },
-  {
-    id: 4,
-    name: "Alex Hormozi",
-    category: "Sales",
-    books: 3,
-    hasBio: false,
-    avatarInitials: "AH",
-    avatarColor: "bg-orange-500",
-    contentTypes: ["PDF", "Summary"],
-    specialty: "Offer creation, acquisition & business scaling",
-  },
-  {
-    id: 5,
-    name: "Daniel Kahneman",
-    category: "Psychology",
-    books: 2,
-    hasBio: true,
-    avatarInitials: "DK",
-    avatarColor: "bg-green-600",
-    contentTypes: ["PDF", "Transcript"],
-    specialty: "Behavioral economics & cognitive biases",
-  },
-  {
-    id: 6,
-    name: "Ray Dalio",
-    category: "Strategy",
-    books: 3,
-    hasBio: true,
-    avatarInitials: "RD",
-    avatarColor: "bg-yellow-600",
-    contentTypes: ["PDF", "Audio", "Video"],
-    specialty: "Principles-based management & macro investing",
-  },
-  {
-    id: 7,
-    name: "Malcolm Gladwell",
-    category: "Psychology",
-    books: 7,
-    hasBio: true,
-    avatarInitials: "MG",
-    avatarColor: "bg-red-500",
-    contentTypes: ["PDF", "Audio", "Transcript"],
-    specialty: "Social dynamics, outliers & tipping points",
-  },
-  {
-    id: 8,
-    name: "Patrick Lencioni",
-    category: "Leadership",
-    books: 5,
-    hasBio: false,
-    avatarInitials: "PL",
-    avatarColor: "bg-indigo-500",
-    contentTypes: ["PDF", "Summary"],
-    specialty: "Team dysfunction, trust & organizational health",
-  },
-  {
-    id: 9,
-    name: "James Clear",
-    category: "Productivity",
-    books: 1,
-    hasBio: true,
-    avatarInitials: "JC",
-    avatarColor: "bg-teal-500",
-    contentTypes: ["PDF", "Transcript", "Audio"],
-    specialty: "Habit formation & compound improvement",
-  },
-  {
-    id: 10,
-    name: "Cal Newport",
-    category: "Productivity",
-    books: 4,
-    hasBio: true,
-    avatarInitials: "CN",
-    avatarColor: "bg-slate-600",
-    contentTypes: ["PDF", "Summary"],
-    specialty: "Deep work, digital minimalism & focused success",
-  },
-  {
-    id: 11,
-    name: "Seth Godin",
-    category: "Marketing",
-    books: 8,
-    hasBio: true,
-    avatarInitials: "SG",
-    avatarColor: "bg-pink-500",
-    contentTypes: ["PDF", "Audio"],
-    specialty: "Permission marketing, tribes & the purple cow",
-  },
-  {
-    id: 12,
-    name: "Nassim Taleb",
-    category: "Strategy",
-    books: 4,
-    hasBio: false,
-    avatarInitials: "NT",
-    avatarColor: "bg-amber-600",
-    contentTypes: ["PDF", "Transcript"],
-    specialty: "Antifragility, black swans & risk asymmetry",
-  },
+  { id: 1,  name: "Adam Grant",        category: "Leadership",   books: 6, hasBio: true,  avatarInitials: "AG", avatarColor: "bg-blue-500",   contentTypes: ["PDF", "Transcript", "Audio"],   specialty: "Organizational psychology & workplace culture" },
+  { id: 2,  name: "Brené Brown",       category: "Leadership",   books: 5, hasBio: true,  avatarInitials: "BB", avatarColor: "bg-purple-500", contentTypes: ["PDF", "Video", "Transcript"],   specialty: "Vulnerability, courage & authentic leadership" },
+  { id: 3,  name: "Simon Sinek",       category: "Strategy",     books: 4, hasBio: true,  avatarInitials: "SS", avatarColor: "bg-cyan-600",   contentTypes: ["PDF", "Audio"],                 specialty: "Purpose-driven leadership & the infinite game" },
+  { id: 4,  name: "Alex Hormozi",      category: "Sales",        books: 3, hasBio: false, avatarInitials: "AH", avatarColor: "bg-orange-500", contentTypes: ["PDF", "Summary"],               specialty: "Offer creation, acquisition & business scaling" },
+  { id: 5,  name: "Daniel Kahneman",   category: "Psychology",   books: 2, hasBio: true,  avatarInitials: "DK", avatarColor: "bg-green-600",  contentTypes: ["PDF", "Transcript"],            specialty: "Behavioral economics & cognitive biases" },
+  { id: 6,  name: "Ray Dalio",         category: "Strategy",     books: 3, hasBio: true,  avatarInitials: "RD", avatarColor: "bg-yellow-600", contentTypes: ["PDF", "Audio", "Video"],        specialty: "Principles-based management & macro investing" },
+  { id: 7,  name: "Malcolm Gladwell",  category: "Psychology",   books: 7, hasBio: true,  avatarInitials: "MG", avatarColor: "bg-red-500",    contentTypes: ["PDF", "Audio", "Transcript"],   specialty: "Social dynamics, outliers & tipping points" },
+  { id: 8,  name: "Patrick Lencioni", category: "Leadership",   books: 5, hasBio: false, avatarInitials: "PL", avatarColor: "bg-indigo-500", contentTypes: ["PDF", "Summary"],               specialty: "Team dysfunction, trust & organizational health" },
+  { id: 9,  name: "James Clear",       category: "Productivity", books: 1, hasBio: true,  avatarInitials: "JC", avatarColor: "bg-teal-500",   contentTypes: ["PDF", "Transcript", "Audio"],   specialty: "Habit formation & compound improvement" },
+  { id: 10, name: "Cal Newport",       category: "Productivity", books: 4, hasBio: true,  avatarInitials: "CN", avatarColor: "bg-slate-600",  contentTypes: ["PDF", "Summary"],               specialty: "Deep work, digital minimalism & focused success" },
+  { id: 11, name: "Seth Godin",        category: "Marketing",    books: 8, hasBio: true,  avatarInitials: "SG", avatarColor: "bg-pink-500",   contentTypes: ["PDF", "Audio"],                 specialty: "Permission marketing, tribes & the purple cow" },
+  { id: 12, name: "Nassim Taleb",      category: "Strategy",     books: 4, hasBio: false, avatarInitials: "NT", avatarColor: "bg-amber-600",  contentTypes: ["PDF", "Transcript"],            specialty: "Antifragility, black swans & risk asymmetry" },
+  { id: 13, name: "Clayton Christensen", category: "Strategy",   books: 3, hasBio: true,  avatarInitials: "CC", avatarColor: "bg-blue-700",   contentTypes: ["PDF", "Summary"],               specialty: "Disruptive innovation & the innovator's dilemma" },
+  { id: 14, name: "Peter Drucker",     category: "Leadership",   books: 6, hasBio: true,  avatarInitials: "PD", avatarColor: "bg-gray-600",   contentTypes: ["PDF", "Transcript"],            specialty: "Management by objectives & knowledge workers" },
+  { id: 15, name: "Daniel Pink",       category: "Psychology",   books: 4, hasBio: true,  avatarInitials: "DP", avatarColor: "bg-rose-500",   contentTypes: ["PDF", "Audio", "Video"],        specialty: "Motivation, drive & the science of timing" },
+  { id: 16, name: "Gary Vaynerchuk",   category: "Marketing",    books: 5, hasBio: false, avatarInitials: "GV", avatarColor: "bg-violet-600", contentTypes: ["PDF", "Video"],                 specialty: "Social media marketing & entrepreneurial hustle" },
+  { id: 17, name: "Chris Voss",        category: "Sales",        books: 2, hasBio: true,  avatarInitials: "CV", avatarColor: "bg-emerald-600",contentTypes: ["PDF", "Audio", "Transcript"],   specialty: "FBI negotiation tactics applied to business" },
+  { id: 18, name: "Ryan Holiday",      category: "Psychology",   books: 6, hasBio: true,  avatarInitials: "RH", avatarColor: "bg-stone-600",  contentTypes: ["PDF", "Audio"],                 specialty: "Stoic philosophy & obstacle as the way" },
+  { id: 19, name: "Gino Wickman",      category: "Leadership",   books: 3, hasBio: false, avatarInitials: "GW", avatarColor: "bg-lime-600",   contentTypes: ["PDF", "Summary"],               specialty: "Entrepreneurial operating system & traction" },
+  { id: 20, name: "Robert Cialdini",   category: "Sales",        books: 2, hasBio: true,  avatarInitials: "RC", avatarColor: "bg-sky-600",    contentTypes: ["PDF", "Transcript", "Audio"],   specialty: "Influence, persuasion & the psychology of yes" },
+  { id: 21, name: "Tim Ferriss",       category: "Productivity", books: 4, hasBio: true,  avatarInitials: "TF", avatarColor: "bg-orange-600", contentTypes: ["PDF", "Audio"],                 specialty: "Lifestyle design, outsourcing & rapid learning" },
+  { id: 22, name: "Eric Ries",         category: "Strategy",     books: 2, hasBio: true,  avatarInitials: "ER", avatarColor: "bg-cyan-700",   contentTypes: ["PDF", "Summary"],               specialty: "Lean startup, validated learning & pivots" },
+  { id: 23, name: "Liz Wiseman",       category: "Leadership",   books: 3, hasBio: false, avatarInitials: "LW", avatarColor: "bg-fuchsia-600",contentTypes: ["PDF", "Transcript"],            specialty: "Multipliers, rookie smarts & impact players" },
+  { id: 24, name: "David Goggins",     category: "Psychology",   books: 2, hasBio: true,  avatarInitials: "DG", avatarColor: "bg-red-700",    contentTypes: ["PDF", "Audio"],                 specialty: "Mental toughness, accountability mirror & callus" },
 ];
 
 const ALL_CATEGORIES = ["All", ...Array.from(new Set(SAMPLE_AUTHORS.map((a) => a.category))).sort()];
 
 const CONTENT_TYPE_ICONS: Record<ContentType, React.ReactNode> = {
-  PDF: <FileText className="w-3 h-3" />,
+  PDF:        <FileText className="w-3 h-3" />,
   Transcript: <FileText className="w-3 h-3" />,
-  Audio: <Headphones className="w-3 h-3" />,
-  Video: <Video className="w-3 h-3" />,
-  Summary: <BookOpen className="w-3 h-3" />,
+  Audio:      <Headphones className="w-3 h-3" />,
+  Video:      <Video className="w-3 h-3" />,
+  Summary:    <BookOpen className="w-3 h-3" />,
 };
 
 // ── AuthorCard component ────────────────────────────────────────────────────────
@@ -280,10 +177,10 @@ function StatsStrip({ authors }: { authors: Author[] }) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
       {[
-        { label: "Authors", value: authors.length, icon: <Users className="w-4 h-4 text-cyan-500" /> },
-        { label: "Books", value: totalBooks, icon: <BookOpen className="w-4 h-4 text-blue-500" /> },
-        { label: "Categories", value: categories, icon: <LayoutGrid className="w-4 h-4 text-purple-500" /> },
-        { label: "Enriched", value: `${enriched} / ${authors.length}`, icon: <CheckCircle2 className="w-4 h-4 text-green-500" /> },
+        { label: "Authors",    value: authors.length,              icon: <Users        className="w-4 h-4 text-cyan-500"   /> },
+        { label: "Books",      value: totalBooks,                  icon: <BookOpen     className="w-4 h-4 text-blue-500"   /> },
+        { label: "Categories", value: categories,                  icon: <LayoutGrid   className="w-4 h-4 text-purple-500" /> },
+        { label: "Enriched",   value: `${enriched} / ${authors.length}`, icon: <CheckCircle2 className="w-4 h-4 text-green-500"  /> },
       ].map(({ label, value, icon }) => (
         <Card key={label} className="py-3 px-4">
           <div className="flex items-center gap-2">
@@ -307,7 +204,7 @@ function StatsStrip({ authors }: { authors: Author[] }) {
   );
 }
 
-// ── Author detail modal (simple inline panel) ──────────────────────────────────
+// ── Author detail modal ────────────────────────────────────────────────────────
 
 function AuthorDetailPanel({ author, onClose }: { author: Author; onClose: () => void }) {
   return (
@@ -339,7 +236,7 @@ function AuthorDetailPanel({ author, onClose }: { author: Author; onClose: () =>
           </div>
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-500 dark:text-gray-400">Content formats</span>
-            <span className="flex gap-1">
+            <span className="flex gap-1 flex-wrap justify-end">
               {author.contentTypes.map((ct) => (
                 <Badge key={ct} color="gray" className="text-[10px]">{ct}</Badge>
               ))}
@@ -374,7 +271,9 @@ export default function FlowbiteDemo() {
   const [activeCategory, setActiveCategory] = useState("All");
   const [selectedAuthor, setSelectedAuthor] = useState<Author | null>(null);
   const [isLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
+  // Filter authors by search + category
   const filtered = useMemo(() => {
     return SAMPLE_AUTHORS.filter((a) => {
       const matchesSearch =
@@ -385,6 +284,17 @@ export default function FlowbiteDemo() {
       return matchesSearch && matchesCategory;
     });
   }, [search, activeCategory]);
+
+  // Reset to page 1 whenever the filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, activeCategory]);
+
+  // Pagination derived values
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pageStart = (currentPage - 1) * PAGE_SIZE;
+  const pageEnd = Math.min(pageStart + PAGE_SIZE, filtered.length);
+  const paginated = filtered.slice(pageStart, pageEnd);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
@@ -405,7 +315,7 @@ export default function FlowbiteDemo() {
               Flowbite React — AuthorCard Demo
             </h1>
             <p className="text-[11px] text-gray-500 dark:text-gray-400">
-              Card · Badge · TextInput · Tooltip · Progress · DarkThemeToggle
+              Card · Badge · TextInput · Tooltip · Progress · Pagination · DarkThemeToggle
             </p>
           </div>
         </div>
@@ -413,7 +323,7 @@ export default function FlowbiteDemo() {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 py-6">
-        {/* Stats strip */}
+        {/* Stats strip — always reflects the full filtered set */}
         <StatsStrip authors={filtered} />
 
         {/* Search + category filters */}
@@ -461,52 +371,97 @@ export default function FlowbiteDemo() {
         {/* Card grid */}
         {!isLoading && filtered.length > 0 && (
           <>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">
-              Showing {filtered.length} of {SAMPLE_AUTHORS.length} authors
-            </p>
+            {/* Item range label */}
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs text-gray-400 dark:text-gray-500">
+                Showing{" "}
+                <span className="font-semibold text-gray-600 dark:text-gray-300">
+                  {pageStart + 1}–{pageEnd}
+                </span>{" "}
+                of{" "}
+                <span className="font-semibold text-gray-600 dark:text-gray-300">
+                  {filtered.length}
+                </span>{" "}
+                {filtered.length === SAMPLE_AUTHORS.length ? "authors" : `authors (filtered from ${SAMPLE_AUTHORS.length})`}
+              </p>
+              {totalPages > 1 && (
+                <p className="text-xs text-gray-400 dark:text-gray-500">
+                  Page {currentPage} of {totalPages}
+                </p>
+              )}
+            </div>
+
+            {/* Grid — only the current page slice */}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {filtered.map((author) => (
+              {paginated.map((author) => (
                 <AuthorCard key={author.id} author={author} onClick={setSelectedAuthor} />
               ))}
             </div>
+
+            {/* Pagination controls — only shown when there is more than one page */}
+            {totalPages > 1 && (
+              <div className="mt-6 flex flex-col items-center gap-2">
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={(page) => {
+                    setCurrentPage(page);
+                    // Scroll back to top of grid on page change
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  showIcons
+                />
+                <p className="text-[11px] text-gray-400 dark:text-gray-500">
+                  {PAGE_SIZE} cards per page · {filtered.length} total
+                </p>
+              </div>
+            )}
           </>
         )}
 
         {/* Code snippet section */}
         <div className="mt-10 border-t border-gray-200 dark:border-gray-700 pt-8">
           <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wider">
-            Component Pattern
+            Pagination Pattern
           </h2>
           <Card className="bg-gray-900 dark:bg-gray-950 border-gray-700">
             <pre className="text-[11px] text-green-400 overflow-x-auto leading-relaxed font-mono whitespace-pre">
-{`import { Card, Badge } from "flowbite-react";
+{`import { Pagination } from "flowbite-react";
+import { useState, useMemo, useEffect } from "react";
 
-export function AuthorCard({ name, category, books, hasBio }) {
+const PAGE_SIZE = 12;
+
+export function PaginatedGrid({ items }) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [search, setSearch] = useState("");
+
+  const filtered = useMemo(
+    () => items.filter(i => i.name.includes(search)),
+    [items, search]
+  );
+
+  // Reset to page 1 when filter changes
+  useEffect(() => { setCurrentPage(1); }, [search]);
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paginated  = filtered.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  );
+
   return (
-    <Card className="h-full shadow-sm hover:shadow-md transition">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex flex-col">
-          <span className="text-xs font-semibold uppercase text-cyan-600">
-            {category}
-          </span>
-          <h3 className="mt-1 text-sm font-semibold text-gray-900">
-            {name}
-          </h3>
-        </div>
-        {hasBio && (
-          <Badge color="success" className="text-[10px]">
-            Bio ready
-          </Badge>
-        )}
-      </div>
-      <div className="mt-3 flex items-center justify-between text-[11px] text-gray-500">
-        <span>{books} books</span>
-        <span className="flex gap-2">
-          <span className="rounded-full bg-gray-100 px-2 py-0.5">PDF</span>
-          <span className="rounded-full bg-gray-100 px-2 py-0.5">Transcript</span>
-        </span>
-      </div>
-    </Card>
+    <>
+      {paginated.map(item => <Card key={item.id}>{item.name}</Card>)}
+
+      {totalPages > 1 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          showIcons
+        />
+      )}
+    </>
   );
 }`}
             </pre>
@@ -514,14 +469,14 @@ export function AuthorCard({ name, category, books, hasBio }) {
         </div>
 
         {/* Component inventory */}
-        <div className="mt-6">
+        <div className="mt-6 mb-8">
           <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wider">
             Flowbite Components Used on This Page
           </h2>
           <div className="flex flex-wrap gap-2">
-            {["Card", "Badge", "TextInput", "Button", "DarkThemeToggle", "Tooltip", "Alert", "Spinner", "Progress", "Avatar", "HR"].map(
+            {["Card", "Badge", "TextInput", "Button", "DarkThemeToggle", "Tooltip", "Alert", "Spinner", "Progress", "HR", "Pagination"].map(
               (c) => (
-                <Badge key={c} color="indigo">
+                <Badge key={c} color={c === "Pagination" ? "cyan" : "indigo"}>
                   {c}
                 </Badge>
               )
