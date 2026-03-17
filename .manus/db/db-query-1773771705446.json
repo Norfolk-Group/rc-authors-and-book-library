@@ -1,0 +1,18 @@
+{
+  "query": "\nUPDATE author_profiles\nSET photoSource = 'ai'\nWHERE photoSource IS NULL\n  AND photoUrl IS NOT NULL\n  AND photoUrl LIKE '%/author-photos/ai-%';\n\nSELECT photoSource, COUNT(*) as cnt FROM author_profiles GROUP BY photoSource ORDER BY cnt DESC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 46FBtXPMNF6LwZ8.root --database ehSrGoKN2NYhXg8UYLtWGw --execute \nUPDATE author_profiles\nSET photoSource = 'ai'\nWHERE photoSource IS NULL\n  AND photoUrl IS NOT NULL\n  AND photoUrl LIKE '%/author-photos/ai-%';\n\nSELECT photoSource, COUNT(*) as cnt FROM author_profiles GROUP BY photoSource ORDER BY cnt DESC;\n",
+  "rows": [
+    {
+      "photoSource": "ai",
+      "cnt": "68"
+    },
+    {
+      "photoSource": "NULL",
+      "cnt": "42"
+    }
+  ],
+  "messages": [],
+  "stdout": "photoSource\tcnt\nai\t68\nNULL\t42\n",
+  "stderr": "",
+  "execution_time_ms": 174
+}

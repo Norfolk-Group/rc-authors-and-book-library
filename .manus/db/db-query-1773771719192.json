@@ -1,0 +1,15 @@
+{
+  "query": "\nSELECT \n  COUNT(*) as total_null_source,\n  SUM(CASE WHEN photoUrl IS NOT NULL THEN 1 ELSE 0 END) as with_photo_url,\n  SUM(CASE WHEN s3PhotoKey IS NOT NULL THEN 1 ELSE 0 END) as with_s3_key\nFROM author_profiles\nWHERE photoSource IS NULL;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 46FBtXPMNF6LwZ8.root --database ehSrGoKN2NYhXg8UYLtWGw --execute \nSELECT \n  COUNT(*) as total_null_source,\n  SUM(CASE WHEN photoUrl IS NOT NULL THEN 1 ELSE 0 END) as with_photo_url,\n  SUM(CASE WHEN s3PhotoKey IS NOT NULL THEN 1 ELSE 0 END) as with_s3_key\nFROM author_profiles\nWHERE photoSource IS NULL;\n",
+  "rows": [
+    {
+      "total_null_source": "42",
+      "with_photo_url": "0",
+      "with_s3_key": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "total_null_source\twith_photo_url\twith_s3_key\n42\t0\t0\n",
+  "stderr": "",
+  "execution_time_ms": 54
+}

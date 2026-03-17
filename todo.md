@@ -660,3 +660,17 @@
 - [x] Completed rating badge: renamed bookSummaryMap → bookInfoMap with { summary, rating, ratingCount }
 - [x] Rating tooltip shows ★★★★☆ stars + numeric rating + review count for 24 books with real ratings
 - [x] 118 tests passing, server clean
+
+## Session March 17, 2026 — Three Pending Suggestions
+
+### Suggestion 1: photoSource enum expansion + backfill
+- [x] Add 'tavily' and 'apify' values to photoSource enum in drizzle/schema.ts (already present from prior session)
+- [x] Push DB migration (already applied)
+- [x] Backfill photoSource for existing NULL records: all 63 photos with ai- prefix URLs tagged as 'ai'; 42 records with no photo remain NULL (correct)
+- [x] Verify ResearchCascade per-tier counts update correctly (cascade.router.ts queries photoSource live from DB)
+
+### Suggestion 2: Nightly cover scrape cron job
+- [x] Schedule nightly cron job (2am CDT = 07:00 UTC) via Manus scheduler — runs batch_scrape_covers.mjs daily
+
+### Suggestion 3: Skill multi-project reuse docs
+- [x] Updated book-cover-scrape-mirror SKILL.md with full multi-project reuse section: e-commerce example, film library example, complete flag reference table, scheduling snippet
