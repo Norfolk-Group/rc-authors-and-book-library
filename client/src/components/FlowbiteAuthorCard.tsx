@@ -144,26 +144,12 @@ function Highlight({ text, query }: { text: string; query: string }) {
   );
 }
 
-/// ── Resource pill — clickable: opens Drive folder filtered to content type ────
-function ResourcePill({ type, count, driveId }: { type: string; count: number; driveId?: string }) {
+// ── Resource pill — presentational only, no onClick ───────────────────────────
+function ResourcePill({ type, count }: { type: string; count: number }) {
   const iconName = CONTENT_TYPE_ICONS[type] ?? "folder";
   const Icon = (CT_ICON_MAP[iconName] ?? Folder) as LucideIcon;
-  const handleClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (driveId) {
-      // Use Drive search URL to filter by content type within the author's folder
-      const searchUrl = `https://drive.google.com/drive/search?q=${encodeURIComponent(type)}+in:${driveId}`;
-      window.open(searchUrl, "_blank");
-    }
-  }, [driveId, type]);
   return (
-    <span
-      onClick={driveId ? handleClick : undefined}
-      className={`inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-[10px] font-medium text-muted-foreground select-none transition-colors duration-150 ${
-        driveId ? "cursor-pointer hover:bg-accent hover:text-accent-foreground" : "cursor-default"
-      }`}
-      title={driveId ? `Open ${type} files in Drive` : undefined}
-    >
+    <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-[10px] font-medium text-muted-foreground cursor-default select-none">
       <Icon className="w-3 h-3" />
       {type}
       {count > 1 && <span className="opacity-60 ml-0.5">{count}</span>}
@@ -266,8 +252,6 @@ export interface FlowbiteAuthorCardProps {
   bio?: string | null;
   /** Map of lowercase book title → { summary, rating, ratingCount } for cover thumbnail tooltips. */
   bookInfoMap?: Map<string, { summary?: string; rating?: string; ratingCount?: string }>;
-  /** Called when user clicks the category chip to filter the library */
-  onCategoryClick?: (category: string) => void;
 }
 
 // ── Main component ─────────────────────────────────────────────────────────────
@@ -280,7 +264,6 @@ export function FlowbiteAuthorCard({
   dbPhotoMap,
   bio,
   bookInfoMap,
-  onCategoryClick,
 }: FlowbiteAuthorCardProps) {
   const iconName = CATEGORY_ICONS[author.category] ?? "briefcase";
   const Icon = (ICON_MAP[iconName] ?? Briefcase) as LucideIcon;
@@ -301,7 +284,6 @@ export function FlowbiteAuthorCard({
 
   // ── HOTSPOT 2: Book modal ──
   const [activeBook, setActiveBook] = useState<BookModalBook | null>(null);
-  const [isTilting, setIsTilting] = useState(false);
   const handleBookClick = useCallback((b: BookModalBook) => {
     setActiveBook(b);
   }, []);
@@ -321,14 +303,9 @@ export function FlowbiteAuthorCard({
   const dedupedBooks = useMemo(() => {
     const seen = new Set<string>();
     return (author.books ?? []).filter((book) => {
-      // Normalize: strip " - suffix" and " (edition)" variants
-      let tk = book.name.trim().toLowerCase();
-      // Remove everything after last " - "
-      const dashIdx = tk.lastIndexOf(" - ");
-      if (dashIdx > 0) tk = tk.slice(0, dashIdx).trim();
-      // Remove everything after " (" (e.g. "Book Title (2nd Edition)")
-      const parenIdx = tk.indexOf(" (");
-      if (parenIdx > 0) tk = tk.slice(0, parenIdx).trim();
+      const tk = book.name.includes(" - ")
+        ? book.name.slice(0, book.name.lastIndexOf(" - ")).trim().toLowerCase()
+        : book.name.trim().toLowerCase();
       if (seen.has(tk)) return false;
       seen.add(tk);
       return true;
@@ -352,8 +329,8 @@ export function FlowbiteAuthorCard({
     <>
       <motion.div
         ref={ref}
-        onMouseMove={(e) => { handleMouseMove(e); setIsTilting(true); }}
-        onMouseLeave={() => { handleMouseLeave(); setIsTilting(false); }}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
         className="card-animate group h-full"
         style={{ rotateX, rotateY, scale, willChange: "transform" }}
       >
@@ -364,7 +341,7 @@ export function FlowbiteAuthorCard({
          */}
         <Card
           onClick={() => onBioClick(author)}
-          className={`
+          className="
             h-full overflow-hidden relative !p-0
             bg-card text-card-foreground
             border border-border rounded-2xl
@@ -372,13 +349,11 @@ export function FlowbiteAuthorCard({
             transition-shadow duration-200
             flex flex-col items-stretch justify-start
             cursor-pointer
-            card-lift
-            ${isTilting ? 'tilt-shadow-active' : ''}
-          `}
+          "
         >
-          {/* Category watermark — 3D tilt on card hover */}
+          {/* Category watermark — presentational, no pointer events */}
           <div
-            className="pointer-events-none absolute bottom-2 right-2 select-none watermark-icon"
+            className="pointer-events-none absolute bottom-2 right-2 select-none"
             aria-hidden
           >
             <Icon className="w-16 h-16 text-foreground opacity-[0.04]" strokeWidth={1} />
@@ -400,23 +375,12 @@ export function FlowbiteAuthorCard({
                 <div className="w-6 h-6 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
                   <Icon className="w-3.5 h-3.5 text-muted-foreground" />
                 </div>
-                {onCategoryClick ? (
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); onCategoryClick(author.category); }}
-                    className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground truncate min-w-0 cursor-pointer hover:text-foreground transition-colors category-pulse-active"
-                    title={`Filter by ${author.category}`}
-                  >
-                    {author.category}
-                  </button>
-                ) : (
-                  <p
-                    className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground truncate min-w-0 cursor-default"
-                    title={author.category}
-                  >
-                    {author.category}
-                  </p>
-                )}
+                <p
+                  className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground truncate min-w-0"
+                  title={author.category}
+                >
+                  {author.category}
+                </p>
               </div>
               {/* Bio-ready dot — always rendered to keep row height constant */}
               <div className="shrink-0 h-[20px] flex items-center">
@@ -454,7 +418,6 @@ export function FlowbiteAuthorCard({
                           origin-center
                           cursor-pointer
                           relative z-20
-                          author-avatar-3d avatar-bob
                         "
                         loading="lazy"
                       />
@@ -556,11 +519,11 @@ export function FlowbiteAuthorCard({
                 Books ({author.books.length})
               </p>
 
-              {/* Resource pills — clickable to open Drive folder */}
+              {/* Resource pills — presentational */}
               {Object.keys(resourceTotals).length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
                   {Object.entries(resourceTotals).map(([type, count]) => (
-                    <ResourcePill key={type} type={type} count={count} driveId={author.id} />
+                    <ResourcePill key={type} type={type} count={count} />
                   ))}
                 </div>
               )}
@@ -568,22 +531,7 @@ export function FlowbiteAuthorCard({
               {/* Cover strip — HOTSPOT 2: each cover opens BookModal */}
               {coverMap && (
                 <div className="flex flex-wrap gap-2 w-full">
-                  {(() => {
-                    // Second dedup pass: filter out books sharing the same cover URL
-                    const seenCoverUrls = new Set<string>();
-                    return dedupedBooks.filter((book) => {
-                      const rawT = book.name.includes(" - ")
-                        ? book.name.slice(0, book.name.lastIndexOf(" - "))
-                        : book.name;
-                      const tk = rawT.trim().toLowerCase();
-                      const url = coverMap.get(tk);
-                      if (url) {
-                        if (seenCoverUrls.has(url)) return false;
-                        seenCoverUrls.add(url);
-                      }
-                      return true;
-                    });
-                  })().map((book) => {
+                  {dedupedBooks.map((book) => {
                     const rawTitle = book.name.includes(" - ")
                       ? book.name.slice(0, book.name.lastIndexOf(" - "))
                       : book.name;
@@ -609,19 +557,13 @@ export function FlowbiteAuthorCard({
                       titleKey,
                       coverUrl,
                       contentTypes: book.contentTypes ?? {},
-                      authorName: displayName,
                     };
-                    const isBookEnriched = !!summary || !!rating;
                     const coverEl = (
                       <div
                         key={book.id}
                         className="relative h-11 w-8 flex-shrink-0 cursor-pointer"
                         onClick={(e) => { e.stopPropagation(); handleBookClick(bookMini); }}
                       >
-                        {/* Enrichment status dot */}
-                        {isBookEnriched && (
-                          <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-green-500 z-30 ring-1 ring-card" title="Enriched" />
-                        )}
                         {coverUrl ? (
                           <img
                             src={coverUrl}
@@ -633,7 +575,6 @@ export function FlowbiteAuthorCard({
                               hover:scale-[1.2]
                               origin-center
                               relative z-20
-                              book-cover-3d
                             "
                             loading="lazy"
                           />

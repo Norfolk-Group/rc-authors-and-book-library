@@ -227,7 +227,7 @@ export function AuthorAccordionRow({
 
   return (
     <>
-      <div className="border-b border-border last:border-0 hover-lift">
+      <div className="border-b border-border last:border-0">
         {/* ── HOTSPOT 3: Row toggle ── */}
         <div className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-muted/50 transition-colors">
           {/* Expand chevron */}

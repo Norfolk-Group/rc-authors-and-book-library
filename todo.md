@@ -93,15 +93,15 @@
 ## Session March 15, 2026 — Part 8 (Books Enrichment — Real Data)
 - [x] Add book_profiles DB table (summary, coverUrl, amazonUrl, goodreadsUrl, keyThemes, rating, enrichedAt)
 - [x] Add tRPC procedures: get, getMany, getAllEnrichedTitles, enrich, enrichBatch
-- [x] Fetch book covers from Google Books API (already implemented) (by title + author search, store coverUrl in DB)
-- [x] Fetch author bios from Wikipedia API — already implemented in authorProfiles.router.ts
-- [x] Fetch author website URLs from Wikipedia/Wikidata (already implemented)
-- [x] Update server enrichment procedures to use real sources (Google Books + Amazon Apify)
-- [x] Integrate book covers into BookCard UI (cover thumbnail on left or top)
-- [x] Build Book Detail Dialog modal — BookModal enhanced with star ratings, ISBN, publisher, themes, Amazon/Goodreads links
-- [x] Add enrichment status indicator on book cards (green dot on enriched covers)
-- [x] Add "Enrich All Books" button to sidebar with progress bar (Google Books + Amazon)
-- [x] Run tests and save checkpoint
+- [ ] Fetch book covers from Google Books API (by title + author search, store coverUrl in DB)
+- [ ] Fetch author bios from Wikipedia API (structured, reliable, free — replace LLM generation)
+- [ ] Fetch author website URLs from Wikipedia/Wikidata
+- [ ] Update server enrichment procedures to use real sources
+- [ ] Integrate book covers into BookCard UI (cover thumbnail on left or top)
+- [ ] Build Book Detail Dialog modal (cover, summary, key themes, Amazon/Goodreads links, content types)
+- [ ] Add enrichment status indicator on book cards
+- [ ] Add "Enrich All Books" button to sidebar with progress bar
+- [ ] Run tests and save checkpoint
 
 ## Session March 15, 2026 — Theme Switcher
 - [x] Add Noir Dark Executive CSS theme variables to index.css
@@ -112,17 +112,17 @@
 - [x] Test both themes in browser — cards, chart, modals, sidebar, badges, buttons
 
 ## Session March 15, 2026 — Noir Monochrome Redesign
-- [x] Rewrite Noir CSS variables: white bg, black fg, grey surfaces, black borders
-- [x] Round-rectangular buttons: active = black fill + white text, inactive = white + black border
-- [x] Duotone Lucide icons: black primary stroke + light grey secondary fill in Noir theme
-- [x] Sidebar in Noir: white bg, black text, black active pill, grey hover
-- [x] Cards in Noir: white bg, black border (1px), no category pastel bg, no left-color border
-- [x] Category pills in Noir: black active, grey inactive, rounded-full
-- [x] Category chart in Noir: black bars, grey grid lines, black labels
-- [x] Modals in Noir: white bg, black headings, grey dividers
-- [x] Stat cards in Noir: white bg, black numbers, grey labels
-- [x] Remove all color accents except from avatars/covers in Noir
-- [x] Verify both themes render correctly — TypeScript clean, 118 tests passing in browser
+- [ ] Rewrite Noir CSS variables: white bg, black fg, grey surfaces, black borders
+- [ ] Round-rectangular buttons: active = black fill + white text, inactive = white + black border
+- [ ] Duotone Lucide icons: black primary stroke + light grey secondary fill in Noir theme
+- [ ] Sidebar in Noir: white bg, black text, black active pill, grey hover
+- [ ] Cards in Noir: white bg, black border (1px), no category pastel bg, no left-color border
+- [ ] Category pills in Noir: black active, grey inactive, rounded-full
+- [ ] Category chart in Noir: black bars, grey grid lines, black labels
+- [ ] Modals in Noir: white bg, black headings, grey dividers
+- [ ] Stat cards in Noir: white bg, black numbers, grey labels
+- [ ] Remove all color accents except from avatars/covers in Noir
+- [ ] Verify both themes render correctly in browser
 
 ## Session March 15, 2026 — Remove Manus Branding
 - [x] Remove Manus logo and name from app header/sidebar
@@ -680,8 +680,8 @@
 - [x] Create book-cover-dedup skill (detect-duplicates.mjs + remove-duplicates.mjs + UI dedup patterns reference)
 - [x] Smoke-test both scripts against live database — found 2 near-duplicate rows and 10 shared-S3-URL groups
 - [x] Apply cleanup: deleted 2 near-duplicate rows ("Do You Talk Funny" / "The Leader's Guide" variants)
-- [x] Manual review: 10 books share same S3 cover URL — 9 duplicates deleted, 1 legitimate pair kept
-- [x] Manual review: "The Jolt Effect" — already resolved, only id 98 remains
+- [ ] Manual review: 10 books share same S3 cover URL (different titles for same book — needs human decision to merge or keep)
+- [ ] Manual review: "The Jolt Effect" exact duplicate (ids 98 and 30005) — decide which to keep
 
 ## Session March 17, 2026 — BookModal Scrape Button + Sidebar Home Shortcut
 - [x] Add "Scrape Cover from Amazon" button to BookModal with loading state and sonner toast feedback
@@ -698,68 +698,3 @@
 - [x] Add "Clear Filters & Show All" shortcut to sidebar footer (visible only when filters are active)
 - [x] Mark all previously completed Apify/scrape todo items as done
 - [x] 118 tests passing, tsc --noEmit clean
-
-## Session March 18, 2026 — Opus 4.6 Audit: Unimplemented Animations, 3D Effects & Card Hotspots
-
-### A. CSS Classes Defined But Never Applied to Components
-
-- [x] Apply `.card-lift` class to `FlowbiteAuthorCard` outer `<Card>` wrapper and `BookCard` in Home.tsx — hover lift (scale + shadow) exists in CSS but cards don't have the class
-- [x] Apply `.watermark-icon` class to the category watermark `<Icon>` in `FlowbiteAuthorCard.tsx` (line ~197) — 3D perspective tilt on card hover is defined but class not on element
-- [x] Apply `.book-cover-3d` class to book cover images in `BookModal.tsx` and cover strip thumbnails in `FlowbiteAuthorCard.tsx` — 3D tilt + zoom-in cursor defined but never used
-- [x] Apply `.author-avatar-3d` class to avatar `<img>` in `FlowbiteAuthorCard.tsx` and `AuthorModal.tsx` — 3D perspective tilt on hover defined but never applied
-- [x] Apply `.book-card-tilt` / `.audio-card-tilt` companion class to `BookCard` and `AudioCard` motion wrappers — needed for `.tilt-shadow-active` elevated shadow to trigger during Framer Motion tilt
-- [x] Toggle `.tilt-shadow-active` class dynamically on `BookCard` and `AudioCard` when mouse is over card (use onMouseEnter/onMouseLeave state) — shadow elevation on tilt not working
-- [x] Apply `.tab-content-enter` class to tab content panels in Home.tsx on tab switch — slide-in animation defined but tab content doesn't animate in
-- [x] Apply `.category-pulse-active` class briefly to category filter buttons when clicked — `@keyframes categoryPulse` defined but never triggered
-- [x] Apply `.modal-spring-in` class to `AuthorModal` and `BookModal` dialog containers — `@keyframes modalSpringIn` defined but modals use default Flowbite fade
-- [x] Apply `.avatar-bob` class to author avatar in `FlowbiteAuthorCard.tsx` sidebar/header — gentle bobbing animation defined but not applied to any avatar
-- [x] Apply `.hover-lift` class to `AuthorAccordionRow` list items — simpler lift effect for rows defined but unused
-- [x] Apply `.hover-glow` class to primary action buttons (Regenerate, Enrich All Bios) (Enrich, Scrape, etc.) — glow on hover defined but unused
-- [x] Apply `.animate-float` class to empty-state icons and decorative elements — float animation defined but unused
-- [x] Apply `.sparkle-spin` class to the Sparkles icon on enriched "Bio ready" indicators — rotating sparkle animation defined but unused
-- [x] Apply `.progress-shimmer` class to all active progress bars in sidebar and Preferences page — shimmer defined but bars are static
-
-### B. Missing Card Click Hotspots (Critical UX)
-
-- [x] **AuthorCard (Home.tsx Books tab)**: clicking author name "by Malcolm Gladwell" on a `BookCard` should open that author's bio modal — currently just static text
-- [x] **AudioCard**: entire card links to Google Drive; add an audio book detail modal (or reuse BookModal) so clicking shows title, formats, file counts, Drive link — currently no modal at all
-- [x] **Category label chip** in `FlowbiteAuthorCard.tsx` (e.g., "Business & Strategy") is `cursor-default` — clicking it should filter the library to that category
-- [x] **ResourcePill** components (PDF, Transcript, Binder, etc.) in `FlowbiteAuthorCard.tsx` are `cursor-default` — clicking should open the Drive folder filtered to that content type
-- [x] **Book count badge** in `AuthorAccordionRow.tsx` (e.g., "5 books") is purely decorative — clicking it should expand the accordion row or scroll to the books list
-- [x] **BookSubfolderRow** in `AuthorCard` (Home.tsx Authors tab) opens Google Drive on click — should open `BookModal` with book detail instead of redirecting to Drive
-- [x] **FlowbiteAuthorCard cover strip**: book covers already open BookModal (HOTSPOT 2) ✓ — but books with no cover image show a grey placeholder that opens Drive instead of BookModal; fix to always open BookModal
-
-### C. Framer Motion Wiring Gaps
-
-- [x] `FlowbiteAuthorCard.tsx` uses `useCardTilt` hook (line 96) but the `<motion.div>` wrapper (line 171) is missing the CSS fallback `.card-lift` class — users with `prefers-reduced-motion` see no hover effect at all
-- [x] `AuthorCard` in Home.tsx has `useCardTilt` wired but the inner card element (`<div className="rounded-lg...">`) is missing `.card-lift` — the Framer Motion tilt works but the CSS hover shadow fallback is absent
-
-### D. Unused Premium Animations (Nice-to-Have)
-
-- [x] `@keyframes aurora` — beautiful background gradient animation; consider applying to hero stat bar or empty state background
-- [x] `@keyframes meteor` — shooting star effect; consider using for confetti/celebration on "Enrich All" completion
-- [x] `@keyframes norfolkPulse` — Norfolk AI theme pulse; apply to "Powered by Norfolk AI" badge in sidebar footer
-- [x] `@keyframes badgeSlideUp` — Amazon badge slide-in; apply `.amazon-badge` animation on BookCard mount so badge slides up when card appears
-
-## Session March 18, 2026 — New Features from Suggestions
-
-- [x] AudioCard detail modal — replace direct Drive link with a detail sheet showing format breakdown, file count, and "Open in Drive" CTA
-- [x] Resource pill deep-links — PDF/Transcript/Binder/Supplemental badges open filtered Drive view instead of root folder
-- [x] Book count badge collapsible toggle — "BOOKS (3)" label in AuthorCard accordion toggles the book list open/closed on click
-
-- [x] Remove duplicate book covers on author cards (same cover shown multiple times in cover strip)
-- [x] Diagnose and fix avatar/portrait generation failure (Replicate/AI portrait pipeline broken — new token set, improved error handling/timeout/logging)
-
-## Session March 18, 2026 — Execute All 3 Suggestions
-
-- [x] Run Amazon enrichment batch for all books (server-side batch call) — running, 10+ enriched so far
-- [x] Resolve shared covers: 10 book pairs sharing same S3 cover URL — 9 duplicates deleted, 1 legitimate pair kept (From Impossible to Inevitable / Predictable Revenue)
-- [x] Resolve duplicate "The Jolt Effect" — already resolved in previous session, only id 98 remains
-- [x] Implement Noir Dark Executive theme: full CSS variable rewrite
-- [x] Noir theme: white bg, black fg, grey surfaces, black borders
-- [x] Noir theme: round-rectangular 3D buttons
-- [x] Noir theme: duotone icons
-- [x] Noir theme: sidebar, cards, category pills in Noir palette
-- [x] Noir theme: chart, modals, stat cards in Noir palette
-- [x] Noir theme: remove all color accents except avatars/covers
-- [x] Verify both themes render correctly — TypeScript clean, 118 tests passing
