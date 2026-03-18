@@ -680,8 +680,8 @@
 - [x] Create book-cover-dedup skill (detect-duplicates.mjs + remove-duplicates.mjs + UI dedup patterns reference)
 - [x] Smoke-test both scripts against live database — found 2 near-duplicate rows and 10 shared-S3-URL groups
 - [x] Apply cleanup: deleted 2 near-duplicate rows ("Do You Talk Funny" / "The Leader's Guide" variants)
-- [ ] Manual review: 10 books share same S3 cover URL (different titles for same book — needs human decision to merge or keep)
-- [ ] Manual review: "The Jolt Effect" exact duplicate (ids 98 and 30005) — decide which to keep
+- [x] Manual review: shared S3 cover URL — resolved: only 2 books (From Impossible to Inevitable / Predictable Revenue) shared a cover due to wrong Google Books ID; fetched correct cover from Open Library and uploaded to S3
+- [x] Manual review: "The Jolt Effect" duplicate — deleted id=98 (Matt Dixon only), kept id=30005 (Matthew Dixon & Ted McKenna, more complete author attribution)
 
 ## Session March 17, 2026 — BookModal Scrape Button + Sidebar Home Shortcut
 - [x] Add "Scrape Cover from Amazon" button to BookModal with loading state and sonner toast feedback

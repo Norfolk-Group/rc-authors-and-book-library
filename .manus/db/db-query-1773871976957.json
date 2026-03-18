@@ -1,0 +1,15 @@
+{
+  "query": "SELECT id, bookTitle, authorName FROM book_profiles WHERE LOWER(bookTitle) LIKE '%jolt%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 46FBtXPMNF6LwZ8.root --database ehSrGoKN2NYhXg8UYLtWGw --execute SELECT id, bookTitle, authorName FROM book_profiles WHERE LOWER(bookTitle) LIKE '%jolt%';",
+  "rows": [
+    {
+      "id": "30005",
+      "bookTitle": "The JOLT Effect",
+      "authorName": "Matthew Dixon & Ted McKenna"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tbookTitle\tauthorName\n30005\tThe JOLT Effect\tMatthew Dixon & Ted McKenna\n",
+  "stderr": "",
+  "execution_time_ms": 61
+}

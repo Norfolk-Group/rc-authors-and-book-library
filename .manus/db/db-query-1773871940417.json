@@ -1,0 +1,36 @@
+{
+  "query": "SELECT id, bookTitle, authorName, coverImageUrl, s3CoverUrl, amazonUrl, isbn, publisher, rating, enrichedAt, createdAt FROM book_profiles WHERE bookTitle LIKE '%Jolt%' OR id IN (98, 30005) ORDER BY id;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 46FBtXPMNF6LwZ8.root --database ehSrGoKN2NYhXg8UYLtWGw --execute SELECT id, bookTitle, authorName, coverImageUrl, s3CoverUrl, amazonUrl, isbn, publisher, rating, enrichedAt, createdAt FROM book_profiles WHERE bookTitle LIKE '%Jolt%' OR id IN (98, 30005) ORDER BY id;",
+  "rows": [
+    {
+      "id": "98",
+      "bookTitle": "The Jolt Effect",
+      "authorName": "Matt Dixon",
+      "coverImageUrl": "https://books.google.com/books/content?id=67FVEAAAQBAJ&printsec=frontcover&img=1&zoom=3&source=gbs_api",
+      "s3CoverUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663270229297/ehSrGoKN2NYhXg8UYLtWGw/book-covers/3380ca88.jpg",
+      "amazonUrl": "https://www.amazon.com/dp/0593538102",
+      "isbn": "0593538102",
+      "publisher": "‏ : ‎ Portfolio",
+      "rating": "4.5",
+      "enrichedAt": "2026-03-18 16:15:09",
+      "createdAt": "2026-03-15 13:37:42"
+    },
+    {
+      "id": "30005",
+      "bookTitle": "The JOLT Effect",
+      "authorName": "Matthew Dixon & Ted McKenna",
+      "coverImageUrl": "https://m.media-amazon.com/images/I/71SJT+7O1XL._AC_UY218_.jpg",
+      "s3CoverUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663270229297/ehSrGoKN2NYhXg8UYLtWGw/book-covers/1e7ad7de.jpg",
+      "amazonUrl": "https://www.amazon.com/dp/0593538102",
+      "isbn": "0593538102",
+      "publisher": "‏ : ‎ Portfolio",
+      "rating": "4.5",
+      "enrichedAt": "2026-03-18 16:34:25",
+      "createdAt": "2026-03-16 00:05:35"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tbookTitle\tauthorName\tcoverImageUrl\ts3CoverUrl\tamazonUrl\tisbn\tpublisher\trating\tenrichedAt\tcreatedAt\n98\tThe Jolt Effect\tMatt Dixon\thttps://books.google.com/books/content?id=67FVEAAAQBAJ&printsec=frontcover&img=1&zoom=3&source=gbs_api\thttps://d2xsxph8kpxj0f.cloudfront.net/310519663270229297/ehSrGoKN2NYhXg8UYLtWGw/book-covers/3380ca88.jpg\thttps://www.amazon.com/dp/0593538102\t0593538102\t‏ : ‎ Portfolio\t4.5\t2026-03-18 16:15:09\t2026-03-15 13:37:42\n30005\tThe JOLT Effect\tMatthew Dixon & Ted McKenna\thttps://m.media-amazon.com/images/I/71SJT+7O1XL._AC_UY218_.jpg\thttps://d2xsxph8kpxj0f.cloudfront.net/310519663270229297/ehSrGoKN2NYhXg8UYLtWGw/book-covers/1e7ad7de.jpg\thttps://www.amazon.com/dp/0593538102\t0593538102\t‏ : ‎ Portfolio\t4.5\t2026-03-18 16:34:25\t2026-03-16 00:05:35\n",
+  "stderr": "",
+  "execution_time_ms": 58
+}

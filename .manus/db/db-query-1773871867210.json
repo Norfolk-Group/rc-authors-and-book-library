@@ -1,0 +1,32 @@
+{
+  "query": "SELECT id, bookTitle, authorName, coverImageUrl, s3CoverUrl, s3CoverKey, amazonUrl, isbn, publisher FROM book_profiles WHERE id IN (3, 4);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 46FBtXPMNF6LwZ8.root --database ehSrGoKN2NYhXg8UYLtWGw --execute SELECT id, bookTitle, authorName, coverImageUrl, s3CoverUrl, s3CoverKey, amazonUrl, isbn, publisher FROM book_profiles WHERE id IN (3, 4);",
+  "rows": [
+    {
+      "id": "3",
+      "bookTitle": "From Impossible to Inevitable",
+      "authorName": "Aaron Ross and Jason Lemkin",
+      "coverImageUrl": "https://books.google.com/books/content?id=HPNvCwAAQBAJ&printsec=frontcover&img=1&zoom=3&source=gbs_api",
+      "s3CoverUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663270229297/ehSrGoKN2NYhXg8UYLtWGw/book-covers/10cd451f.jpg",
+      "s3CoverKey": "book-covers/10cd451f.jpg",
+      "amazonUrl": "https://www.amazon.com/dp/B07YX9J67M",
+      "isbn": "9781119166733",
+      "publisher": "John Wiley & Sons"
+    },
+    {
+      "id": "4",
+      "bookTitle": "Predictable Revenue",
+      "authorName": "Aaron Ross and Jason Lemkin",
+      "coverImageUrl": "https://books.google.com/books/content?id=HPNvCwAAQBAJ&printsec=frontcover&img=1&zoom=3&source=gbs_api",
+      "s3CoverUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663270229297/ehSrGoKN2NYhXg8UYLtWGw/book-covers/10cd451f.jpg",
+      "s3CoverKey": "book-covers/10cd451f.jpg",
+      "amazonUrl": "https://www.amazon.com/dp/1119166713",
+      "isbn": "1119166713",
+      "publisher": "‏ : ‎ Wiley"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tbookTitle\tauthorName\tcoverImageUrl\ts3CoverUrl\ts3CoverKey\tamazonUrl\tisbn\tpublisher\n3\tFrom Impossible to Inevitable\tAaron Ross and Jason Lemkin\thttps://books.google.com/books/content?id=HPNvCwAAQBAJ&printsec=frontcover&img=1&zoom=3&source=gbs_api\thttps://d2xsxph8kpxj0f.cloudfront.net/310519663270229297/ehSrGoKN2NYhXg8UYLtWGw/book-covers/10cd451f.jpg\tbook-covers/10cd451f.jpg\thttps://www.amazon.com/dp/B07YX9J67M\t9781119166733\tJohn Wiley & Sons\n4\tPredictable Revenue\tAaron Ross and Jason Lemkin\thttps://books.google.com/books/content?id=HPNvCwAAQBAJ&printsec=frontcover&img=1&zoom=3&source=gbs_api\thttps://d2xsxph8kpxj0f.cloudfront.net/310519663270229297/ehSrGoKN2NYhXg8UYLtWGw/book-covers/10cd451f.jpg\tbook-covers/10cd451f.jpg\thttps://www.amazon.com/dp/1119166713\t1119166713\t‏ : ‎ Wiley\n",
+  "stderr": "",
+  "execution_time_ms": 59
+}

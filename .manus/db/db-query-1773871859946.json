@@ -1,0 +1,16 @@
+{
+  "query": "SELECT s3CoverUrl, COUNT(*) as cnt, GROUP_CONCAT(id SEPARATOR ', ') as book_ids, GROUP_CONCAT(bookTitle SEPARATOR ' | ') as titles FROM book_profiles WHERE s3CoverUrl IS NOT NULL AND s3CoverUrl != '' GROUP BY s3CoverUrl HAVING cnt > 1 ORDER BY cnt DESC;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 46FBtXPMNF6LwZ8.root --database ehSrGoKN2NYhXg8UYLtWGw --execute SELECT s3CoverUrl, COUNT(*) as cnt, GROUP_CONCAT(id SEPARATOR ', ') as book_ids, GROUP_CONCAT(bookTitle SEPARATOR ' | ') as titles FROM book_profiles WHERE s3CoverUrl IS NOT NULL AND s3CoverUrl != '' GROUP BY s3CoverUrl HAVING cnt > 1 ORDER BY cnt DESC;",
+  "rows": [
+    {
+      "s3CoverUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663270229297/ehSrGoKN2NYhXg8UYLtWGw/book-covers/10cd451f.jpg",
+      "cnt": "2",
+      "book_ids": "3, 4",
+      "titles": "From Impossible to Inevitable | Predictable Revenue"
+    }
+  ],
+  "messages": [],
+  "stdout": "s3CoverUrl\tcnt\tbook_ids\ttitles\nhttps://d2xsxph8kpxj0f.cloudfront.net/310519663270229297/ehSrGoKN2NYhXg8UYLtWGw/book-covers/10cd451f.jpg\t2\t3, 4\tFrom Impossible to Inevitable | Predictable Revenue\n",
+  "stderr": "",
+  "execution_time_ms": 68
+}
