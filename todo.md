@@ -698,3 +698,25 @@
 - [x] Add "Clear Filters & Show All" shortcut to sidebar footer (visible only when filters are active)
 - [x] Mark all previously completed Apify/scrape todo items as done
 - [x] 118 tests passing, tsc --noEmit clean
+
+## Session March 18, 2026 — Admin Enhancements + Sidebar Fix
+
+### Sidebar default state
+- [x] Sidebar should default to open (not collapsed)
+
+### Wire Admin action buttons to real tRPC mutations
+- [x] Map each Admin action card to its corresponding tRPC endpoint
+- [x] Data Pipeline tab: wire Regenerate Database, Enrich Bios, Enrich Books, Enrich from Amazon buttons
+- [x] Media tab: wire Generate Portraits, Scrape Covers, Mirror Covers, Mirror Photos buttons
+- [x] Show real-time progress/status feedback during long-running operations
+
+### Add confirmation dialogs for destructive Admin actions
+- [x] Add confirmation dialog before Regenerate Database (destructive)
+- [x] Add confirmation dialog before any batch operation that modifies data
+- [x] Use AlertDialog component with clear description of what will happen
+
+### Add last-run timestamps to Admin action cards
+- [x] Create admin_action_log table in database schema to track last-run times
+- [x] Add tRPC endpoint to read/write action timestamps
+- [x] Display "Last run: X ago" on each action card
+- [x] Update timestamp after each successful action execution

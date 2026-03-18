@@ -121,3 +121,25 @@ export const syncStatus = mysqlTable("sync_status", {
 
 export type SyncStatus = typeof syncStatus.$inferSelect;
 export type InsertSyncStatus = typeof syncStatus.$inferInsert;
+
+// Admin action log — tracks when each admin action was last run
+export const adminActionLog = mysqlTable("admin_action_log", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Action key, e.g. 'regenerate_db', 'enrich_bios', 'scrape_covers' */
+  actionKey: varchar("actionKey", { length: 128 }).notNull().unique(),
+  /** Human-readable label */
+  label: varchar("label", { length: 256 }),
+  /** Last run timestamp */
+  lastRunAt: timestamp("lastRunAt"),
+  /** Duration of last run in ms */
+  lastRunDurationMs: int("lastRunDurationMs"),
+  /** Result: success or error message */
+  lastRunResult: text("lastRunResult"),
+  /** How many items were processed */
+  lastRunItemCount: int("lastRunItemCount"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type AdminActionLog = typeof adminActionLog.$inferSelect;
+export type InsertAdminActionLog = typeof adminActionLog.$inferInsert;

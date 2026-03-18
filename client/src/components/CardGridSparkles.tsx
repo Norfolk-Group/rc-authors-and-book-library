@@ -48,7 +48,7 @@ export default function CardGridSparkles() {
       <Canvas
         camera={{ position: [0, 0, 9], fov: 55 }}
         gl={{ alpha: true, antialias: false }}
-        style={{ width: "100%", height: "100%" }}
+        style={{ width: "100%", height: "100%", pointerEvents: "none" }}
         dpr={[1, 1.5]}
       >
         <SparkleScene />

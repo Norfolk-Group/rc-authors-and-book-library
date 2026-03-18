@@ -71,7 +71,7 @@ import { AuthorAccordionRow } from "@/components/AuthorAccordionRow";
 import { getAuthorPhoto } from "@/lib/authorPhotos";
 import { canonicalName } from "@/lib/authorAliases";
 import { useAppSettings, type ColorMode as AppTheme } from "@/contexts/AppSettingsContext";
-import { CategoryChart } from "@/components/CategoryChart";
+
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import {
@@ -107,7 +107,6 @@ import {
   Link,
   List,
   RefreshCw,
-  CheckCircle2,
   ArrowUpDown,
   Globe,
   Twitter,
@@ -116,16 +115,12 @@ import {
   ChevronUp,
   Sparkles,
   UserCheck,
-  AlertCircle,
   Star,
   BookMarked as BookMarkedIcon,
   ShoppingCart,
   Palette,
-  Sun,
-  Moon,
   Settings,
-  GitMerge,
-  ImageIcon,
+  ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
 
@@ -1202,11 +1197,11 @@ type BookSort = "name-asc" | "name-desc" | "author" | "content-desc";
 type TabType = "authors" | "books" | "audio";
 
 export default function Home() {
-  const { settings: { colorMode: appTheme, geminiModel, viewMode: savedViewMode }, updateSettings } = useAppSettings();
+  const { settings: { colorMode: appTheme, viewMode: savedViewMode }, updateSettings } = useAppSettings();
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<TabType>("authors");
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
-  const [lastSynced, setLastSynced] = useState<Date | null>(null);
+
   const [authorSort, setAuthorSort] = useState<AuthorSort>("name-asc");
   const [bookSort, setBookSort] = useState<BookSort>("name-asc");
   // Author view mode: persisted via AppSettingsContext (cards | accordion)
@@ -1220,15 +1215,6 @@ export default function Home() {
   const [bookSheetOpen, setBookSheetOpen] = useState(false);
   // Cover lightbox state
   const [lightboxCover, setLightboxCover] = useState<{ url: string | null; title: string; author?: string; color?: string; amazonUrl?: string } | null>(null);
-
-  // ── Batch enrich bios state ──────────────────────────────────
-  type EnrichStatus = "idle" | "running" | "done" | "error";
-  const [enrichStatus, setEnrichStatus] = useState<EnrichStatus>("idle");
-  const [enrichProgress, setEnrichProgress] = useState(0); // 0–100
-  const [enrichDone, setEnrichDone] = useState(0);
-  const [enrichTotal, setEnrichTotal] = useState(0);
-  const [enrichFailed, setEnrichFailed] = useState(0);
-  const enrichBatchMutation = trpc.authorProfiles.enrichBatch.useMutation();
   // Fetch all enriched author names for indicators — refetch after batch completes
   const enrichedNamesQuery = trpc.authorProfiles.getAllEnrichedNames.useQuery(undefined, {
     staleTime: 60_000, // cache for 1 minute
@@ -1335,245 +1321,6 @@ export default function Home() {
     }
     return map;
   }, [authorPhotoMapQuery.data]);
-
-  // ── Book enrich state ────────────────────────────────────────────
-  const [bookEnrichStatus, setBookEnrichStatus] = useState<"idle" | "running" | "done" | "error">("idle");
-  const [bookEnrichProgress, setBookEnrichProgress] = useState(0);
-  const [bookEnrichDone, setBookEnrichDone] = useState(0);
-  const [bookEnrichTotal, setBookEnrichTotal] = useState(0);
-  const [bookEnrichFailed, setBookEnrichFailed] = useState(0);
-  const bookEnrichBatchMutation = trpc.bookProfiles.enrichBatch.useMutation();
-  const utils = trpc.useUtils();
-
-  // ── Scrape covers state ──────────────────────────────────────────────────
-  const [scrapeCoversStatus, setScrapeCoversStatus] = useState<"idle" | "running" | "done" | "error">("idle");
-  const [scrapeCoversProgress, setScrapeCoversProgress] = useState(0);
-  const [scrapeCoversScraped, setScrapeCoversScraped] = useState(0);
-  const [scrapeCoversTotal, setScrapeCoversTotal] = useState(0);
-  const [scrapeCoversCurrentBook, setScrapeCoversCurrentBook] = useState<string | null>(null);
-  const batchScrapeStats = trpc.apify.getBatchScrapeStats.useQuery(undefined, { refetchInterval: scrapeCoversStatus === "running" ? 5000 : false });
-  const scrapeNextMutation = trpc.apify.scrapeNextMissingCover.useMutation();
-
-  // ── Batch portrait generation state ─────────────────────────────────────
-  const [portraitStatus, setPortraitStatus] = useState<"idle" | "running" | "done" | "error">("idle");
-  const [portraitProgress, setPortraitProgress] = useState(0);
-  const [portraitDone, setPortraitDone] = useState(0);
-  const [portraitTotal, setPortraitTotal] = useState(0);
-  const [portraitFailed, setPortraitFailed] = useState(0);
-  const [portraitCurrent, setPortraitCurrent] = useState<string | null>(null);
-  const generatePortraitMutationBatch = trpc.authorProfiles.generatePortrait.useMutation();
-  const enrichAllBios= useCallback(async () => {
-    if (enrichStatus === "running") return;
-    // Build unique author names from the library data
-    const names = Array.from(
-      new Set(
-        AUTHORS.map((a) => {
-          const d = a.name.indexOf(" - ");
-          return d !== -1 ? a.name.slice(0, d) : a.name;
-        })
-      )
-    );
-    const BATCH_SIZE = 10;
-    setEnrichStatus("running");
-    setEnrichProgress(0);
-    setEnrichDone(0);
-    setEnrichFailed(0);
-    setEnrichTotal(names.length);
-    let done = 0;
-    let failed = 0;
-    try {
-      for (let i = 0; i < names.length; i += BATCH_SIZE) {
-        const batch = names.slice(i, i + BATCH_SIZE);
-        const result = await enrichBatchMutation.mutateAsync({ authorNames: batch, model: geminiModel });
-        done += result.succeeded;
-        failed += result.total - result.succeeded;
-        setEnrichDone(done);
-        setEnrichFailed(failed);
-        setEnrichProgress(Math.round(((i + batch.length) / names.length) * 100));
-      }
-      setEnrichStatus("done");
-      toast.success(`Enriched ${done} author bios${failed > 0 ? ` (${failed} failed)` : ""}.`);
-      if (done > 0) fireConfetti("enrich");
-      // Refresh the enrichment indicators
-      void utils.authorProfiles.getAllEnrichedNames.invalidate();
-    } catch (err) {
-      setEnrichStatus("error");
-      toast.error("Bio enrichment failed: " + (err instanceof Error ? err.message : String(err)));
-    }
-  }, [enrichStatus, enrichBatchMutation, utils]);
-
-  const enrichAllBooks = useCallback(async () => {
-    if (bookEnrichStatus === "running") return;
-    const titles = Array.from(
-      new Set(BOOKS.map((b) => {
-        const d = b.name.indexOf(" - ");
-        return d !== -1 ? b.name.slice(0, d) : b.name;
-      }))
-    );
-    const BATCH_SIZE = 10;
-    setBookEnrichStatus("running");
-    setBookEnrichProgress(0);
-    setBookEnrichDone(0);
-    setBookEnrichFailed(0);
-    setBookEnrichTotal(titles.length);
-    let done = 0;
-    let failed = 0;
-    try {
-      for (let i = 0; i < titles.length; i += BATCH_SIZE) {
-        const batch = titles.slice(i, i + BATCH_SIZE).map((bookTitle) => {
-          const book = BOOKS.find((b) => b.name.startsWith(bookTitle));
-          const authorName = book?.name.includes(" - ") ? book.name.split(" - ").slice(1).join(" - ") : "";
-          return { bookTitle, authorName };
-        });
-        const result = await bookEnrichBatchMutation.mutateAsync({ books: batch, model: geminiModel });
-        const succeeded = result.filter((r: { status: string }) => r.status === "enriched").length;
-        const batchFailed = result.filter((r: { status: string }) => r.status === "error").length;
-        done += succeeded;
-        failed += batchFailed;
-        setBookEnrichDone(done);
-        setBookEnrichFailed(failed);
-        setBookEnrichProgress(Math.round(((i + batch.length) / titles.length) * 100));
-      }
-      setBookEnrichStatus("done");
-      toast.success(`Enriched ${done} book profiles${failed > 0 ? ` (${failed} failed)` : ""}.`);
-      if (done > 0) fireConfetti("enrich");
-      void utils.bookProfiles.getAllEnrichedTitles.invalidate();
-      void utils.bookProfiles.getMany.invalidate();
-    } catch (err) {
-      setBookEnrichStatus("error");
-      toast.error("Book enrichment failed: " + (err instanceof Error ? err.message : String(err)));
-    }
-  }, [bookEnrichStatus, bookEnrichBatchMutation, utils]);
-
-  // ── Generate AI portraits for all authors missing one ───────────────────────
-  const generateAllPortraits = useCallback(async () => {
-    if (portraitStatus === "running") return;
-
-    // Collect unique canonical author names that have no photo in the static map
-    const allNames = Array.from(
-      new Set(
-        AUTHORS.map((a) => {
-          const d = a.name.indexOf(" - ");
-          return d !== -1 ? a.name.slice(0, d) : a.name;
-        })
-      )
-    );
-    // Filter to only those without a photo in the static map
-    const missing = allNames.filter((name) => !getAuthorPhoto(name));
-
-    if (missing.length === 0) {
-      toast.success("All authors already have portraits!");
-      return;
-    }
-
-    setPortraitStatus("running");
-    setPortraitProgress(0);
-    setPortraitDone(0);
-    setPortraitFailed(0);
-    setPortraitTotal(missing.length);
-    setPortraitCurrent(null);
-
-    let done = 0;
-    let failed = 0;
-
-    try {
-      for (let i = 0; i < missing.length; i++) {
-        const authorName = missing[i];
-        setPortraitCurrent(authorName);
-        try {
-          await generatePortraitMutationBatch.mutateAsync({ authorName });
-          done++;
-        } catch {
-          failed++;
-        }
-        setPortraitDone(done);
-        setPortraitFailed(failed);
-        setPortraitProgress(Math.round(((i + 1) / missing.length) * 100));
-        // 2s delay between requests to respect Replicate rate limits
-        if (i < missing.length - 1) {
-          await new Promise((r) => setTimeout(r, 2000));
-        }
-      }
-      setPortraitCurrent(null);
-      setPortraitStatus("done");
-      toast.success(
-        `Generated ${done} portrait${done !== 1 ? "s" : ""}${failed > 0 ? ` (${failed} failed)` : ""}.`
-      );
-      if (done > 0) fireConfetti("batch");
-    } catch (err) {
-      setPortraitStatus("error");
-      setPortraitCurrent(null);
-      toast.error("Portrait generation failed: " + (err instanceof Error ? err.message : String(err)));
-    }
-  }, [portraitStatus, generatePortraitMutationBatch]);
-
-  // ── Scrape Amazon covers for all books missing one ─────────────────────────────────────
-  const scrapeAllCovers = useCallback(async () => {
-    if (scrapeCoversStatus === "running") return;
-    setScrapeCoversStatus("running");
-    setScrapeCoversProgress(0);
-    setScrapeCoversScraped(0);
-    setScrapeCoversCurrentBook(null);
-
-    // Get initial stats to know total
-    let total = 0;
-    try {
-      const stats = await utils.apify.getBatchScrapeStats.fetch();
-      total = (stats?.needsScrape ?? 0) + (stats?.needsMirror ?? 0);
-      setScrapeCoversTotal(total);
-    } catch {
-      setScrapeCoversTotal(0);
-    }
-
-    if (total === 0) {
-      setScrapeCoversStatus("done");
-      toast.success("All book covers are already up to date!");
-      return;
-    }
-
-    let scraped = 0;
-    try {
-      // Run up to total+5 iterations (safety cap) until server says done
-      for (let i = 0; i < total + 5; i++) {
-        const result = await scrapeNextMutation.mutateAsync({});
-        // Stop when there's nothing left to scrape or mirror
-        if (result.remainingScrape === 0 && result.remainingMirror === 0) break;
-        if (result.bookTitle) setScrapeCoversCurrentBook(result.bookTitle);
-        scraped = result.scraped + result.mirrored;
-        setScrapeCoversScraped(scraped);
-        setScrapeCoversProgress(total > 0 ? Math.round((scraped / total) * 100) : 100);
-        // Small delay to avoid hammering the server
-        await new Promise((r) => setTimeout(r, 800));
-      }
-      setScrapeCoversCurrentBook(null);
-      setScrapeCoversStatus("done");
-      toast.success(`Book covers updated: ${scraped} processed.`);
-      if (scraped > 0) fireConfetti("scrape");
-      void utils.apify.getBatchScrapeStats.invalidate();
-      void utils.bookProfiles.getMany.invalidate();
-    } catch (err) {
-      setScrapeCoversStatus("error");
-      setScrapeCoversCurrentBook(null);
-      toast.error("Cover scrape failed: " + (err instanceof Error ? err.message : String(err)));
-    }
-  }, [scrapeCoversStatus, scrapeNextMutation, utils]);
-
-  const regenerate = trpc.library.regenerate.useMutation({
-    onSuccess: (data) => {
-      if (data.success && data.stats) {
-        setLastSynced(new Date());
-        toast.success(
-          `Library rebuilt — ${data.stats.authors} authors, ${data.stats.books} books, ${data.stats.audioBooks} audiobooks (${data.stats.elapsedSeconds}s). Reload to see changes.`,
-          { duration: 8000 }
-        );
-      } else {
-        toast.error(`Regeneration failed: ${(data as { error?: string }).error ?? "Unknown error"}`);
-      }
-    },
-    onError: (err) => {
-      toast.error(`Regeneration error: ${err.message}`);
-    },
-  });
 
   const toggleCategory = useCallback((cat: string) => {
     setSelectedCategories((prev) => {
@@ -1746,7 +1493,7 @@ export default function Home() {
 
   return (
     <>
-    <SidebarProvider defaultOpen={false}>
+    <SidebarProvider defaultOpen={true}>
       <div className="flex min-h-screen w-full overflow-hidden">
         {/* ── Sidebar ── */}
         <Sidebar collapsible="offcanvas" className="border-r border-sidebar-border">
@@ -1884,10 +1631,7 @@ export default function Home() {
 
           <SidebarFooter className="px-4 py-3 border-t border-sidebar-border group-data-[collapsible=icon]:hidden">
             <p className="text-[10px] text-muted-foreground mb-1">
-              {lastSynced
-                ? `Last synced ${lastSynced.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · ${lastSynced.toLocaleDateString([], { month: "short", day: "numeric" })}`
-                : `Data as of ${STATS.lastUpdated}`
-              }
+              {`Data as of ${STATS.lastUpdated}`}
             </p>
             {/* Photo count indicator */}
             {authorPhotoMapQuery.data && (() => {
@@ -1903,285 +1647,18 @@ export default function Home() {
                 </div>
               );
             })()}
-            <button
-              onClick={() => regenerate.mutate()}
-              disabled={regenerate.isPending || enrichStatus === "running"}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md text-xs font-medium border border-border hover:bg-muted/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Re-scan Google Drive and rebuild the library data"
-            >
-              {regenerate.isPending ? (
-                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-              ) : regenerate.isSuccess ? (
-                <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
-              ) : (
-                <RefreshCw className="w-3.5 h-3.5" />
-              )}
-              {regenerate.isPending ? "Scanning Drive…" : "Regenerate Database"}
-            </button>
 
-            {/* Enrich All Bios button */}
-            <button
-              onClick={enrichAllBios}
-              disabled={enrichStatus === "running" || regenerate.isPending}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md text-xs font-medium border border-border hover:bg-muted/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-1.5"
-              title="Generate AI bios and links for all authors"
-            >
-              {enrichStatus === "running" ? (
-                <Sparkles className="w-3.5 h-3.5 animate-pulse" />
-              ) : enrichStatus === "done" ? (
-                <UserCheck className="w-3.5 h-3.5 text-green-600" />
-              ) : enrichStatus === "error" ? (
-                <AlertCircle className="w-3.5 h-3.5 text-red-500" />
-              ) : (
-                <Sparkles className="w-3.5 h-3.5" />
-              )}
-              {enrichStatus === "running"
-                ? `Enriching… ${enrichDone}/${enrichTotal}`
-                : enrichStatus === "done"
-                ? `Bios enriched (${enrichDone})`
-                : enrichStatus === "error"
-                ? "Enrichment failed — retry"
-                : "Enrich All Bios"}
-            </button>
-
-            {/* Progress bar — only visible while running */}
-            {enrichStatus === "running" && (
-              <div className="mt-2">
-                <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
-                  <span>{enrichDone} of {enrichTotal} authors</span>
-                  <span>{enrichProgress}%</span>
-                </div>
-                <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
-                  <div
-                    className="h-full rounded-full progress-shimmer"
-                    style={{ width: `${enrichProgress}%` }}
-                  />
-                </div>
-                {enrichFailed > 0 && (
-                  <p className="text-[10px] text-red-500 mt-1">{enrichFailed} failed</p>
-                )}
-              </div>
-            )}
-
-            {/* Done summary */}
-            {enrichStatus === "done" && enrichFailed > 0 && (
-              <p className="text-[10px] text-muted-foreground mt-1">{enrichFailed} authors could not be enriched.</p>
-            )}
-
-            {/* Enrich All Books button */}
-            <button
-              onClick={enrichAllBooks}
-              disabled={bookEnrichStatus === "running" || regenerate.isPending}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md text-xs font-medium border border-border hover:bg-muted/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-1.5"
-              title="Fetch book covers, summaries, and links for all books"
-            >
-              {bookEnrichStatus === "running" ? (
-                <BookOpen className="w-3.5 h-3.5 animate-pulse" />
-              ) : bookEnrichStatus === "done" ? (
-                <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
-              ) : bookEnrichStatus === "error" ? (
-                <AlertCircle className="w-3.5 h-3.5 text-red-500" />
-              ) : (
-                <BookOpen className="w-3.5 h-3.5" />
-              )}
-              {bookEnrichStatus === "running"
-                ? `Enriching… ${bookEnrichDone}/${bookEnrichTotal}`
-                : bookEnrichStatus === "done"
-                ? `Books enriched (${bookEnrichDone})`
-                : bookEnrichStatus === "error"
-                ? "Enrichment failed — retry"
-                : "Enrich All Books"}
-            </button>
-
-            {/* Book enrichment progress bar */}
-            {bookEnrichStatus === "running" && (
-              <div className="mt-2">
-                <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
-                  <span>{bookEnrichDone} of {bookEnrichTotal} books</span>
-                  <span>{bookEnrichProgress}%</span>
-                </div>
-                <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
-                  <div
-                    className="h-full rounded-full progress-shimmer"
-                    style={{ width: `${bookEnrichProgress}%` }}
-                  />
-                </div>
-                {bookEnrichFailed > 0 && (
-                  <p className="text-[10px] text-red-500 mt-1">{bookEnrichFailed} failed</p>
-                )}
-              </div>
-            )}
-
-            {bookEnrichStatus === "done" && bookEnrichFailed > 0 && (
-              <p className="text-[10px] text-muted-foreground mt-1">{bookEnrichFailed} books could not be enriched.</p>
-            )}
-
-            {/* Generate Missing Portraits button */}
-            <button
-              onClick={generateAllPortraits}
-              disabled={portraitStatus === "running" || regenerate.isPending}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md text-xs font-medium border border-border hover:bg-muted/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-1.5"
-              title="Generate AI portraits for authors without a headshot"
-            >
-              {portraitStatus === "running" ? (
-                <Sparkles className="w-3.5 h-3.5 animate-pulse" />
-              ) : portraitStatus === "done" ? (
-                <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
-              ) : portraitStatus === "error" ? (
-                <AlertCircle className="w-3.5 h-3.5 text-red-500" />
-              ) : (
-                <Sparkles className="w-3.5 h-3.5" />
-              )}
-              {portraitStatus === "running"
-                ? `Generating… ${portraitDone}/${portraitTotal}`
-                : portraitStatus === "done"
-                ? `Portraits done (${portraitDone})`
-                : portraitStatus === "error"
-                ? "Generation failed — retry"
-                : "Generate Missing Portraits"}
-            </button>
-
-            {/* Portrait generation progress bar */}
-            {portraitStatus === "running" && (
-              <div className="mt-2">
-                <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
-                  <span className="truncate max-w-[140px]">{portraitCurrent ?? "Starting…"}</span>
-                  <span className="flex-shrink-0 ml-1">{portraitProgress}%</span>
-                </div>
-                <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
-                  <div
-                    className="h-full rounded-full progress-shimmer"
-                    style={{ width: `${portraitProgress}%` }}
-                  />
-                </div>
-                {portraitFailed > 0 && (
-                  <p className="text-[10px] text-red-500 mt-1">{portraitFailed} failed</p>
-                )}
-              </div>
-            )}
-
-            {portraitStatus === "done" && portraitFailed > 0 && (
-              <p className="text-[10px] text-muted-foreground mt-1">{portraitFailed} portraits could not be generated.</p>
-            )}
-
-            {/* Scrape All Covers button */}
-            <button
-              onClick={scrapeAllCovers}
-              disabled={scrapeCoversStatus === "running" || regenerate.isPending}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md text-xs font-medium border border-border hover:bg-muted/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-1.5"
-              title="Scrape Amazon for missing book covers, then mirror all covers to S3"
-            >
-              {scrapeCoversStatus === "running" ? (
-                <ImageIcon className="w-3.5 h-3.5 animate-pulse" />
-              ) : scrapeCoversStatus === "done" ? (
-                <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
-              ) : scrapeCoversStatus === "error" ? (
-                <AlertCircle className="w-3.5 h-3.5 text-red-500" />
-              ) : (
-                <ImageIcon className="w-3.5 h-3.5" />
-              )}
-              {scrapeCoversStatus === "running"
-                ? `Scraping… ${scrapeCoversScraped}/${scrapeCoversTotal}`
-                : scrapeCoversStatus === "done"
-                ? `Covers done (${scrapeCoversScraped})`
-                : scrapeCoversStatus === "error"
-                ? "Scrape failed — retry"
-                : "Scrape All Covers"}
-            </button>
-
-            {/* Cover scrape progress bar */}
-            {scrapeCoversStatus === "running" && (
-              <div className="mt-2">
-                <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
-                  <span className="truncate max-w-[140px]">{scrapeCoversCurrentBook ?? "Starting…"}</span>
-                  <span className="flex-shrink-0 ml-1">{scrapeCoversProgress}%</span>
-                </div>
-                <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
-                  <div
-                    className="h-full rounded-full progress-shimmer"
-                    style={{ width: `${scrapeCoversProgress}%` }}
-                  />
-                </div>
-              </div>
-            )}
-
-            {scrapeCoversStatus === "done" && batchScrapeStats.data && (
-              <p className="text-[10px] text-muted-foreground mt-1">
-                {batchScrapeStats.data.withS3} covers in S3 · {batchScrapeStats.data.needsScrape} still missing
-              </p>
-            )}
-
-            {/* ── Home shortcut — clear filters ── */}
-            {hasFilters && (
-              <div className="mt-3 pt-3 border-t border-border/50">
-                <button
-                  onClick={() => { setSelectedCategories(new Set()); setQuery(""); }}
-                  className="w-full flex items-center gap-2 text-xs px-2 py-1.5 rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/60"
-                  title="Clear all filters and return to full library view"
-                >
-                  <X className="w-3.5 h-3.5 flex-shrink-0" />
-                  Clear Filters &amp; Show All
-                  <ChevronRight className="w-3 h-3 ml-auto opacity-50" />
-                </button>
-              </div>
-            )}
-
-            {/* ── Visualizations ── */}
-            <div className="mt-3 pt-3 border-t border-border/50">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Visualizations</p>
-              <div className="flex flex-col gap-1">
-                <a href="/flow-editor" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1 px-2 rounded hover:bg-muted/60">
-                  <LayoutGrid className="w-3.5 h-3.5 flex-shrink-0" />
-                  React Flow
-                  <ChevronRight className="w-3 h-3 ml-auto opacity-50" />
-                </a>
-                <a href="/charts-echarts" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1 px-2 rounded hover:bg-muted/60">
-                  <TrendingUp className="w-3.5 h-3.5 flex-shrink-0" />
-                  Apache ECharts
-                  <ChevronRight className="w-3 h-3 ml-auto opacity-50" />
-                </a>
-                <a href="/charts-nivo" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1 px-2 rounded hover:bg-muted/60">
-                  <TrendingUp className="w-3.5 h-3.5 flex-shrink-0" />
-                  Nivo Charts
-                  <ChevronRight className="w-3 h-3 ml-auto opacity-50" />
-                </a>
-              </div>
-            </div>
-
-            {/* ── Preferences link ── */}
+            {/* ── Admin link ── */}
             <div className="mt-3 pt-3 border-t border-border/50">
               <a
-                href="/preferences"
+                href="/admin"
                 className="w-full flex items-center gap-2 text-xs px-2 py-1.5 rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/60"
               >
-                <Settings className="w-3.5 h-3.5 flex-shrink-0" />
-                Preferences
+                <ShieldCheck className="w-3.5 h-3.5 flex-shrink-0" />
+                Admin Console
                 <ChevronRight className="w-3 h-3 ml-auto opacity-50" />
               </a>
             </div>
-            {/* ── Research Cascade link ── */}
-            <div className="mt-1">
-              <a
-                href="/research-cascade"
-                className="w-full flex items-center gap-2 text-xs px-2 py-1.5 rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/60"
-              >
-                <GitMerge className="w-3.5 h-3.5 flex-shrink-0" />
-                Research Cascade
-                <ChevronRight className="w-3 h-3 ml-auto opacity-50" />
-              </a>
-            </div>
-            {/* ── Flowbite Demo link ── */}
-            <div className="mt-1">
-              <a
-                href="/flowbite-demo"
-                className="w-full flex items-center gap-2 text-xs px-2 py-1.5 rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/60"
-              >
-                <LayoutGrid className="w-3.5 h-3.5 flex-shrink-0" />
-                Flowbite Demo
-                <ChevronRight className="w-3 h-3 ml-auto opacity-50" />
-              </a>
-            </div>
-
             {/* Drive Media Folders */}
             <div className="mt-3 pt-3 border-t border-border/50">
               <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Media Folders</p>
@@ -2402,19 +1879,7 @@ export default function Home() {
               )
             ) : activeTab === "books" ? (
               <>
-                {/* Category distribution chart — only shown when no search query */}
-                {!query && (
-                  <CategoryChart
-                    activeCategory={selectedCategories.size === 1 ? Array.from(selectedCategories)[0] : ""}
-                    onCategoryClick={(cat) => {
-                      if (!cat) {
-                        setSelectedCategories(new Set());
-                      } else {
-                        setSelectedCategories(new Set([cat]));
-                      }
-                    }}
-                  />
-                )}
+
                 {filteredBooks.length === 0 ? (
                   <EmptyState query={query} />
                 ) : (

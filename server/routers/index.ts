@@ -14,6 +14,7 @@ import { bookProfilesRouter } from "./bookProfiles.router";
 import { apifyRouter } from "./apify.router";
 import { llmRouter } from "./llm.router";
 import { cascadeRouter } from "./cascade.router";
+import { adminRouter } from "./admin.router";
 
 export const appRouter = router({
   system: systemRouter,
@@ -33,6 +34,7 @@ export const appRouter = router({
   apify: apifyRouter,
   llm: llmRouter,
   cascade: cascadeRouter,
+  admin: adminRouter,
 });
 
 export type AppRouter = typeof appRouter;
