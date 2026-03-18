@@ -2403,7 +2403,9 @@ export default function Home() {
           {/* Body */}
           <main className="flex-1 px-3 sm:px-6 py-4 sm:py-6 overflow-auto">
             {/* Stats strip */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6 relative overflow-hidden rounded-xl p-1">
+              {/* Aurora glow background */}
+              <div className="absolute inset-0 -z-10 opacity-[0.08] blur-2xl" style={{ backgroundSize: '200% 200%', backgroundImage: 'linear-gradient(135deg, var(--color-primary), var(--color-accent), var(--color-primary))', animation: 'aurora 8s ease-in-out infinite alternate' }} />
               <StatCard label="Authors" value={STATS.totalAuthors} icon={Users} />
               <StatCard label="Books" value={STATS.totalBooks} icon={BookOpen} />
               <StatCard label="Audiobooks" value={AUDIO_BOOKS.length} icon={Headphones} />

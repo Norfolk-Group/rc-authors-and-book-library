@@ -301,6 +301,7 @@ export function FlowbiteAuthorCard({
 
   // ── HOTSPOT 2: Book modal ──
   const [activeBook, setActiveBook] = useState<BookModalBook | null>(null);
+  const [isTilting, setIsTilting] = useState(false);
   const handleBookClick = useCallback((b: BookModalBook) => {
     setActiveBook(b);
   }, []);
@@ -351,8 +352,8 @@ export function FlowbiteAuthorCard({
     <>
       <motion.div
         ref={ref}
-        onMouseMove={handleMouseMove}
-        onMouseLeave={handleMouseLeave}
+        onMouseMove={(e) => { handleMouseMove(e); setIsTilting(true); }}
+        onMouseLeave={() => { handleMouseLeave(); setIsTilting(false); }}
         className="card-animate group h-full"
         style={{ rotateX, rotateY, scale, willChange: "transform" }}
       >
@@ -363,7 +364,7 @@ export function FlowbiteAuthorCard({
          */}
         <Card
           onClick={() => onBioClick(author)}
-          className="
+          className={`
             h-full overflow-hidden relative !p-0
             bg-card text-card-foreground
             border border-border rounded-2xl
@@ -372,7 +373,8 @@ export function FlowbiteAuthorCard({
             flex flex-col items-stretch justify-start
             cursor-pointer
             card-lift
-          "
+            ${isTilting ? 'tilt-shadow-active' : ''}
+          `}
         >
           {/* Category watermark — 3D tilt on card hover */}
           <div
