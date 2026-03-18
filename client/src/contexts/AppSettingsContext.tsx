@@ -106,8 +106,10 @@ export function AppSettingsProvider({ children }: { children: React.ReactNode })
     );
     // Apply named theme class
     root.classList.add(`theme-${settings.theme}`);
-    // Apply color mode (.dark used by Tailwind + shadcn)
-    if (settings.colorMode === "dark") {
+    // Noir Dark is a light-background monochrome theme — never add .dark
+    // Adding .dark would activate Flowbite's dark:bg-gray-800 and break the white bg
+    const effectiveColorMode = settings.theme === "noir-dark" ? "light" : settings.colorMode;
+    if (effectiveColorMode === "dark") {
       root.classList.add("dark");
     }
     // Persist

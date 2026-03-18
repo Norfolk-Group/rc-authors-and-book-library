@@ -1020,7 +1020,7 @@ export default function Admin() {
                     <button
                       key={t.id}
                       onClick={() => {
-                        const colorMode = t.id === "manus" ? ("light" as const) : ("dark" as const);
+                        const colorMode = t.id === "norfolk-ai" ? ("dark" as const) : ("light" as const);
                         updateSettings({ theme: t.id, colorMode });
                       }}
                       className={`p-3 rounded-lg border-2 text-left transition-all ${
