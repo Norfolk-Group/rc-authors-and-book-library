@@ -10,7 +10,7 @@ import { Modal, ModalBody, ModalHeader } from "flowbite-react";
 import {
   BookOpen, FileText, AlignLeft, Book, File, Video, Image,
   Package, Scroll, Newspaper, Link, List, Folder, ExternalLink,
-  ShoppingCart, RefreshCw, Camera,
+  ShoppingCart, RefreshCw, Camera, X,
 } from "lucide-react";
 import { CONTENT_TYPE_ICONS } from "@/lib/libraryData";
 import { trpc } from "@/lib/trpc";
@@ -141,6 +141,15 @@ export function BookModal({ book, onClose }: BookModalProps) {
           </ModalHeader>
           <ModalBody>
             <div className="flex flex-col gap-4 text-sm">
+              {/* Prominent close button — top right */}
+              <button
+                onClick={onClose}
+                className="absolute top-3 right-3 z-10 w-9 h-9 rounded-lg bg-muted/80 hover:bg-muted flex items-center justify-center shadow-sm border border-border transition-all hover:scale-105 active:scale-95"
+                aria-label="Close"
+                title="Close (Esc)"
+              >
+                <X className="w-5 h-5 text-foreground" />
+              </button>
               {/* Cover + meta row */}
               <div className="flex items-start gap-4">
                 {coverUrl ? (
@@ -240,6 +249,14 @@ export function BookModal({ book, onClose }: BookModalProps) {
                   </div>
                 </>
               )}
+              {/* Close button at bottom */}
+              <div className="h-px bg-border" />
+              <button
+                onClick={onClose}
+                className="w-full py-2.5 rounded-lg bg-muted hover:bg-muted/80 text-sm font-medium text-foreground transition-all shadow-sm border border-border hover:shadow-md active:scale-[0.98]"
+              >
+                Close
+              </button>
             </div>
           </ModalBody>
         </>

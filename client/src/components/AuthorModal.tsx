@@ -10,7 +10,7 @@ import { useRef, useEffect, useState } from "react";
 import { Modal, ModalBody, ModalHeader } from "flowbite-react";
 import {
   Briefcase, Brain, Handshake, Users2, Zap, MessageCircle,
-  Cpu, TrendingUp, BookMarked, Globe, Twitter, Linkedin, RefreshCw, Search,
+  Cpu, TrendingUp, BookMarked, Globe, Twitter, Linkedin, RefreshCw, Search, X,
 } from "lucide-react";
 import { getAuthorPhoto } from "@/lib/authorPhotos";
 import { canonicalName } from "@/lib/authorAliases";
@@ -112,6 +112,15 @@ export function AuthorModal({ author, photoUrl: photoOverride, onClose }: Author
           </ModalHeader>
           <ModalBody>
             <div className="flex flex-col gap-4 text-sm">
+              {/* Prominent close button — top right */}
+              <button
+                onClick={onClose}
+                className="absolute top-3 right-3 z-10 w-9 h-9 rounded-lg bg-muted/80 hover:bg-muted flex items-center justify-center shadow-sm border border-border transition-all hover:scale-105 active:scale-95"
+                aria-label="Close"
+                title="Close (Esc)"
+              >
+                <X className="w-5 h-5 text-foreground" />
+              </button>
               {/* Author header: photo + category + specialty */}
               <div className="flex items-center gap-3">
                 <div className="relative flex-shrink-0">
@@ -223,6 +232,14 @@ export function AuthorModal({ author, photoUrl: photoOverride, onClose }: Author
                   </div>
                 </>
               )}
+              {/* Close button at bottom */}
+              <div className="h-px bg-border" />
+              <button
+                onClick={onClose}
+                className="w-full py-2.5 rounded-lg bg-muted hover:bg-muted/80 text-sm font-medium text-foreground transition-all shadow-sm border border-border hover:shadow-md active:scale-[0.98]"
+              >
+                Close
+              </button>
             </div>
           </ModalBody>
         </>

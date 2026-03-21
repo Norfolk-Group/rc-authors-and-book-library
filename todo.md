@@ -729,3 +729,14 @@
 - [x] Write claude.md master documentation (architecture, pipelines, data storage, UI, themes)
 - [x] Write/update skills documentation with enrichment cascade details
 - [x] Commit, push to GitHub, save checkpoint
+
+## Session March 21, 2026 — Exit Buttons on All Info Panels
+
+- [x] Audit all modals, dialogs, and info panels for missing exit/close buttons
+- [x] Add visible exit/close button to Author Bio modal (prominent X top-right + Close button at bottom)
+- [x] Add visible exit/close button to Book Detail dialog (prominent X top-right + Close button at bottom)
+- [x] Add visible exit/close button to Cover Lightbox (already had X button + backdrop click + Escape)
+- [x] Add visible exit/close button to Avatar Crop modal (already had Cancel button + X + Escape)
+- [x] Add visible exit/close button to any other overlay panels (AlertDialog in Admin already had Cancel; ManusDialog already had X)
+- [x] Ensure Escape key closes all overlays (all 6 components support Escape)
+- [x] Run tests, save checkpoint, push to GitHub
