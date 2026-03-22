@@ -81,7 +81,7 @@ import {
 
 type TabType = "authors" | "books" | "audio";
 type AuthorSort = "name-asc" | "name-desc" | "books-desc" | "category" | "quality-desc";
-type BookSort = "name-asc" | "name-desc" | "author" | "content-desc";
+type BookSort = "name-asc" | "name-desc" | "author" | "content-desc" | "enrich-desc";
 
 /**
  * Normalise a raw book name into a stable lookup key.
@@ -259,6 +259,7 @@ export default function Home() {
   const clearFilters = useCallback(() => {
     setSelectedCategories(new Set());
     setQuery("");
+    setEnrichFilter("all");
   }, []);
 
   // --- Filtered + sorted data ---
@@ -367,6 +368,16 @@ export default function Home() {
           return aA.localeCompare(bA) || a.name.localeCompare(b.name);
         }
         case "content-desc": return Object.keys(b.contentTypes).length - Object.keys(a.contentTypes).length;
+        case "enrich-desc": {
+          const enrichOrder: Record<string, number> = { complete: 3, enriched: 2, basic: 1, none: 0 };
+          const tkA = normalizeTitleKey(a.name);
+          const tkB = normalizeTitleKey(b.name);
+          const profA = bookCoversQuery.data?.find((p) => p.bookTitle.replace(/[?!.,;:]+$/, "").toLowerCase() === tkA) ?? null;
+          const profB = bookCoversQuery.data?.find((p) => p.bookTitle.replace(/[?!.,;:]+$/, "").toLowerCase() === tkB) ?? null;
+          const lvA = getBookEnrichmentLevel(profA as Parameters<typeof getBookEnrichmentLevel>[0]);
+          const lvB = getBookEnrichmentLevel(profB as Parameters<typeof getBookEnrichmentLevel>[0]);
+          return (enrichOrder[lvB] ?? 0) - (enrichOrder[lvA] ?? 0) || a.name.localeCompare(b.name);
+        }
         default: return a.name.localeCompare(b.name);
       }
     });
@@ -392,7 +403,15 @@ export default function Home() {
     return counts;
   }, []);
 
-  const hasFilters = selectedCategories.size > 0 || query.length > 0;
+  const hasFilters = selectedCategories.size > 0 || query.length > 0 || enrichFilter !== "all";
+
+  // Label map for enrichment filter chips in the active-filters strip
+  const ENRICH_LABELS: Record<string, { label: string; color: string; bg: string }> = {
+    complete: { label: "Fully Enriched",    color: "#d97706", bg: "#fef3c7" },
+    enriched: { label: "Well Enriched",     color: "#059669", bg: "#d1fae5" },
+    basic:    { label: "Partially Enriched",color: "#0284c7", bg: "#e0f2fe" },
+    none:     { label: "Basic",             color: "#6b7280", bg: "#f3f4f6" },
+  };
   const showCategoryFilter = activeTab !== "audio";
 
   return (
@@ -613,6 +632,15 @@ export default function Home() {
                     </Badge>
                   );
                 })}
+                {enrichFilter !== "all" && (() => {
+                  const e = ENRICH_LABELS[enrichFilter];
+                  return e ? (
+                    <Badge variant="secondary" className="gap-1 text-xs" style={{ borderColor: e.color, color: e.color, backgroundColor: e.bg }}>
+                      {e.label}
+                      <button onClick={() => setEnrichFilter("all")}><X className="w-3 h-3" /></button>
+                    </Badge>
+                  ) : null;
+                })()}
                 <button onClick={clearFilters} className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2">Clear all</button>
               </div>
             )}
@@ -649,6 +677,7 @@ export default function Home() {
                         <SelectItem value="name-desc">Title Z to A</SelectItem>
                         <SelectItem value="author">Author</SelectItem>
                         <SelectItem value="content-desc">Most Content</SelectItem>
+                        <SelectItem value="enrich-desc">Enrichment Level</SelectItem>
                       </SelectContent>
                     </Select>
                   )}

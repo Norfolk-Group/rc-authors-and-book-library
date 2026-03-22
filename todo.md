@@ -1370,3 +1370,9 @@ Live URL: https://authlib-ehsrgokn.manus.space
 ## Session March 22, 2026 — Bug Fix
 
 - [x] Fix duplicate book cards caused by punctuation mismatch in title key deduplication (e.g. "Do You Talk Funny" vs "Do You Talk Funny?")
+
+## Session March 22, 2026 — Books Tab UX Improvements
+
+- [x] Add "Sort by Enrichment Level" to Books tab sort dropdown (Fully Enriched first)
+- [x] Add active-filters strip to Books tab showing enrichment chip with ✕ clear button alongside category badges
+- [x] Schedule daily Enrich All Books pipeline run via cron (triggered manually; pipeline skips already-enriched books within 30 days)
