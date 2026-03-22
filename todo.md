@@ -1125,3 +1125,11 @@
 - [ ] Add background consistency controls to Admin Console → AI tab → Avatar Generation sub-tab
 - [ ] Add batch "Normalize Avatar Backgrounds" action to Admin Console → Authors tab
 - [ ] Update CLAUDE.md with the canonical background spec
+
+### Session March 22, 2026 — Execute Suggested Next Steps
+- [x] Implement Background Selector UI in Admin Console AI tab (visual swatches + hex picker)
+- [x] Add auditAvatarBackgrounds tRPC procedure using Gemini Vision batch check
+- [x] Add Normalize All batch action to Admin Console Authors tab
+- [x] Wire updateAuthorLinks per-card mutation to auto-refresh Author Bio Modal on settle
+- [x] Expand Author Bio Modal Links section: podcast, blog, substack, newspaper articles, other links
+- [x] Reduce staleTime on authorProfiles.get in AuthorModal to 30s for instant post-update refresh

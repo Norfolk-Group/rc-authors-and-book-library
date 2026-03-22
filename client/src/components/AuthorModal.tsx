@@ -16,6 +16,7 @@ import {
 import {
   Briefcase, Brain, Handshake, Users2, Zap, MessageCircle,
   Cpu, TrendingUp, BookMarked, Globe, Twitter, Linkedin, RefreshCw, Search, X,
+  Mic, Rss, Newspaper, ExternalLink, BookOpen,
 } from "lucide-react";
 import { getAuthorAvatar } from "@/lib/authorAvatars";
 import { canonicalName } from "@/lib/authorAliases";
@@ -78,7 +79,11 @@ export function AuthorModal({ author, avatarUrl: photoOverride, onClose }: Autho
 
   const { data: profile, isLoading } = trpc.authorProfiles.get.useQuery(
     { authorName: displayName },
-    { enabled: open && !jsonBio, staleTime: 5 * 60 * 1000 }
+    {
+      enabled: open,
+      // Short staleTime so the modal always shows fresh data after an Update Links action
+      staleTime: 30 * 1000,
+    }
   );
 
   const enrichMutation = trpc.authorProfiles.enrich.useMutation();
@@ -193,7 +198,11 @@ export function AuthorModal({ author, avatarUrl: photoOverride, onClose }: Autho
               </div>
 
               {/* Links */}
-              {profile && (profile.websiteUrl || profile.twitterUrl || profile.linkedinUrl) && (
+              {profile && (
+                profile.websiteUrl || profile.twitterUrl || profile.linkedinUrl ||
+                profile.podcastUrl || profile.blogUrl || profile.substackUrl ||
+                profile.newspaperArticlesJson || profile.otherLinksJson
+              ) && (
                 <>
                   <div className="h-px bg-border" />
                   <div>
@@ -202,38 +211,71 @@ export function AuthorModal({ author, avatarUrl: photoOverride, onClose }: Autho
                     </p>
                     <div className="flex flex-col gap-1.5">
                       {profile.websiteUrl && (
-                        <a
-                          href={profile.websiteUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 text-xs text-primary hover:underline"
-                        >
+                        <a href={profile.websiteUrl} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-xs text-primary hover:underline">
                           <Globe className="w-3.5 h-3.5 flex-shrink-0" />
                           {profile.websiteUrl.replace(/^https?:\/\/(www\.)?/, "")}
                         </a>
                       )}
                       {profile.twitterUrl && (
-                        <a
-                          href={profile.twitterUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 text-xs text-primary hover:underline"
-                        >
+                        <a href={profile.twitterUrl} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-xs text-primary hover:underline">
                           <Twitter className="w-3.5 h-3.5 flex-shrink-0" />
                           Twitter / X
                         </a>
                       )}
                       {profile.linkedinUrl && (
-                        <a
-                          href={profile.linkedinUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 text-xs text-primary hover:underline"
-                        >
+                        <a href={profile.linkedinUrl} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-xs text-primary hover:underline">
                           <Linkedin className="w-3.5 h-3.5 flex-shrink-0" />
                           LinkedIn
                         </a>
                       )}
+                      {profile.podcastUrl && (
+                        <a href={profile.podcastUrl} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-xs text-primary hover:underline">
+                          <Mic className="w-3.5 h-3.5 flex-shrink-0" />
+                          Podcast
+                        </a>
+                      )}
+                      {profile.blogUrl && (
+                        <a href={profile.blogUrl} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-xs text-primary hover:underline">
+                          <BookOpen className="w-3.5 h-3.5 flex-shrink-0" />
+                          Blog
+                        </a>
+                      )}
+                      {profile.substackUrl && (
+                        <a href={profile.substackUrl} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-xs text-primary hover:underline">
+                          <Rss className="w-3.5 h-3.5 flex-shrink-0" />
+                          Substack
+                        </a>
+                      )}
+                      {profile.newspaperArticlesJson && (() => {
+                        try {
+                          const articles = JSON.parse(profile.newspaperArticlesJson) as { title: string; url: string }[];
+                          return articles.slice(0, 3).map((a, i) => (
+                            <a key={i} href={a.url} target="_blank" rel="noopener noreferrer"
+                              className="flex items-center gap-2 text-xs text-primary hover:underline">
+                              <Newspaper className="w-3.5 h-3.5 flex-shrink-0" />
+                              <span className="truncate">{a.title}</span>
+                            </a>
+                          ));
+                        } catch { return null; }
+                      })()}
+                      {profile.otherLinksJson && (() => {
+                        try {
+                          const others = JSON.parse(profile.otherLinksJson) as { title: string; url: string }[];
+                          return others.slice(0, 2).map((l, i) => (
+                            <a key={i} href={l.url} target="_blank" rel="noopener noreferrer"
+                              className="flex items-center gap-2 text-xs text-primary hover:underline">
+                              <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" />
+                              <span className="truncate">{l.title}</span>
+                            </a>
+                          ));
+                        } catch { return null; }
+                      })()}
                     </div>
                   </div>
                 </>

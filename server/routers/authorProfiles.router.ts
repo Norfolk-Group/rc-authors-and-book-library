@@ -746,6 +746,123 @@ export const authorProfilesRouter = router({
     }),
 
   /**
+   * Audit all author avatars using Gemini Vision to detect which ones do NOT
+   * have the canonical bokeh-gold background. Returns a list of authors whose
+   * avatars need to be regenerated.
+   */
+  auditAvatarBackgrounds: publicProcedure
+    .input(z.object({ targetBgDescription: z.string().default("bokeh-gold warm golden bokeh") }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) return { audited: 0, mismatch: [], error: "No DB" };
+
+      // Fetch all authors with an avatar URL
+      const rows = await db
+        .select({
+          authorName: authorProfiles.authorName,
+          s3AvatarUrl: authorProfiles.s3AvatarUrl,
+          avatarUrl: authorProfiles.avatarUrl,
+        })
+        .from(authorProfiles);
+
+      const withAvatars = rows.filter((r) => r.s3AvatarUrl || r.avatarUrl);
+      if (withAvatars.length === 0) return { audited: 0, mismatch: [], error: null };
+
+      // Use Gemini Vision to batch-check backgrounds (5 at a time to avoid rate limits)
+      const { invokeLLM } = await import("../_core/llm");
+      const mismatch: string[] = [];
+      const BATCH = 5;
+
+      for (let i = 0; i < withAvatars.length; i += BATCH) {
+        const batch = withAvatars.slice(i, i + BATCH);
+        await Promise.allSettled(
+          batch.map(async (row) => {
+            const url = row.s3AvatarUrl ?? row.avatarUrl ?? "";
+            if (!url) return;
+            try {
+              const resp = await invokeLLM({
+                messages: [
+                  {
+                    role: "user",
+                    content: [
+                      {
+                        type: "image_url",
+                        image_url: { url, detail: "low" },
+                      },
+                      {
+                        type: "text",
+                        text: `Does this avatar image have a background that matches "${input.targetBgDescription}"? Reply with only YES or NO.`,
+                      },
+                    ],
+                  },
+                ],
+              });
+              const rawContent = resp?.choices?.[0]?.message?.content;
+              const answer = (typeof rawContent === "string" ? rawContent : "").trim().toUpperCase();
+              if (answer.startsWith("NO")) {
+                mismatch.push(row.authorName);
+              }
+            } catch {
+              // Skip authors where vision check fails
+            }
+          })
+        );
+      }
+
+      return { audited: withAvatars.length, mismatch, error: null };
+    }),
+
+  /**
+   * Regenerate avatars for a specific list of authors using the current
+   * background color setting. Used by the "Normalize All" batch action.
+   */
+  normalizeAvatarBackgrounds: publicProcedure
+    .input(
+      z.object({
+        authorNames: z.array(z.string()),
+        bgColor: z.string().default("#c8960c"),
+        avatarGenVendor: z.string().default("google"),
+        avatarGenModel: z.string().default("nano-banana"),
+        avatarResearchVendor: z.string().default("google"),
+        avatarResearchModel: z.string().default("gemini-2.5-flash"),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) return { total: input.authorNames.length, normalized: 0, failed: 0 };
+
+      let normalized = 0;
+      let failed = 0;
+
+      for (const authorName of input.authorNames) {
+        try {
+          const result = await processAuthorAvatarWaterfall(authorName, {
+            avatarBgColor: input.bgColor,
+            avatarGenVendor: input.avatarGenVendor,
+            avatarGenModel: input.avatarGenModel,
+            avatarResearchVendor: input.avatarResearchVendor,
+            avatarResearchModel: input.avatarResearchModel,
+            minTier: 5, // Force AI regeneration, skip Wikipedia/Tavily/Apify
+          });
+          const finalUrl = result.s3AvatarUrl ?? result.avatarUrl;
+          if (finalUrl) {
+            await db
+              .update(authorProfiles)
+              .set({ s3AvatarUrl: finalUrl })
+              .where(eq(authorProfiles.authorName, authorName));
+            normalized++;
+          } else {
+            failed++;
+          }
+        } catch {
+          failed++;
+        }
+      }
+
+      return { total: input.authorNames.length, normalized, failed };
+    }),
+
+  /**
    * Returns a lightweight map of authorName -> best avatar URL for all profiles
    * that have an avatar stored in S3. Used by the frontend as a DB-first fallback
    * over the static AUTHOR_AVATARS map, so AI-generated avatars appear on cards.

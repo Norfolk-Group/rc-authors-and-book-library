@@ -289,6 +289,8 @@ export default function Admin() {
   const mirrorAvatarsMutation = trpc.authorProfiles.mirrorAvatars.useMutation();
   const updateAllAuthorLinksMutation = trpc.authorProfiles.updateAllAuthorLinks.useMutation();
   const updateAllBookSummariesMutation = trpc.bookProfiles.updateAllBookSummaries.useMutation();
+  const auditAvatarBackgroundsMutation = trpc.authorProfiles.auditAvatarBackgrounds.useMutation();
+  const normalizeAvatarBackgroundsMutation = trpc.authorProfiles.normalizeAvatarBackgrounds.useMutation();
 
   // -- Action states --
   const [regenerateState, setRegenerateState] = useState<ActionState>(INITIAL_STATE);
@@ -300,6 +302,9 @@ export default function Admin() {
   const [mirrorAvatarsState, setMirrorAvatarsState] = useState<ActionState>(INITIAL_STATE);
   const [updateLinksState, setUpdateLinksState] = useState<ActionState>(INITIAL_STATE);
   const [updateBookSummariesState, setUpdateBookSummariesState] = useState<ActionState>(INITIAL_STATE);
+  const [auditBgState, setAuditBgState] = useState<ActionState>(INITIAL_STATE);
+  const [normalizeBgState, setNormalizeBgState] = useState<ActionState>(INITIAL_STATE);
+  const [bgMismatchList, setBgMismatchList] = useState<string[]>([]);
 
   // -- Research Cascade stats --
   const authorStats = trpc.cascade.authorStats.useQuery(undefined, { staleTime: 60_000 });
@@ -319,6 +324,8 @@ export default function Admin() {
     mirrorAvatarsState,
     updateLinksState,
     updateBookSummariesState,
+    auditBgState,
+    normalizeBgState,
   ].some((s) => s.status === "running");
 
   const recordAction = useCallback(
@@ -764,6 +771,77 @@ export default function Admin() {
     }
   }, [updateBookSummariesState.status, updateAllBookSummariesMutation, settings, utils, recordAction]);
 
+  // -- 10. Audit Avatar Backgrounds --
+  const handleAuditAvatarBackgrounds = useCallback(async () => {
+    if (auditBgState.status === "running") return;
+    setAuditBgState({ ...INITIAL_STATE, status: "running", message: "Scanning avatars with Gemini Vision..." });
+    setBgMismatchList([]);
+    const start = Date.now();
+    try {
+      const result = await auditAvatarBackgroundsMutation.mutateAsync({
+        targetBgDescription: "bokeh-gold warm golden bokeh with amber and cream light orbs",
+      });
+      setBgMismatchList(result.mismatch ?? []);
+      setAuditBgState({
+        status: "done",
+        progress: 100,
+        message: `${result.audited} audited, ${result.mismatch.length} need normalization`,
+        done: result.audited - result.mismatch.length,
+        total: result.audited,
+        failed: result.mismatch.length,
+      });
+      if (result.mismatch.length === 0) {
+        toast.success("All avatars already have the canonical bokeh-gold background!");
+      } else {
+        toast.info(`${result.mismatch.length} avatars need background normalization.`);
+      }
+      await recordAction("audit-avatar-backgrounds", "Audit Avatar Backgrounds", start, "success", result.audited);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setAuditBgState((s) => ({ ...s, status: "error", message: msg }));
+      toast.error("Avatar background audit failed: " + msg);
+      await recordAction("audit-avatar-backgrounds", "Audit Avatar Backgrounds", start, `error: ${msg}`);
+    }
+  }, [auditBgState.status, auditAvatarBackgroundsMutation, recordAction]);
+
+  // -- 11. Normalize Avatar Backgrounds --
+  const handleNormalizeAvatarBackgrounds = useCallback(async () => {
+    if (normalizeBgState.status === "running") return;
+    const targets = bgMismatchList.length > 0 ? bgMismatchList : [];
+    if (targets.length === 0) {
+      toast.info("Run the audit first to identify which avatars need normalization.");
+      return;
+    }
+    setNormalizeBgState({ ...INITIAL_STATE, status: "running", message: `Normalizing ${targets.length} avatars...`, total: targets.length });
+    const start = Date.now();
+    try {
+      const result = await normalizeAvatarBackgroundsMutation.mutateAsync({
+        authorNames: targets,
+        bgColor: settings.avatarBgColor ?? "#c8960c",
+        avatarGenVendor: settings.avatarGenVendor,
+        avatarGenModel: settings.avatarGenModel,
+        avatarResearchVendor: settings.avatarResearchVendor,
+        avatarResearchModel: settings.avatarResearchModel,
+      });
+      setNormalizeBgState({
+        status: "done",
+        progress: 100,
+        message: `${result.normalized} normalized, ${result.failed} failed`,
+        done: result.normalized,
+        total: result.total,
+        failed: result.failed,
+      });
+      toast.success(`Normalized ${result.normalized} avatar backgrounds.`);
+      void utils.authorProfiles.getAvatarMap.invalidate();
+      await recordAction("normalize-avatar-backgrounds", "Normalize Avatar Backgrounds", start, "success", result.normalized);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setNormalizeBgState((s) => ({ ...s, status: "error", message: msg }));
+      toast.error("Avatar normalization failed: " + msg);
+      await recordAction("normalize-avatar-backgrounds", "Normalize Avatar Backgrounds", start, `error: ${msg}`);
+    }
+  }, [normalizeBgState.status, normalizeAvatarBackgroundsMutation, bgMismatchList, settings, utils, recordAction]);
+
   // -- Stats for Research Cascade --
   const aStats = authorStats.data;
   const bStats = bookStats.data;
@@ -891,6 +969,41 @@ export default function Admin() {
               onRun={handleMirrorPhotos}
               buttonLabel="Mirror Avatars"
               disabled={anyRunning}
+            />
+            <ActionCard
+              title="Audit Avatar Backgrounds"
+              description="Use Gemini Vision to scan all author avatars and identify which ones do not have the canonical bokeh-gold background. Run this before Normalize All."
+              icon={Sparkles}
+              actionKey="audit-avatar-backgrounds"
+              state={auditBgState}
+              lastRun={getLastRun("audit-avatar-backgrounds")}
+              onRun={handleAuditAvatarBackgrounds}
+              buttonLabel="Audit Backgrounds"
+              disabled={anyRunning}
+            />
+            {bgMismatchList.length > 0 && (
+              <div className="px-3 py-2 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 text-xs">
+                <p className="font-semibold text-amber-800 dark:text-amber-300 mb-1">
+                  {bgMismatchList.length} avatars need background normalization:
+                </p>
+                <p className="text-amber-700 dark:text-amber-400 line-clamp-3 font-mono text-[10px]">
+                  {bgMismatchList.join(", ")}
+                </p>
+              </div>
+            )}
+            <ActionCard
+              title="Normalize All Avatar Backgrounds"
+              description={`Re-generate avatars for all authors identified by the audit (${bgMismatchList.length > 0 ? bgMismatchList.length + " queued" : "run audit first"}) using the current background color from AI Settings.`}
+              icon={Zap}
+              actionKey="normalize-avatar-backgrounds"
+              state={normalizeBgState}
+              lastRun={getLastRun("normalize-avatar-backgrounds")}
+              destructive
+              confirmTitle="Normalize all avatar backgrounds?"
+              confirmDescription={`This will re-generate AI avatars for ${bgMismatchList.length} authors using the current background setting. Each avatar takes 10-30 seconds. Run the audit first to populate the list.`}
+              onRun={handleNormalizeAvatarBackgrounds}
+              buttonLabel="Normalize All"
+              disabled={anyRunning || bgMismatchList.length === 0}
             />
           </TabsContent>
 
