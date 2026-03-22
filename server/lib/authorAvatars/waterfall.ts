@@ -93,6 +93,8 @@ export interface WaterfallOptions {
   skipValidation?: boolean;
   /** Maximum tier to try (1-5). Default: 5 */
   maxTier?: number;
+  /** Minimum tier to start from (1-5). Default: 1. Set to 5 to force AI generation, skipping Wikipedia/Tavily/Apify. */
+  minTier?: number;
   /** Don't write to DB or S3 */
   dryRun?: boolean;
   /** If true and existingS3AvatarUrl is set, skip processing entirely */
@@ -169,6 +171,7 @@ export async function processAuthorAvatarWaterfall(
   const {
     skipValidation = false,
     maxTier = 5,
+    minTier = 1,
     dryRun = false,
     skipAlreadyEnriched = false,
     existingS3AvatarUrl = null,
@@ -224,7 +227,7 @@ export async function processAuthorAvatarWaterfall(
   let pipelineMetadata: AuthorAvatarWaterfallResult["__pipelineResult"] | undefined;
 
   // -- TIER 1: Wikipedia ------------------------------------------------------
-  if (!avatarUrl && maxTier >= 1) {
+  if (!avatarUrl && maxTier >= 1 && minTier <= 1) {
     tier = 1;
     const t1Start = Date.now();
     console.log(`[Avatar T1] Wikipedia -> ${primaryName}`);
@@ -246,7 +249,7 @@ export async function processAuthorAvatarWaterfall(
   }
 
   // -- TIER 2: Tavily ---------------------------------------------------------
-  if (!avatarUrl && maxTier >= 2) {
+  if (!avatarUrl && maxTier >= 2 && minTier <= 2) {
     tier = 2;
     const t2Start = Date.now();
     console.log(`[Avatar T2] Tavily -> ${primaryName}`);
@@ -268,7 +271,7 @@ export async function processAuthorAvatarWaterfall(
   }
 
   // -- TIER 3: Apify ----------------------------------------------------------
-  if (!avatarUrl && maxTier >= 3) {
+  if (!avatarUrl && maxTier >= 3 && minTier <= 3) {
     tier = 3;
     const t3Start = Date.now();
     console.log(`[Avatar T3] Apify -> ${primaryName}`);
@@ -290,7 +293,7 @@ export async function processAuthorAvatarWaterfall(
   }
 
   // -- TIER 5: Meticulous AI Avatar Generation (research + prompt + vendor-switchable graphics LLM) ------
-  if (!avatarUrl && maxTier >= 5) {
+  if (!avatarUrl && maxTier >= 5 && minTier <= 5) {
     tier = 5;
     const t5Start = Date.now();
     console.log(`[Avatar T5] Meticulous Pipeline (${avatarGenVendor}/${avatarGenModel}) -> ${primaryName}`);

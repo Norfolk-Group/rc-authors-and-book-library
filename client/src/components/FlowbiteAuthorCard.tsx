@@ -24,6 +24,7 @@
  *   Book cover hover: scale-[1.2] - subtle, doesn't break layout.
  */
 import { useState, useCallback, useRef, useMemo } from "react";
+import { trpc } from "@/lib/trpc";
 import {
   Tooltip,
   TooltipContent,
@@ -50,6 +51,7 @@ import {
 } from "@/lib/libraryData";
 import { AuthorModal } from "@/components/AuthorModal";
 import { BookModal, type BookModalBook } from "@/components/BookModal";
+import { AuthorCardActions } from "@/components/AuthorCardActions";
 import {
   ICON_MAP,
   CT_ICON_MAP,
@@ -226,6 +228,7 @@ export function FlowbiteAuthorCard({
   }, [author.books]);
 
   const { ref } = useCardHover();
+  const utils = trpc.useUtils();
 
   // Bio tooltip: first 200 chars, trimmed at sentence boundary if possible
   const bioSnippet = useMemo(() => {
@@ -295,8 +298,8 @@ export function FlowbiteAuthorCard({
                   {author.category}
                 </p>
               </div>
-              {/* Bio-ready dot - always rendered to keep row height constant */}
-              <div className="shrink-0 h-[20px] flex items-center">
+              {/* Right side: Bio-ready dot + actions menu */}
+              <div className="shrink-0 h-[20px] flex items-center gap-1.5">
                 {isEnriched ? (
                   <span
                     title="Bio ready"
@@ -306,6 +309,13 @@ export function FlowbiteAuthorCard({
                 ) : (
                   <span className="w-2 h-2" aria-hidden />
                 )}
+                {/* Per-card action menu — visible on card hover */}
+                <AuthorCardActions
+                  authorName={displayName}
+                  hasAvatar={!!avatarUrl}
+                  onBioUpdated={() => void utils.authorProfiles.getAllBios.invalidate()}
+                  onLinksUpdated={() => void utils.authorProfiles.get.invalidate({ authorName: displayName })}
+                />
               </div>
             </div>
 

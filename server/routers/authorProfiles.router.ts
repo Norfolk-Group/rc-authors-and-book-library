@@ -519,66 +519,73 @@ export const authorProfilesRouter = router({
       avatarResearchVendor: z.string().optional(),
       /** Avatar Generation — Research LLM model ID for meticulous pipeline */
       avatarResearchModel: z.string().optional(),
+      /** If true, skip Wikipedia/Tavily/Apify and go straight to Tier 5 meticulous AI generation */
+      forceRegenerate: z.boolean().optional(),
     }))
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database unavailable");
 
-      const slug = input.authorName
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)/g, "");
+      // Use the full meticulous waterfall pipeline (Tier 5) which runs:
+      //   Wikipedia + Tavily + Apify research → Gemini Vision analysis → AuthorDescription JSON
+      //   → meticulous prompt → configurable graphics LLM (Nano Banana / Replicate)
+      const { processAuthorAvatarWaterfall } = await import("../lib/authorAvatars/waterfall");
+      const result = await processAuthorAvatarWaterfall(input.authorName, {
+        maxTier: 5,
+        // forceRegenerate=true skips Tiers 1-3 and goes straight to Tier 5 meticulous pipeline
+        minTier: input.forceRegenerate ? 5 : 1,
+        skipValidation: true,
+        avatarGenVendor: input.avatarGenVendor ?? "google",
+        avatarGenModel: input.avatarGenModel ?? "nano-banana",
+        avatarResearchVendor: input.avatarResearchVendor ?? "google",
+        avatarResearchModel: input.avatarResearchModel ?? "gemini-2.5-flash",
+        avatarBgColor: input.bgColor,
+      });
 
-      const useGoogleImagen =
-        input.avatarGenVendor === "google" ||
-        (input.avatarGenModel && (
-          input.avatarGenModel.startsWith("gemini-") ||
-          input.avatarGenModel.startsWith("nano-banana")
-        ));
-
-      let buffer: Buffer;
-      let mimeType: string;
-
-      if (useGoogleImagen) {
-        // Route to Google Imagen / Nano Banana
-        const { generateGoogleImagenPortrait, NANO_BANANA_MODELS, DEFAULT_NANO_BANANA_MODEL } =
-          await import("../lib/authorAvatars/googleImagenGeneration");
-        // Resolve model: if caller passed a friendly key (e.g. "nano-banana"), map it; otherwise use as-is
-        const resolvedModel =
-          (input.avatarGenModel && NANO_BANANA_MODELS[input.avatarGenModel])
-            ? NANO_BANANA_MODELS[input.avatarGenModel]
-            : (input.avatarGenModel ?? DEFAULT_NANO_BANANA_MODEL);
-        const generated = await generateGoogleImagenPortrait(
-          input.authorName,
-          input.bgColor,
-          resolvedModel,
-        );
-        if (!generated) throw new Error("Google Imagen avatar generation failed - please try again");
-        buffer = generated.buffer;
-        mimeType = generated.mimeType;
-      } else {
-        // Default: Replicate flux-schnell
-        const { generateAIAvatar } = await import("../lib/authorAvatars/replicateGeneration");
-        const generated = await generateAIAvatar(input.authorName, input.bgColor);
-        if (!generated) throw new Error("Avatar generation failed - please try again");
-        // Mirror to S3 immediately (Replicate URLs expire after ~1 hour)
-        const res = await fetch(generated.url, { signal: AbortSignal.timeout(20_000) });
-        if (!res.ok) throw new Error("Failed to download generated avatar");
-        buffer = Buffer.from(await res.arrayBuffer());
-        mimeType = "image/webp";
+      if (!result || result.source === "failed" || (!result.avatarUrl && !result.s3AvatarUrl)) {
+        throw new Error("Avatar generation failed — meticulous pipeline returned no image. Please try again.");
       }
 
-      const ext = mimeType.split("/")[1]?.replace("jpeg", "jpg") ?? "webp";
-      const key = `author-avatars/ai-${slug}-${Date.now()}.${ext}`;
-      const { url } = await storagePut(key, buffer, mimeType);
+      const finalUrl = result.s3AvatarUrl ?? result.avatarUrl ?? "";
+      const finalKey = (result as unknown as Record<string, unknown>).s3AvatarKey as string ?? "";
 
-      // Persist to DB - AI-generated avatar
+      // Persist to DB
+      const avatarSourceVal =
+        result.source === "wikipedia" ? "wikipedia" as const
+        : result.source === "tavily" ? "tavily" as const
+        : result.source === "apify" ? "apify" as const
+        : "ai" as const;
+
+      const pipelineMeta = result.__pipelineResult;
+
       await db
         .update(authorProfiles)
-        .set({ avatarUrl: url, s3AvatarUrl: url, s3AvatarKey: key, enrichedAt: new Date(), avatarSource: "ai" })
+        .set({
+          avatarUrl: finalUrl,
+          s3AvatarUrl: finalUrl,
+          s3AvatarKey: finalKey,
+          enrichedAt: new Date(),
+          avatarSource: avatarSourceVal,
+          // isAiGenerated stored as tinyint in DB
+          ...(result.isAiGenerated !== undefined ? { isAiGenerated: result.isAiGenerated ? 1 : 0 } : {}),
+          avatarGenVendor: input.avatarGenVendor ?? "google",
+          avatarGenModel: input.avatarGenModel ?? "nano-banana",
+          avatarResearchVendor: input.avatarResearchVendor ?? "google",
+          avatarResearchModel: input.avatarResearchModel ?? "gemini-2.5-flash",
+          ...(pipelineMeta?.authorDescription ? { authorDescriptionJson: JSON.stringify(pipelineMeta.authorDescription) } : {}),
+          ...(pipelineMeta?.imagePrompt ? { lastAvatarPrompt: pipelineMeta.imagePrompt } : {}),
+        })
         .where(eq(authorProfiles.authorName, input.authorName));
 
-      return { url, key, isAiGenerated: true };
+      return {
+        url: finalUrl,
+        key: finalKey,
+        isAiGenerated: result.isAiGenerated,
+        source: result.source,
+        tier: result.tier,
+        authorDescription: pipelineMeta?.authorDescription,
+        prompt: pipelineMeta?.imagePrompt,
+      };
     }),
 
   // -- Upload a custom author avatar (base64) -----------------------------
@@ -627,6 +634,115 @@ export const authorProfilesRouter = router({
         .where(eq(authorProfiles.authorName, input.authorName));
 
       return { url, key };
+    }),
+
+  /**
+   * Update a single author's online links (website, Twitter, LinkedIn, podcast, blog, Substack, articles).
+   * Uses Perplexity (web-grounded) as primary, Gemini as fallback.
+   */
+  updateAuthorLinks: publicProcedure
+    .input(
+      z.object({
+        authorName: z.string().min(1),
+        researchVendor: z.string().optional(),
+        researchModel: z.string().optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database unavailable");
+      const { enrichAuthorLinks } = await import("../lib/authorLinks");
+      const result = await enrichAuthorLinks(
+        input.authorName,
+        input.researchVendor ?? "perplexity",
+        input.researchModel ?? "sonar-pro"
+      );
+      await db
+        .update(authorProfiles)
+        .set({
+          websiteUrl: result.websiteUrl,
+          twitterUrl: result.twitterUrl,
+          linkedinUrl: result.linkedinUrl,
+          podcastUrl: result.podcastUrl,
+          blogUrl: result.blogUrl,
+          substackUrl: result.substackUrl,
+          newspaperArticlesJson: result.newspaperArticles.length > 0
+            ? JSON.stringify(result.newspaperArticles)
+            : undefined,
+          otherLinksJson: result.otherLinks.length > 0
+            ? JSON.stringify(result.otherLinks)
+            : undefined,
+          lastLinksEnrichedAt: new Date(),
+          enrichedAt: new Date(),
+        })
+        .where(eq(authorProfiles.authorName, input.authorName));
+      const { source, ...linksData } = result;
+      return { success: true, source, ...linksData };
+    }),
+
+  /**
+   * Update links for all authors in the database.
+   * Processes in batches of 5 to avoid rate-limiting.
+   */
+  updateAllAuthorLinks: publicProcedure
+    .input(
+      z.object({
+        researchVendor: z.string().optional(),
+        researchModel: z.string().optional(),
+        onlyMissing: z.boolean().optional().default(true),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database unavailable");
+      const { enrichAuthorLinks } = await import("../lib/authorLinks");
+      const authors = input.onlyMissing
+        ? await db
+            .select({ authorName: authorProfiles.authorName })
+            .from(authorProfiles)
+            .where(isNull(authorProfiles.lastLinksEnrichedAt))
+        : await db
+            .select({ authorName: authorProfiles.authorName })
+            .from(authorProfiles);
+      const total = authors.length;
+      let enriched = 0;
+      let failed = 0;
+      const BATCH_SIZE = 5;
+      for (let i = 0; i < authors.length; i += BATCH_SIZE) {
+        const batch = authors.slice(i, i + BATCH_SIZE);
+        await Promise.all(
+          batch.map(async (item) => {
+            try {
+              const result = await enrichAuthorLinks(
+                item.authorName,
+                input.researchVendor ?? "perplexity",
+                input.researchModel ?? "sonar-pro"
+              );
+              await db
+                .update(authorProfiles)
+                .set({
+                  websiteUrl: result.websiteUrl,
+                  twitterUrl: result.twitterUrl,
+                  linkedinUrl: result.linkedinUrl,
+                  podcastUrl: result.podcastUrl,
+                  blogUrl: result.blogUrl,
+                  substackUrl: result.substackUrl,
+                  newspaperArticlesJson: result.newspaperArticles.length > 0
+                    ? JSON.stringify(result.newspaperArticles)
+                    : undefined,
+                  otherLinksJson: result.otherLinks.length > 0
+                    ? JSON.stringify(result.otherLinks)
+                    : undefined,
+                  lastLinksEnrichedAt: new Date(),
+                  enrichedAt: new Date(),
+                })
+                .where(eq(authorProfiles.authorName, item.authorName));
+              enriched++;
+            } catch { failed++; }
+          })
+        );
+      }
+      return { total, enriched, failed };
     }),
 
   /**

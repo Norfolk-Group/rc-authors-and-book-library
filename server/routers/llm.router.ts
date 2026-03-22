@@ -189,8 +189,8 @@ const VENDOR_CATALOGUE_RAW: LLMVendor[] = [
     logoColor: "#D97706",
     models: [
       {
-        id: "claude-opus-4",
-        displayName: "Claude Opus 4",
+        id: "claude-opus-4-5-20251101",
+        displayName: "Claude Opus 4.5",
         description: "Most capable Claude model. Best for nuanced writing and deep research.",
         contextWindow: 200000,
         outputTokens: 32000,
@@ -198,8 +198,8 @@ const VENDOR_CATALOGUE_RAW: LLMVendor[] = [
         speed: "powerful",
       },
       {
-        id: "claude-sonnet-4",
-        displayName: "Claude Sonnet 4",
+        id: "claude-sonnet-4-5-20250929",
+        displayName: "Claude Sonnet 4.5",
         description: "Best balance of speed and quality in the Claude 4 family.",
         contextWindow: 200000,
         outputTokens: 16000,
@@ -207,8 +207,8 @@ const VENDOR_CATALOGUE_RAW: LLMVendor[] = [
         speed: "balanced",
       },
       {
-        id: "claude-haiku-3-5",
-        displayName: "Claude Haiku 3.5",
+        id: "claude-haiku-4-5-20251001",
+        displayName: "Claude Haiku 4.5",
         description: "Fastest Claude model. Ideal for bulk processing and simple tasks.",
         contextWindow: 200000,
         outputTokens: 8192,
@@ -216,13 +216,31 @@ const VENDOR_CATALOGUE_RAW: LLMVendor[] = [
         speed: "fast",
       },
       {
-        id: "claude-sonnet-3-7",
-        displayName: "Claude Sonnet 3.7",
-        description: "Extended thinking model with hybrid reasoning capabilities.",
+        id: "claude-opus-4-20250514",
+        displayName: "Claude Opus 4",
+        description: "High-performance flagship model with excellent reasoning capabilities.",
         contextWindow: 200000,
-        outputTokens: 64000,
+        outputTokens: 32000,
         tier: "flagship",
         speed: "powerful",
+      },
+      {
+        id: "claude-sonnet-4-20250514",
+        displayName: "Claude Sonnet 4",
+        description: "Balanced model with strong reasoning and coding capabilities.",
+        contextWindow: 200000,
+        outputTokens: 16000,
+        tier: "balanced",
+        speed: "balanced",
+      },
+      {
+        id: "claude-3-haiku-20240307",
+        displayName: "Claude Haiku 3",
+        description: "Lightweight fast model. Good for simple tasks and bulk processing.",
+        contextWindow: 200000,
+        outputTokens: 4096,
+        tier: "lite",
+        speed: "fast",
       },
     ],
   },
@@ -498,7 +516,7 @@ const USE_CASE_CRITERIA: Record<UseCase, ScoringCriteria> = {
         "gemini-3-flash-preview": 8,
         "gpt-4o": 8,
         "llama-4-scout": 7,
-        "claude-sonnet-4": 6,
+        "claude-sonnet-4-5-20250929": 6,
         "command-r-plus": 5,
       };
       return bonuses[id] ?? 0;
@@ -516,8 +534,8 @@ const USE_CASE_CRITERIA: Record<UseCase, ScoringCriteria> = {
     modelBonus: (id) => {
       const bonuses: Record<string, number> = {
         "gemini-2.5-pro": 20,     // ★ Recommended for LLM 2
-        "claude-opus-4": 18,
-        "claude-sonnet-4": 15,
+        "claude-opus-4-5-20251101": 18,
+        "claude-sonnet-4-5-20250929": 15,
         "gemini-3.1-pro-preview": 14,
         "gpt-4o": 12,
         "o3": 10,

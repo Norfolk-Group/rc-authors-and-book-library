@@ -12,4 +12,6 @@ export const ENV = {
   geminiApiKey: process.env.GEMINI_API_KEY ?? "",
   replicateApiToken: process.env.REPLICATE_API_TOKEN ?? "",
   tavilyApiKey: process.env.TAVILY_API_KEY ?? "",
+  perplexityApiKey: process.env.PERPLEXITY_API_KEY ?? "",
+  anthropicApiKey: process.env.ANTHROPIC_API_KEY ?? "",
 };

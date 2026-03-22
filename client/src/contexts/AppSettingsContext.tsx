@@ -96,6 +96,12 @@ export interface AppSettings {
   otherAiSecondaryVendor: string;
   /** Other AI tasks: secondary model ID */
   otherAiSecondaryModel: string;
+  /** Apify: default actor ID */
+  apifyActor: string;
+  /** Replicate: default model ID */
+  replicateModel: string;
+  /** Perplexity: default research model ID */
+  perplexityModel: string;
 }
 
 interface AppSettingsContextType {
@@ -140,6 +146,10 @@ const DEFAULT_SETTINGS: AppSettings = {
   otherAiSecondaryEnabled: false,
   otherAiSecondaryVendor: "google",
   otherAiSecondaryModel: "gemini-2.5-pro",
+  // External tool defaults
+  apifyActor: "apify/cheerio-scraper",
+  replicateModel: "black-forest-labs/flux-1.1-pro",
+  perplexityModel: "sonar-pro",
 };
 
 const STORAGE_KEY = "app-settings-v2";

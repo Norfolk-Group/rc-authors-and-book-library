@@ -13,6 +13,7 @@
  */
 
 import { GoogleGenAI } from "@google/genai";
+import Anthropic from "@anthropic-ai/sdk";
 import { AuthorDescription, AuthorResearchData } from "./types.js";
 import { scrapeAuthorAvatar } from "../../apify.js";
 
@@ -306,17 +307,7 @@ export async function buildAuthorDescription(
   researchModel = "gemini-2.5-flash",
   researchVendor = "google"
 ): Promise<AuthorDescription | null> {
-  // Currently all vendors route through Gemini for structured JSON output
-  // Future: add Anthropic/OpenAI routing based on researchVendor
-  const effectiveVendor = researchVendor; // reserved for future multi-vendor support
-  void effectiveVendor; // suppress unused warning until multi-vendor routing is added
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    console.error("[authorResearcher] GEMINI_API_KEY not set");
-    return null;
-  }
-
-  // Build the user message with text bio + photo URLs
+  // Build the user message with text bio + photo URLs (shared across vendors)
   const textParts: string[] = [];
   if (research.wikiBio) {
     textParts.push(`## Wikipedia Bio\n${research.wikiBio}`);
@@ -330,9 +321,28 @@ export async function buildAuthorDescription(
   textParts.push(
     `## Task\nAnalyze the above information for "${research.authorName}" and produce a structured AuthorDescription JSON.`
   );
-
   const userMessage = textParts.join("\n\n");
 
+  // Route to the appropriate vendor
+  if (researchVendor === "anthropic") {
+    return buildAuthorDescriptionWithClaude(research, userMessage, researchModel);
+  }
+  // Default: Google Gemini
+  return buildAuthorDescriptionWithGemini(research, userMessage, researchModel);
+}
+
+// ── Gemini Vision implementation ───────────────────────────────────────────────
+
+async function buildAuthorDescriptionWithGemini(
+  research: AuthorResearchData,
+  userMessage: string,
+  researchModel = "gemini-2.5-flash"
+): Promise<AuthorDescription | null> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    console.error("[authorResearcher] GEMINI_API_KEY not set");
+    return null;
+  }
   try {
     const ai = new GoogleGenAI({ apiKey });
     const response = await ai.models.generateContent({
@@ -349,25 +359,62 @@ export async function buildAuthorDescription(
       config: {
         responseMimeType: "application/json",
         responseSchema: AUTHOR_DESCRIPTION_SCHEMA,
-        temperature: 0.2, // Low temperature for factual extraction
+        temperature: 0.2,
       },
     });
-
     const text = response.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!text) {
       console.error(`[authorResearcher] No text in Gemini response for ${research.authorName}`);
       return null;
     }
-
     const parsed = JSON.parse(text) as AuthorDescription;
-    // Ensure references are populated
-    parsed.references = {
-      photoUrls: research.allPhotoUrls,
-      textSources: research.sources,
-    };
+    parsed.references = { photoUrls: research.allPhotoUrls, textSources: research.sources };
     return parsed;
   } catch (err) {
     console.error(`[authorResearcher] Gemini analysis error for ${research.authorName}:`, err);
+    return null;
+  }
+}
+
+// ── Anthropic Claude implementation ───────────────────────────────────────────
+
+async function buildAuthorDescriptionWithClaude(
+  research: AuthorResearchData,
+  userMessage: string,
+  researchModel = "claude-3-5-sonnet-20241022"
+): Promise<AuthorDescription | null> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    console.error("[authorResearcher] ANTHROPIC_API_KEY not set — falling back to Gemini");
+    return buildAuthorDescriptionWithGemini(research, userMessage);
+  }
+  try {
+    const client = new Anthropic({ apiKey });
+    const schemaStr = JSON.stringify(AUTHOR_DESCRIPTION_SCHEMA, null, 2);
+    const systemPrompt = `${RESEARCH_SYSTEM_PROMPT}\n\nYou MUST respond with ONLY a valid JSON object matching this schema:\n${schemaStr}\n\nNo markdown, no code blocks, no explanation — raw JSON only.`;
+
+    const response = await client.messages.create({
+      model: researchModel,
+      max_tokens: 2048,
+      temperature: 0.2,
+      system: systemPrompt,
+      messages: [{ role: "user", content: userMessage }],
+    });
+
+    const textBlock = response.content.find((b) => b.type === "text");
+    if (!textBlock || textBlock.type !== "text") {
+      console.error(`[authorResearcher] No text block in Claude response for ${research.authorName}`);
+      return null;
+    }
+
+    // Strip any accidental markdown code fences
+    const raw = textBlock.text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+    const parsed = JSON.parse(raw) as AuthorDescription;
+    parsed.references = { photoUrls: research.allPhotoUrls, textSources: research.sources };
+    console.log(`[authorResearcher] Claude analysis complete for ${research.authorName}`);
+    return parsed;
+  } catch (err) {
+    console.error(`[authorResearcher] Claude analysis error for ${research.authorName}:`, err);
     return null;
   }
 }

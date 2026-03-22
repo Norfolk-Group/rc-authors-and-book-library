@@ -85,6 +85,20 @@
       "when": 1774147241480,
       "tag": "0011_perfect_sabretooth",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "5",
+      "when": 1774177617621,
+      "tag": "0012_tearful_punisher",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "5",
+      "when": 1774178385262,
+      "tag": "0013_whole_surge",
+      "breakpoints": true
     }
   ]
 }

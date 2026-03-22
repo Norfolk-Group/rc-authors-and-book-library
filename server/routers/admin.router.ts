@@ -15,6 +15,17 @@ export const adminRouter = router({
     return db.select().from(adminActionLog);
   }),
 
+  /** Get the status of configured external tools/APIs */
+  getToolStatus: publicProcedure.query(() => {
+    return {
+      apify: !!(process.env.APIFY_API_TOKEN),
+      replicate: !!(process.env.REPLICATE_API_TOKEN),
+      perplexity: !!(process.env.PERPLEXITY_API_KEY),
+      googleBooks: !!(process.env.GOOGLE_BOOKS_API_KEY),
+      tavily: !!(process.env.TAVILY_API_KEY),
+    };
+  }),
+
   /** Record an action run */
   recordAction: publicProcedure
     .input(

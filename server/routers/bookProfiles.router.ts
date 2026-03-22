@@ -259,6 +259,117 @@ export const bookProfilesRouter = router({
   }),
 
   /**
+   * Update a single book's summary using the AI enrichment pipeline.
+   * Uses Perplexity (web-grounded) as primary, Gemini as fallback.
+   */
+  updateBookSummary: publicProcedure
+    .input(
+      z.object({
+        bookTitle: z.string(),
+        authorName: z.string().optional(),
+        researchVendor: z.string().optional(),
+        researchModel: z.string().optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const { enrichBookSummary } = await import("../lib/bookSummary");
+      const result = await enrichBookSummary(
+        input.bookTitle,
+        input.authorName ?? "",
+        input.researchVendor ?? "perplexity",
+        input.researchModel ?? "sonar-pro"
+      );
+      if (!result.summary) throw new Error("Failed to generate summary");
+      await db
+        .update(bookProfiles)
+        .set({
+          summary: result.summary || undefined,
+          keyThemes: result.keyThemes || undefined,
+          rating: result.rating,
+          ratingCount: result.ratingCount,
+          publishedDate: result.publishedDate,
+          publisher: result.publisher,
+          isbn: result.isbn,
+          amazonUrl: result.amazonUrl,
+          goodreadsUrl: result.goodreadsUrl,
+          publisherUrl: result.publisherUrl,
+          summaryEnrichmentSource: result.source,
+          lastSummaryEnrichedAt: new Date(),
+          enrichedAt: new Date(),
+        })
+        .where(eq(bookProfiles.bookTitle, input.bookTitle));
+      return { success: true, source: result.source, summary: result.summary };
+    }),
+
+  /**
+   * Update summaries for all books in the database using the AI pipeline.
+   * Processes in batches of 5. Returns progress counts.
+   */
+  updateAllBookSummaries: publicProcedure
+    .input(
+      z.object({
+        researchVendor: z.string().optional(),
+        researchModel: z.string().optional(),
+        onlyMissing: z.boolean().optional().default(true),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const { enrichBookSummary } = await import("../lib/bookSummary");
+      const books = input.onlyMissing
+        ? await db
+            .select({ bookTitle: bookProfiles.bookTitle, authorName: bookProfiles.authorName })
+            .from(bookProfiles)
+            .where(or(isNull(bookProfiles.summary), eq(bookProfiles.summary, "")))
+        : await db
+            .select({ bookTitle: bookProfiles.bookTitle, authorName: bookProfiles.authorName })
+            .from(bookProfiles);
+      const total = books.length;
+      let enriched = 0;
+      let failed = 0;
+      const BATCH_SIZE = 5;
+      for (let i = 0; i < books.length; i += BATCH_SIZE) {
+        const batch = books.slice(i, i + BATCH_SIZE);
+        await Promise.all(
+          batch.map(async (item) => {
+            try {
+              const result = await enrichBookSummary(
+                item.bookTitle,
+                item.authorName ?? "",
+                input.researchVendor ?? "perplexity",
+                input.researchModel ?? "sonar-pro"
+              );
+              if (!result.summary) { failed++; return; }
+              await db
+                .update(bookProfiles)
+                .set({
+                  summary: result.summary || undefined,
+                  keyThemes: result.keyThemes || undefined,
+                  rating: result.rating,
+                  ratingCount: result.ratingCount,
+                  publishedDate: result.publishedDate,
+                  publisher: result.publisher,
+                  isbn: result.isbn,
+                  amazonUrl: result.amazonUrl,
+                  goodreadsUrl: result.goodreadsUrl,
+                  publisherUrl: result.publisherUrl,
+                  summaryEnrichmentSource: result.source,
+                  lastSummaryEnrichedAt: new Date(),
+                  enrichedAt: new Date(),
+                })
+                .where(eq(bookProfiles.bookTitle, item.bookTitle));
+              enriched++;
+            } catch { failed++; }
+          })
+        );
+      }
+      return { total, enriched, failed };
+    }),
+
+  /**
    * Enrich all books that are missing a summary.
    * Processes in batches of 5 to avoid rate-limiting.
    * Returns { total, enriched, skipped, failed } counts.

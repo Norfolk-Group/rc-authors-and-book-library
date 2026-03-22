@@ -57,7 +57,7 @@ async function uploadToGoogleDrive(
     // Folder ID: 1_sTZD5m4d7Hnb3oBHxRFXONBnFJlJqJF (Author Pictures)
     const DRIVE_FOLDER_ID = "1_sTZD5m4d7Hnb3oBHxRFXONBnFJlJqJF";
     const { stdout } = await execAsync(
-      `gws drive files create --params '{"name":"${sanitized}","parents":["${DRIVE_FOLDER_ID}"]}' --media '${tmpPath}'`
+      `gws drive files create --params '{"name":"${sanitized}","parents":["${DRIVE_FOLDER_ID}"]}' --upload '${tmpPath}' --upload-content-type 'image/png'`
     );
 
     // Clean up temp file

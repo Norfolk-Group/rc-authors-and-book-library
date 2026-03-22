@@ -51,6 +51,11 @@ import {
   AlertCircle,
   Clock,
   BrainCircuit,
+  Users,
+  Link2,
+  BookUser,
+  FileText,
+  Zap,
   type LucideIcon,
 } from "lucide-react";
 import { AUTHORS, BOOKS } from "@/lib/libraryData";
@@ -60,6 +65,7 @@ import { CascadeTab } from "@/components/admin/CascadeTab";
 import { SettingsTab } from "@/components/admin/SettingsTab";
 import { AboutTab } from "@/components/admin/AboutTab";
 import { AiTab } from "@/components/admin/AiTab";
+import { InformationToolsTab } from "@/components/admin/InformationToolsTab";
 
 // -- Types ------------------------------------------------------
 type ActionStatus = "idle" | "running" | "done" | "error";
@@ -281,6 +287,8 @@ export default function Admin() {
   const scrapeNextMutation = trpc.apify.scrapeNextMissingCover.useMutation();
   const mirrorCoversMutation = trpc.bookProfiles.mirrorCovers.useMutation();
   const mirrorAvatarsMutation = trpc.authorProfiles.mirrorAvatars.useMutation();
+  const updateAllAuthorLinksMutation = trpc.authorProfiles.updateAllAuthorLinks.useMutation();
+  const updateAllBookSummariesMutation = trpc.bookProfiles.updateAllBookSummaries.useMutation();
 
   // -- Action states --
   const [regenerateState, setRegenerateState] = useState<ActionState>(INITIAL_STATE);
@@ -290,6 +298,8 @@ export default function Admin() {
   const [scrapeState, setScrapeState] = useState<ActionState>(INITIAL_STATE);
   const [mirrorCoversState, setMirrorCoversState] = useState<ActionState>(INITIAL_STATE);
   const [mirrorAvatarsState, setMirrorAvatarsState] = useState<ActionState>(INITIAL_STATE);
+  const [updateLinksState, setUpdateLinksState] = useState<ActionState>(INITIAL_STATE);
+  const [updateBookSummariesState, setUpdateBookSummariesState] = useState<ActionState>(INITIAL_STATE);
 
   // -- Research Cascade stats --
   const authorStats = trpc.cascade.authorStats.useQuery(undefined, { staleTime: 60_000 });
@@ -307,6 +317,8 @@ export default function Admin() {
     scrapeState,
     mirrorCoversState,
     mirrorAvatarsState,
+    updateLinksState,
+    updateBookSummariesState,
   ].some((s) => s.status === "running");
 
   const recordAction = useCallback(
@@ -694,6 +706,64 @@ export default function Admin() {
     }
   }, [mirrorAvatarsState.status, mirrorAvatarsMutation, recordAction]);
 
+  // -- 8. Update All Author Links --
+  const handleUpdateAllAuthorLinks = useCallback(async () => {
+    if (updateLinksState.status === "running") return;
+    setUpdateLinksState({ ...INITIAL_STATE, status: "running", message: "Starting author links update..." });
+    const start = Date.now();
+    try {
+      const result = await updateAllAuthorLinksMutation.mutateAsync({
+        researchVendor: settings.authorResearchVendor,
+        researchModel: settings.authorResearchModel,
+      });
+      setUpdateLinksState({
+        status: "done",
+        progress: 100,
+        message: `${result.enriched} authors updated, ${result.failed} failed`,
+        done: result.enriched,
+        total: result.total,
+        failed: result.failed,
+      });
+      toast.success(`Author links updated: ${result.enriched} authors processed.`);
+      void utils.authorProfiles.get.invalidate();
+      await recordAction("update-author-links", "Update All Author Links", start, "success", result.enriched);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setUpdateLinksState((s) => ({ ...s, status: "error", message: msg }));
+      toast.error("Author links update failed: " + msg);
+      await recordAction("update-author-links", "Update All Author Links", start, `error: ${msg}`);
+    }
+  }, [updateLinksState.status, updateAllAuthorLinksMutation, settings, utils, recordAction]);
+
+  // -- 9. Update All Book Summaries --
+  const handleUpdateAllBookSummaries = useCallback(async () => {
+    if (updateBookSummariesState.status === "running") return;
+    setUpdateBookSummariesState({ ...INITIAL_STATE, status: "running", message: "Starting book summaries update..." });
+    const start = Date.now();
+    try {
+      const result = await updateAllBookSummariesMutation.mutateAsync({
+        researchVendor: settings.bookResearchVendor,
+        researchModel: settings.bookResearchModel,
+      });
+      setUpdateBookSummariesState({
+        status: "done",
+        progress: 100,
+        message: `${result.enriched} books updated, ${result.failed} failed`,
+        done: result.enriched,
+        total: result.total,
+        failed: result.failed,
+      });
+      toast.success(`Book summaries updated: ${result.enriched} books processed.`);
+      void utils.bookProfiles.getMany.invalidate();
+      await recordAction("update-book-summaries", "Update All Book Summaries", start, "success", result.enriched);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setUpdateBookSummariesState((s) => ({ ...s, status: "error", message: msg }));
+      toast.error("Book summaries update failed: " + msg);
+      await recordAction("update-book-summaries", "Update All Book Summaries", start, `error: ${msg}`);
+    }
+  }, [updateBookSummariesState.status, updateAllBookSummariesMutation, settings, utils, recordAction]);
+
   // -- Stats for Research Cascade --
   const aStats = authorStats.data;
   const bStats = bookStats.data;
@@ -718,39 +788,174 @@ export default function Admin() {
           </p>
         </div>
 
-        <Tabs defaultValue="pipeline" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-6 h-auto">
-            <TabsTrigger value="pipeline" className="text-xs py-2 gap-1.5">
+        <Tabs defaultValue="authors" className="space-y-4">
+          <TabsList className="flex flex-wrap w-full h-auto gap-0.5">
+            <TabsTrigger value="authors" className="text-xs py-2 gap-1.5 flex-1 min-w-[80px]">
+              <Users className="w-3.5 h-3.5" />
+              <span>Authors</span>
+            </TabsTrigger>
+            <TabsTrigger value="books" className="text-xs py-2 gap-1.5 flex-1 min-w-[80px]">
+              <BookOpen className="w-3.5 h-3.5" />
+              <span>Books</span>
+            </TabsTrigger>
+            <TabsTrigger value="pipeline" className="text-xs py-2 gap-1.5 flex-1 min-w-[80px]">
               <Database className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Data Pipeline</span>
               <span className="sm:hidden">Data</span>
             </TabsTrigger>
-            <TabsTrigger value="media" className="text-xs py-2 gap-1.5">
+            <TabsTrigger value="media" className="text-xs py-2 gap-1.5 flex-1 min-w-[80px]">
               <ImageIcon className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Media</span>
-              <span className="sm:hidden">Media</span>
+              <span>Media</span>
             </TabsTrigger>
-            <TabsTrigger value="cascade" className="text-xs py-2 gap-1.5">
+            <TabsTrigger value="cascade" className="text-xs py-2 gap-1.5 flex-1 min-w-[80px]">
               <BarChart3 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Research Cascade</span>
+              <span className="hidden sm:inline">Research</span>
               <span className="sm:hidden">Stats</span>
             </TabsTrigger>
-            <TabsTrigger value="settings" className="text-xs py-2 gap-1.5">
+            <TabsTrigger value="settings" className="text-xs py-2 gap-1.5 flex-1 min-w-[80px]">
               <Settings className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Settings</span>
-              <span className="sm:hidden">Config</span>
+              <span>Settings</span>
             </TabsTrigger>
-            <TabsTrigger value="ai" className="text-xs py-2 gap-1.5">
+            <TabsTrigger value="ai" className="text-xs py-2 gap-1.5 flex-1 min-w-[80px]">
               <BrainCircuit className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">AI</span>
-              <span className="sm:hidden">AI</span>
+              <span>AI</span>
             </TabsTrigger>
-            <TabsTrigger value="about" className="text-xs py-2 gap-1.5">
+            <TabsTrigger value="tools" className="text-xs py-2 gap-1.5 flex-1 min-w-[80px]">
+              <Zap className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Info Tools</span>
+              <span className="sm:hidden">Tools</span>
+            </TabsTrigger>
+            <TabsTrigger value="about" className="text-xs py-2 gap-1.5 flex-1 min-w-[80px]">
               <Info className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">About</span>
-              <span className="sm:hidden">Info</span>
+              <span>About</span>
             </TabsTrigger>
           </TabsList>
+
+          {/* -- Tab: Authors -- */}
+          <TabsContent value="authors" className="space-y-3">
+            <div className="mb-2">
+              <h2 className="text-sm font-semibold">Author Management</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Batch operations for all {AUTHORS.length} authors in the Google Drive + database.
+              </p>
+            </div>
+            <ActionCard
+              title="Enrich All Author Bios"
+              description={`Generate AI-powered bios and metadata for all ${AUTHORS.length} authors via Wikipedia + Perplexity. Already-enriched authors (within 30 days) are skipped.`}
+              icon={BookUser}
+              actionKey="enrich-bios"
+              state={enrichBiosState}
+              lastRun={getLastRun("enrich-bios")}
+              destructive
+              confirmTitle="Enrich all author bios?"
+              confirmDescription="This will call the AI enrichment pipeline for every author. Already-enriched authors (within 30 days) will be skipped. This may take several minutes."
+              onRun={handleEnrichBios}
+              buttonLabel="Enrich Bios"
+              disabled={anyRunning}
+            />
+            <ActionCard
+              title="Update All Author Links"
+              description="Research and update website, social media, podcast, blog, Substack, and newspaper article links for all authors via Perplexity."
+              icon={Link2}
+              actionKey="update-author-links"
+              state={updateLinksState}
+              lastRun={getLastRun("update-author-links")}
+              destructive
+              confirmTitle="Update all author links?"
+              confirmDescription="This will research and update links for all authors missing link data. Uses Perplexity web search. May take several minutes."
+              onRun={handleUpdateAllAuthorLinks}
+              buttonLabel="Update Links"
+              disabled={anyRunning}
+            />
+            <ActionCard
+              title="Generate Missing Avatars"
+              description="Use AI (Replicate Flux) to generate headshots for authors who don't have an avatar."
+              icon={Camera}
+              actionKey="generate-avatars"
+              state={portraitState}
+              lastRun={getLastRun("generate-avatars")}
+              destructive
+              confirmTitle="Generate AI avatars?"
+              confirmDescription="This will generate AI avatars for all authors missing an avatar. Each avatar takes 5-15 seconds. This may take a while for many authors."
+              onRun={handleGeneratePortraits}
+              buttonLabel="Generate Avatars"
+              disabled={anyRunning}
+            />
+            <ActionCard
+              title="Mirror Avatars to S3"
+              description="Copy external author avatar URLs to the S3 CDN for stable hosting."
+              icon={Upload}
+              actionKey="mirror-avatars"
+              state={mirrorAvatarsState}
+              lastRun={getLastRun("mirror-avatars")}
+              onRun={handleMirrorPhotos}
+              buttonLabel="Mirror Avatars"
+              disabled={anyRunning}
+            />
+          </TabsContent>
+
+          {/* -- Tab: Books -- */}
+          <TabsContent value="books" className="space-y-3">
+            <div className="mb-2">
+              <h2 className="text-sm font-semibold">Book Management</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Batch operations for all {BOOKS.length} books in the Google Drive + database.
+              </p>
+            </div>
+            <ActionCard
+              title="Enrich All Books"
+              description={`Generate summaries, ratings, and metadata for all ${BOOKS.length} books via Google Books + AI.`}
+              icon={BookOpen}
+              actionKey="enrich-books"
+              state={enrichBooksState}
+              lastRun={getLastRun("enrich-books")}
+              destructive
+              confirmTitle="Enrich all books?"
+              confirmDescription="This will call the AI enrichment pipeline for every book. Already-enriched books (within 30 days) will be skipped. This may take several minutes."
+              onRun={handleEnrichBooks}
+              buttonLabel="Enrich Books"
+              disabled={anyRunning}
+            />
+            <ActionCard
+              title="Update All Book Summaries"
+              description="Research and update summaries for all books missing one via Perplexity web search."
+              icon={FileText}
+              actionKey="update-book-summaries"
+              state={updateBookSummariesState}
+              lastRun={getLastRun("update-book-summaries")}
+              destructive
+              confirmTitle="Update all book summaries?"
+              confirmDescription="This will research and update summaries for all books missing one. Uses Perplexity web search. May take several minutes."
+              onRun={handleUpdateAllBookSummaries}
+              buttonLabel="Update Summaries"
+              disabled={anyRunning}
+            />
+            <ActionCard
+              title="Scrape Book Covers"
+              description={`Search Amazon for cover images for books missing one. ${scrapeStats ? `${scrapeStats.needsScrape} books need covers.` : ""}`}
+              icon={ImageIcon}
+              actionKey="scrape-covers"
+              state={scrapeState}
+              lastRun={getLastRun("scrape-covers")}
+              destructive
+              confirmTitle="Scrape covers from Amazon?"
+              confirmDescription="This will search Amazon for book covers one at a time. Each scrape includes a mirror step. This may take several minutes."
+              onRun={handleScrapeCovers}
+              buttonLabel="Scrape Covers"
+              disabled={anyRunning}
+            />
+            <ActionCard
+              title="Mirror Covers to S3"
+              description="Copy external cover image URLs to the S3 CDN for stable hosting."
+              icon={Upload}
+              actionKey="mirror-covers"
+              state={mirrorCoversState}
+              lastRun={getLastRun("mirror-covers")}
+              onRun={handleMirrorCovers}
+              buttonLabel="Mirror Covers"
+              disabled={anyRunning}
+            />
+          </TabsContent>
 
           {/* -- Tab 1: Data Pipeline -- */}
           <TabsContent value="pipeline" className="space-y-3">
@@ -865,6 +1070,11 @@ export default function Admin() {
           {/* -- Tab 5: AI -- */}
           <TabsContent value="ai">
             <AiTab settings={settings} updateSettings={updateSettings} />
+          </TabsContent>
+
+          {/* -- Tab: Information Tools -- */}
+          <TabsContent value="tools">
+            <InformationToolsTab settings={settings} updateSettings={updateSettings} />
           </TabsContent>
 
           {/* -- Tab 6: About -- */}

@@ -1034,3 +1034,25 @@
 - [x] Update all test files (apify.test.ts, batch-portraits.test.ts, generate-portrait.test.ts) with avatar terminology
 - [x] Create skill: author-avatar-terminology enforcing "avatar" as the canonical term
 - [x] Run tests: 139/139 passing, save checkpoint
+
+## Session March 22, 2026 — Execute 3 Pipeline Suggestions
+
+- [ ] Test meticulous pipeline on Aaron Ross (no avatar, group shot cleared)
+- [ ] Add Anthropic/Claude routing to authorResearcher.ts research stage
+- [ ] Expose authorDescriptionJson in Admin UI Author Bio Panel as "View Description" panel
+- [ ] Run tests, update todo.md, save checkpoint
+
+## Session March 22, 2026 — Admin Console Overhaul + Per-Card Actions
+
+- [x] Wire updateAllAuthorLinks tRPC procedure (authorProfiles.router.ts) for batch author link enrichment
+- [x] Wire updateAllBookSummaries tRPC procedure (bookProfiles.router.ts) for batch book summary enrichment
+- [x] Fix Anthropic model IDs in llm.router.ts to use correct full API identifiers (claude-opus-4-5-20251101, claude-sonnet-4-5-20250929, claude-haiku-4-5-20251001, claude-opus-4-20250514, claude-sonnet-4-20250514, claude-3-haiku-20240307)
+- [x] Fix anthropic-key.test.ts to use claude-3-haiku-20240307 (deprecated model replaced)
+- [x] Create AuthorCardActions component: per-card dropdown with Generate/Regenerate Avatar, Update Bio, Update Links
+- [x] Create BookCardActions component: per-card dropdown with Update Cover, Update Summary
+- [x] Integrate AuthorCardActions into FlowbiteAuthorCard header
+- [x] Restructure Admin Console tabs: add Authors tab (Enrich Bios, Update Links, Generate Avatars, Mirror Avatars) and Books tab (Enrich Books, Update Summaries, Scrape Covers, Mirror Covers)
+- [x] Add Information Tools tab to Admin Console (Apify, Replicate, Perplexity, Google Books, Wikipedia, Tavily)
+- [x] Add getToolStatus procedure to admin.router.ts (checks env vars for all external tools)
+- [x] Add apifyActor, replicateModel, perplexityModel fields to AppSettings + defaults
+- [x] All 141 tests passing

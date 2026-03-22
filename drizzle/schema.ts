@@ -72,6 +72,24 @@ export const authorProfiles = mysqlTable("author_profiles", {
   avatarGenVendor: varchar("avatarGenVendor", { length: 50 }),
   /** Which model generated the current AI avatar (e.g. nano-banana, flux-schnell) */
   avatarGenModel: varchar("avatarGenModel", { length: 100 }),
+  /** Which vendor was used for the research LLM stage of the meticulous pipeline (e.g. google, anthropic) */
+  avatarResearchVendor: varchar("avatarResearchVendor", { length: 50 }),
+  /** Which model was used for the research LLM stage (e.g. gemini-2.5-flash, claude-3-5-sonnet) */
+  avatarResearchModel: varchar("avatarResearchModel", { length: 100 }),
+  /** Author's podcast URL (e.g. Spotify, Apple Podcasts, own feed) */
+  podcastUrl: varchar("podcastUrl", { length: 512 }),
+  /** Author's personal blog URL */
+  blogUrl: varchar("blogUrl", { length: 512 }),
+  /** Author's Substack newsletter URL */
+  substackUrl: varchar("substackUrl", { length: 512 }),
+  /** JSON array of newspaper/online article links: [{title, url, date, publication}] */
+  newspaperArticlesJson: text("newspaperArticlesJson"),
+  /** JSON array of other links: [{label, url, type}] */
+  otherLinksJson: text("otherLinksJson"),
+  /** When the links were last enriched via Perplexity/Tavily */
+  lastLinksEnrichedAt: timestamp("lastLinksEnrichedAt"),
+  /** Which tool enriched the links ('perplexity', 'tavily', 'manual') */
+  linksEnrichmentSource: varchar("linksEnrichmentSource", { length: 50 }),
   enrichedAt: timestamp("enrichedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -120,6 +138,14 @@ export const bookProfiles = mysqlTable("book_profiles", {
   isbn: varchar("isbn", { length: 20 }),
   /** Publisher name */
   publisher: varchar("publisher", { length: 256 }),
+  /** Publisher's official page for this book */
+  publisherUrl: varchar("publisherUrl", { length: 512 }),
+  /** When the summary was last enriched by an LLM */
+  lastSummaryEnrichedAt: timestamp("lastSummaryEnrichedAt"),
+  /** Which LLM/tool generated the summary ('gemini', 'claude', 'openai', 'manual') */
+  summaryEnrichmentSource: varchar("summaryEnrichmentSource", { length: 50 }),
+  /** Where the cover image came from ('amazon', 'google_books', 'manual') */
+  coverImageSource: varchar("coverImageSource", { length: 50 }),
   enrichedAt: timestamp("enrichedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
