@@ -958,17 +958,17 @@
 
 ## Session March 21, 2026 — Comprehensive Dead Code Audit
 
-- [ ] Run automated unused-import analysis (ESLint no-unused-vars, tsc --noUnusedLocals)
-- [ ] Fix unused imports in all client/src/pages/*.tsx files
-- [ ] Fix unused imports in all client/src/components/*.tsx files
-- [ ] Fix unused imports in all client/src/components/library/*.tsx files
-- [ ] Fix unused imports in all client/src/components/admin/*.tsx files
-- [ ] Fix unused imports in all server/routers/*.ts files
-- [ ] Fix unused imports in all server/lib/**/*.ts files
-- [ ] Remove stale/unused variables and function parameters
-- [ ] Remove dead JSX branches (unreachable conditionals, always-false guards)
-- [ ] Remove unused React state (useState hooks whose value is never read)
-- [ ] Remove unused props from component interfaces
-- [ ] Remove unused exports and dead utility functions
-- [ ] Verify 0 TypeScript errors after cleanup
-- [ ] Run 122 tests, commit, push, save checkpoint
+- [x] Run automated unused-import analysis (ESLint no-unused-vars, tsc --noUnusedLocals)
+- [x] Fix unused imports in all client/src/pages/*.tsx files
+- [x] Fix unused imports in all client/src/components/*.tsx files
+- [x] Fix unused imports in all client/src/components/library/*.tsx files
+- [x] Fix unused imports in all client/src/components/admin/*.tsx files
+- [x] Fix unused imports in all server/routers/*.ts files
+- [x] Fix unused imports in all server/lib/**/*.ts files
+- [x] Remove stale/unused variables and function parameters
+- [x] Remove dead JSX branches (unreachable conditionals, always-false guards)
+- [x] Remove unused React state (useState hooks whose value is never read)
+- [x] Remove unused props from component interfaces
+- [x] Consolidate duplicated icon maps (CT_ICON_MAP, DISPLAY_NAME_MAP, normalizeContentTypes) into libraryConstants.ts — removed ~150 lines across 4 components
+- [x] Verify 0 TypeScript errors after cleanup (--noUnusedLocals --noUnusedParameters)
+- [x] Run 122 tests, commit, push, save checkpoint
