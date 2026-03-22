@@ -181,14 +181,14 @@ export default function Home() {
   }, [bookCoversQuery.data]);
 
   const bookInfoMap = useMemo(() => {
-    const map = new Map<string, { summary?: string; rating?: string; ratingCount?: string }>();
+    const map = new Map<string, { summary?: string; rating?: string; ratingCount?: number }>();
     for (const p of bookCoversQuery.data ?? []) {
       const hasRating = p.rating && String(p.rating).trim() !== '' && parseFloat(String(p.rating)) > 0;
       if (p.summary || hasRating) {
         map.set(p.bookTitle.toLowerCase(), {
           summary: p.summary ?? undefined,
           rating: hasRating ? String(p.rating) : undefined,
-          ratingCount: hasRating && p.ratingCount ? String(p.ratingCount) : undefined,
+          ratingCount: hasRating && p.ratingCount ? Number(p.ratingCount) : undefined,
         });
       }
     }

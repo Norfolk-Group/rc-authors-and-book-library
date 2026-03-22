@@ -1270,7 +1270,7 @@ Live URL: https://authlib-ehsrgokn.manus.space
 - [x] HIGH: Refactor generateAllMissingAvatars and generateAvatar to use persistAvatarResult
 - [x] MEDIUM: Add reference photo quality validation in meticulousPipeline.ts (reject <10KB thumbnails, >3MB oversized)
 - [x] MEDIUM: Improve Tavily photo ranking — Wikipedia+15, LinkedIn+12, publisher+10, TED+10; book covers-12, group/event-8
-- [ ] LOW: Add per-author loading state in author card UI during individual regeneration
+- [x] LOW: Add per-author loading state in author card UI during individual regeneration (already implemented)
 - [x] Run 171 tests — all passing (13 test files)
 - [x] Save checkpoint (7d266104), pushed to GitHub
 
@@ -1289,15 +1289,15 @@ Live URL: https://authlib-ehsrgokn.manus.space
 - [x] Manually write summaries for "No" (Jim Camp) and "Leading Engaging Meetings" (Matthew Dixon) — titles too ambiguous for API
 - [x] Final DB state: 141 books, 0 missing authors, 0 bad covers, 0 low-res Amazon URLs, 141/141 S3-mirrored, 0 missing summaries
 - [x] 171 tests passing (13 test files)
-- [ ] Save checkpoint, push to GitHub
+- [x] Save checkpoint, push to GitHub
 
 ## Session March 22, 2026 — Book Cover Display Fix
 
-- [ ] Audit how book covers are fetched and passed to FlowbiteAuthorCard and BookCard
-- [ ] Fix cover display in Author card cover strip (use s3CoverUrl with coverImageUrl fallback)
-- [ ] Fix cover display in Book card (use s3CoverUrl with coverImageUrl fallback)
-- [ ] Verify book cover data is included in the tRPC queries that feed both card types
-- [ ] Run tests, save checkpoint, push to GitHub
+- [x] Audit how book covers are fetched and passed to FlowbiteAuthorCard and BookCard
+- [x] Fix cover display in Author card cover strip (use s3CoverUrl with coverImageUrl fallback)
+- [x] Fix cover display in Book card (use s3CoverUrl with coverImageUrl fallback)
+- [x] Verify book cover data is included in the tRPC queries that feed both card types
+- [x] Run tests, save checkpoint, push to GitHub (verified already implemented)
 
 ## Session March 22, 2026 — Fix 8 Remaining Broken Book Covers
 
@@ -1332,4 +1332,10 @@ Live URL: https://authlib-ehsrgokn.manus.space
 - [x] Create scripts/README.md documenting all maintenance scripts
 - [x] Fix admin.router.test.ts to use adminContext for adminProcedure tests
 - [x] 171 tests passing, checkpoint saved
-- [ ] TODO (deferred): Normalize ratingCount from varchar to int (requires updating enrichment helpers + migration)
+- [x] Normalize ratingCount from varchar to int — completed in Next Steps session (migration 0016)
+
+## Session March 22, 2026 — Next Steps (from audit suggestions)
+
+- [x] Normalize ratingCount from varchar to int (bookEnrichment.ts, bookSummary.ts, schema, migration 0016 applied)
+- [x] Add per-author loading spinner on avatar circle during individual regeneration (already implemented)
+- [x] Surface bestReferencePhotoUrl in Admin Console avatar stats table (AvatarDetailTable component with Ref Photo column)

@@ -1,0 +1,1 @@
+ALTER TABLE `book_profiles` MODIFY COLUMN `ratingCount` int;

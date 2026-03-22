@@ -11,7 +11,7 @@ export interface BookSummaryResult {
   summary: string;
   keyThemes: string;
   rating?: string;
-  ratingCount?: string;
+  ratingCount?: number;
   publishedDate?: string;
   publisher?: string;
   isbn?: string;
@@ -38,7 +38,7 @@ export async function enrichBookSummary(
 1. A compelling 2-3 sentence summary of the book's core message and value
 2. 5-8 key themes as comma-separated keywords (e.g. "leadership,habits,psychology")
 3. Average rating (e.g. "4.5") if available on Amazon or Goodreads
-4. Number of ratings (e.g. "45,000") if available
+4. Number of ratings as a plain integer (e.g. 45000) if available
 5. Published date (YYYY-MM-DD format)
 6. Publisher name
 7. ISBN-13 if available
@@ -51,7 +51,7 @@ Return ONLY a JSON object:
   "summary": "...",
   "keyThemes": "theme1,theme2,theme3",
   "rating": "4.5" or null,
-  "ratingCount": "45,000" or null,
+  "ratingCount": 45000 or null,
   "publishedDate": "YYYY-MM-DD" or null,
   "publisher": "..." or null,
   "isbn": "..." or null,
@@ -88,7 +88,7 @@ Return ONLY a JSON object:
               summary: { type: "string" },
               keyThemes: { type: "string" },
               rating: { type: ["string", "null"] },
-              ratingCount: { type: ["string", "null"] },
+              ratingCount: { type: ["integer", "null"] },
               publishedDate: { type: ["string", "null"] },
               publisher: { type: ["string", "null"] },
               isbn: { type: ["string", "null"] },
@@ -122,7 +122,7 @@ Return ONLY a JSON object:
       summary: parsed.summary ?? "",
       keyThemes: parsed.keyThemes ?? "",
       rating: parsed.rating ?? undefined,
-      ratingCount: parsed.ratingCount ?? undefined,
+      ratingCount: parsed.ratingCount != null ? Number(parsed.ratingCount) : undefined,
       publishedDate: parsed.publishedDate ?? undefined,
       publisher: parsed.publisher ?? undefined,
       isbn: parsed.isbn ?? undefined,
@@ -188,7 +188,7 @@ async function callPerplexityBookSummary(
       summary: parsed.summary ?? "",
       keyThemes: parsed.keyThemes ?? "",
       rating: parsed.rating ?? undefined,
-      ratingCount: parsed.ratingCount ?? undefined,
+      ratingCount: parsed.ratingCount != null ? Number(parsed.ratingCount) : undefined,
       publishedDate: parsed.publishedDate ?? undefined,
       publisher: parsed.publisher ?? undefined,
       isbn: parsed.isbn ?? undefined,

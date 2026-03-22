@@ -82,7 +82,7 @@ export interface FlowbiteAuthorCardProps {
   /** Short bio text to show in hover tooltip (first ~200 chars). Only shown when isEnriched is true. */
   bio?: string | null;
   /** Map of lowercase book title → { summary, rating, ratingCount } for cover thumbnail tooltips. */
-  bookInfoMap?: Map<string, { summary?: string; rating?: string; ratingCount?: string }>;
+  bookInfoMap?: Map<string, { summary?: string; rating?: string; ratingCount?: number }>;
   /** Navigate to the Books tab and highlight the book card with this titleKey */
   onNavigateToBook?: (titleKey: string) => void;
   /** When true, renders a highlight ring (navigation target) */
@@ -365,7 +365,7 @@ export function FlowbiteAuthorCard({
                   const bookInfo = bookInfoMap?.get(titleKey);
                   const summary = bookInfo?.summary;
                   const rating = bookInfo?.rating ? parseFloat(bookInfo.rating) : null;
-                  const ratingCount = bookInfo?.ratingCount ? parseInt(bookInfo.ratingCount, 10) : null;
+                  const ratingCount = bookInfo?.ratingCount ?? null;
                   const summarySnippet = summary
                     ? (() => {
                         const s = summary.trim();

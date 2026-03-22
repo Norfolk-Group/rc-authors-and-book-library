@@ -1,0 +1,15 @@
+{
+  "query": "SELECT COUNT(*) as total, SUM(CASE WHEN ratingCount LIKE '%,%' THEN 1 ELSE 0 END) as still_has_commas, SUM(CASE WHEN ratingCount IS NOT NULL AND ratingCount != '' THEN 1 ELSE 0 END) as has_value FROM book_profiles;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 46FBtXPMNF6LwZ8.root --database ehSrGoKN2NYhXg8UYLtWGw --execute SELECT COUNT(*) as total, SUM(CASE WHEN ratingCount LIKE '%,%' THEN 1 ELSE 0 END) as still_has_commas, SUM(CASE WHEN ratingCount IS NOT NULL AND ratingCount != '' THEN 1 ELSE 0 END) as has_value FROM book_profiles;",
+  "rows": [
+    {
+      "total": "142",
+      "still_has_commas": "0",
+      "has_value": "132"
+    }
+  ],
+  "messages": [],
+  "stdout": "total\tstill_has_commas\thas_value\n142\t0\t132\n",
+  "stderr": "",
+  "execution_time_ms": 55
+}

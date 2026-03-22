@@ -124,10 +124,8 @@ export const bookProfiles = mysqlTable("book_profiles", {
   keyThemes: text("keyThemes"),
   /** Average rating out of 5, e.g. "4.6" */
   rating: varchar("rating", { length: 8 }),
-  /** Number of ratings/reviews as a formatted string, e.g. "120,000"
-   * TODO: Normalize to INT in a future dedicated migration (requires updating enrichment helpers)
-   */
-  ratingCount: varchar("ratingCount", { length: 32 }),
+  /** Number of ratings/reviews as an integer, e.g. 120000 */
+  ratingCount: int("ratingCount"),
   /** Amazon product page URL */
   amazonUrl: varchar("amazonUrl", { length: 512 }),
   /** Goodreads book page URL */

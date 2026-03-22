@@ -277,6 +277,23 @@ export const authorProfilesRouter = router({
     };
   }),
 
+  // -- Per-author avatar detail stats (for Admin Console table) -----------------
+  getAvatarDetailedStats: adminProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) return [];
+    const rows = await db
+      .select({
+        authorName: authorProfiles.authorName,
+        avatarUrl: authorProfiles.avatarUrl,
+        s3AvatarUrl: authorProfiles.s3AvatarUrl,
+        avatarSource: authorProfiles.avatarSource,
+        bestReferencePhotoUrl: authorProfiles.bestReferencePhotoUrl,
+      })
+      .from(authorProfiles)
+      .orderBy(authorProfiles.authorName);
+    return rows;
+  }),
+
   // -- Generate avatars for ALL authors missing avatars -------------------------
   generateAllMissingAvatars: adminProcedure
     .input(

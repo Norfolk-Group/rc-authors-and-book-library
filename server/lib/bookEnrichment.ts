@@ -14,7 +14,7 @@ interface BookEnrichmentData {
   summary: string;
   keyThemes: string;
   rating: string;
-  ratingCount: string;
+  ratingCount: number;
   amazonUrl: string;
   goodreadsUrl: string;
   resourceUrl: string;
@@ -132,7 +132,7 @@ export async function enrichBookViaGoogleBooks(
     summary: "",
     keyThemes: "",
     rating: "",
-    ratingCount: "",
+    ratingCount: 0,
     amazonUrl: "",
     goodreadsUrl: "",
     resourceUrl: "",
@@ -199,7 +199,7 @@ export async function enrichBookViaGoogleBooks(
       result.rating = info.averageRating.toFixed(1);
     }
     if (info.ratingsCount) {
-      result.ratingCount = info.ratingsCount.toLocaleString();
+      result.ratingCount = info.ratingsCount;
     }
 
     // Cover image - upgrade to larger size by replacing zoom parameter

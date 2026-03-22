@@ -1,0 +1,130 @@
+{
+  "query": "SELECT bookTitle, ratingCount FROM book_profiles WHERE ratingCount IS NOT NULL AND ratingCount != '' ORDER BY bookTitle LIMIT 30;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 46FBtXPMNF6LwZ8.root --database ehSrGoKN2NYhXg8UYLtWGw --execute SELECT bookTitle, ratingCount FROM book_profiles WHERE ratingCount IS NOT NULL AND ratingCount != '' ORDER BY bookTitle LIMIT 30;",
+  "rows": [
+    {
+      "bookTitle": "10% Happier 10th Anniversary",
+      "ratingCount": "20,704"
+    },
+    {
+      "bookTitle": "100M Leads",
+      "ratingCount": "7,342"
+    },
+    {
+      "bookTitle": "1929",
+      "ratingCount": "8,296"
+    },
+    {
+      "bookTitle": "7 Powers_ The Foundations of Business Strategy",
+      "ratingCount": "1,134"
+    },
+    {
+      "bookTitle": "A Therapist\\u2019s Guide to Consensual Nonmonogamy",
+      "ratingCount": "74"
+    },
+    {
+      "bookTitle": "A Therapist’s Guide to Consensual Nonmonogamy",
+      "ratingCount": "74"
+    },
+    {
+      "bookTitle": "Abundance",
+      "ratingCount": "4,857"
+    },
+    {
+      "bookTitle": "Active Listening Techniques",
+      "ratingCount": "364"
+    },
+    {
+      "bookTitle": "Active Listening [3-in-1]",
+      "ratingCount": "92"
+    },
+    {
+      "bookTitle": "All Marketers are Liars",
+      "ratingCount": "1,771"
+    },
+    {
+      "bookTitle": "Atomic Habits",
+      "ratingCount": "4"
+    },
+    {
+      "bookTitle": "Building Successful Partner Channels",
+      "ratingCount": "215"
+    },
+    {
+      "bookTitle": "Chasing Perfection",
+      "ratingCount": "56"
+    },
+    {
+      "bookTitle": "Contemporary Strategy Analysis",
+      "ratingCount": "4"
+    },
+    {
+      "bookTitle": "Crossing the Chasm, 3rd Edition",
+      "ratingCount": "2,587"
+    },
+    {
+      "bookTitle": "Discovering Statistics",
+      "ratingCount": "47"
+    },
+    {
+      "bookTitle": "Do You Talk Funny",
+      "ratingCount": "1"
+    },
+    {
+      "bookTitle": "Do You Talk Funny?",
+      "ratingCount": "1"
+    },
+    {
+      "bookTitle": "Effortless Experience",
+      "ratingCount": "785"
+    },
+    {
+      "bookTitle": "Fall in Love with the Problem, Not the Solution",
+      "ratingCount": "407"
+    },
+    {
+      "bookTitle": "Fanatical Prospecting",
+      "ratingCount": "5,234"
+    },
+    {
+      "bookTitle": "Founder\\u2019s Pocket Guide",
+      "ratingCount": "2"
+    },
+    {
+      "bookTitle": "Founder’s Pocket Guide",
+      "ratingCount": "1"
+    },
+    {
+      "bookTitle": "From Impossible to Inevitable",
+      "ratingCount": "307"
+    },
+    {
+      "bookTitle": "Going Global on a Shoestring",
+      "ratingCount": "15"
+    },
+    {
+      "bookTitle": "Good to Great (Summary)",
+      "ratingCount": "13"
+    },
+    {
+      "bookTitle": "Great Game Business",
+      "ratingCount": "820"
+    },
+    {
+      "bookTitle": "Guesstimation 2.0",
+      "ratingCount": "63"
+    },
+    {
+      "bookTitle": "Hacking Growth",
+      "ratingCount": "3"
+    },
+    {
+      "bookTitle": "Hacking Marketing",
+      "ratingCount": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "bookTitle\tratingCount\n10% Happier 10th Anniversary\t20,704\n100M Leads\t7,342\n1929\t8,296\n7 Powers_ The Foundations of Business Strategy\t1,134\nA Therapist\\u2019s Guide to Consensual Nonmonogamy\t74\nA Therapist’s Guide to Consensual Nonmonogamy\t74\nAbundance\t4,857\nActive Listening Techniques\t364\nActive Listening [3-in-1]\t92\nAll Marketers are Liars\t1,771\nAtomic Habits\t4\nBuilding Successful Partner Channels\t215\nChasing Perfection\t56\nContemporary Strategy Analysis\t4\nCrossing the Chasm, 3rd Edition\t2,587\nDiscovering Statistics\t47\nDo You Talk Funny\t1\nDo You Talk Funny?\t1\nEffortless Experience\t785\nFall in Love with the Problem, Not the Solution\t407\nFanatical Prospecting\t5,234\nFounder\\u2019s Pocket Guide\t2\nFounder’s Pocket Guide\t1\nFrom Impossible to Inevitable\t307\nGoing Global on a Shoestring\t15\nGood to Great (Summary)\t13\nGreat Game Business\t820\nGuesstimation 2.0\t63\nHacking Growth\t3\nHacking Marketing\t1\n",
+  "stderr": "",
+  "execution_time_ms": 97
+}
