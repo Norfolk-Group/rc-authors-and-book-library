@@ -1,0 +1,8 @@
+{
+  "query": "SELECT bookTitle, authorName, \n  LEFT(coverImageUrl, 80) as coverUrl,\n  LEFT(s3CoverUrl, 60) as s3Url,\n  coverStatus\nFROM book_profiles\nWHERE coverStatus = 'not-found' \n   OR coverStatus = 'skipped'\n   OR coverStatus IS NULL\n   OR coverImageUrl IS NULL \n   OR coverImageUrl = ''\n   OR s3CoverUrl IS NULL\n   OR s3CoverUrl = ''\nORDER BY bookTitle\nLIMIT 30;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 46FBtXPMNF6LwZ8.root --database ehSrGoKN2NYhXg8UYLtWGw --execute SELECT bookTitle, authorName, \n  LEFT(coverImageUrl, 80) as coverUrl,\n  LEFT(s3CoverUrl, 60) as s3Url,\n  coverStatus\nFROM book_profiles\nWHERE coverStatus = 'not-found' \n   OR coverStatus = 'skipped'\n   OR coverStatus IS NULL\n   OR coverImageUrl IS NULL \n   OR coverImageUrl = ''\n   OR s3CoverUrl IS NULL\n   OR s3CoverUrl = ''\nORDER BY bookTitle\nLIMIT 30;",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'coverstatus' in 'where clause'"
+  ]
+}

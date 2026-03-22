@@ -1,0 +1,26 @@
+{
+  "query": "SELECT bookTitle, LEFT(s3CoverUrl, 40) as s3_preview \nFROM book_profiles \nWHERE bookTitle LIKE '%-%' \nORDER BY bookTitle \nLIMIT 20;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 46FBtXPMNF6LwZ8.root --database ehSrGoKN2NYhXg8UYLtWGw --execute SELECT bookTitle, LEFT(s3CoverUrl, 40) as s3_preview \nFROM book_profiles \nWHERE bookTitle LIKE '%-%' \nORDER BY bookTitle \nLIMIT 20;",
+  "rows": [
+    {
+      "bookTitle": "Active Listening [3-in-1]",
+      "s3_preview": "https://d2xsxph8kpxj0f.cloudfront.net/31"
+    },
+    {
+      "bookTitle": "Pre-Suasion",
+      "s3_preview": "https://d2xsxph8kpxj0f.cloudfront.net/31"
+    },
+    {
+      "bookTitle": "Street-Fighting Mathematics",
+      "s3_preview": "https://d2xsxph8kpxj0f.cloudfront.net/31"
+    },
+    {
+      "bookTitle": "The Whole-Brain Child",
+      "s3_preview": "https://d2xsxph8kpxj0f.cloudfront.net/31"
+    }
+  ],
+  "messages": [],
+  "stdout": "bookTitle\ts3_preview\nActive Listening [3-in-1]\thttps://d2xsxph8kpxj0f.cloudfront.net/31\nPre-Suasion\thttps://d2xsxph8kpxj0f.cloudfront.net/31\nStreet-Fighting Mathematics\thttps://d2xsxph8kpxj0f.cloudfront.net/31\nThe Whole-Brain Child\thttps://d2xsxph8kpxj0f.cloudfront.net/31\n",
+  "stderr": "",
+  "execution_time_ms": 92
+}

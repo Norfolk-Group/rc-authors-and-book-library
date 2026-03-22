@@ -1,0 +1,58 @@
+{
+  "query": "SELECT bookTitle, authorName, coverImageUrl, s3CoverUrl\nFROM book_profiles\nWHERE coverImageUrl IS NULL \n   OR coverImageUrl = ''\n   OR coverImageUrl = 'not-found'\nORDER BY bookTitle;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 46FBtXPMNF6LwZ8.root --database ehSrGoKN2NYhXg8UYLtWGw --execute SELECT bookTitle, authorName, coverImageUrl, s3CoverUrl\nFROM book_profiles\nWHERE coverImageUrl IS NULL \n   OR coverImageUrl = ''\n   OR coverImageUrl = 'not-found'\nORDER BY bookTitle;",
+  "rows": [
+    {
+      "bookTitle": "Building Successful Partner Channels",
+      "authorName": "Hans Peter Bech",
+      "coverImageUrl": "not-found",
+      "s3CoverUrl": "NULL"
+    },
+    {
+      "bookTitle": "Chasing Perfection",
+      "authorName": "Sue Hawkes",
+      "coverImageUrl": "not-found",
+      "s3CoverUrl": "NULL"
+    },
+    {
+      "bookTitle": "Great Game Business",
+      "authorName": "Jack Stack",
+      "coverImageUrl": "not-found",
+      "s3CoverUrl": "NULL"
+    },
+    {
+      "bookTitle": "No: The Only Negotiating System You Need",
+      "authorName": "Jim Camp",
+      "coverImageUrl": "not-found",
+      "s3CoverUrl": "NULL"
+    },
+    {
+      "bookTitle": "Sales Pitch",
+      "authorName": "April Dunford",
+      "coverImageUrl": "not-found",
+      "s3CoverUrl": "NULL"
+    },
+    {
+      "bookTitle": "Sapiens",
+      "authorName": "Yuval Noah Harari",
+      "coverImageUrl": "not-found",
+      "s3CoverUrl": "NULL"
+    },
+    {
+      "bookTitle": "Thinking, Fast and Slow",
+      "authorName": "Daniel J. Siegel",
+      "coverImageUrl": "not-found",
+      "s3CoverUrl": "NULL"
+    },
+    {
+      "bookTitle": "Yes, And",
+      "authorName": "Kelly Leonard",
+      "coverImageUrl": "not-found",
+      "s3CoverUrl": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "bookTitle\tauthorName\tcoverImageUrl\ts3CoverUrl\nBuilding Successful Partner Channels\tHans Peter Bech\tnot-found\tNULL\nChasing Perfection\tSue Hawkes\tnot-found\tNULL\nGreat Game Business\tJack Stack\tnot-found\tNULL\nNo: The Only Negotiating System You Need\tJim Camp\tnot-found\tNULL\nSales Pitch\tApril Dunford\tnot-found\tNULL\nSapiens\tYuval Noah Harari\tnot-found\tNULL\nThinking, Fast and Slow\tDaniel J. Siegel\tnot-found\tNULL\nYes, And\tKelly Leonard\tnot-found\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 71
+}

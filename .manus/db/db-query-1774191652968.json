@@ -1,0 +1,16 @@
+{
+  "query": "\nSELECT \n  COUNT(*) as total_books,\n  SUM(CASE WHEN s3CoverUrl IS NOT NULL AND s3CoverUrl != '' AND s3CoverUrl != 'not-found' THEN 1 ELSE 0 END) as with_s3_cover,\n  SUM(CASE WHEN coverImageUrl IS NOT NULL AND coverImageUrl != '' AND coverImageUrl != 'not-found' THEN 1 ELSE 0 END) as with_cover_url,\n  SUM(CASE WHEN coverImageUrl = 'not-found' OR coverImageUrl IS NULL OR coverImageUrl = '' THEN 1 ELSE 0 END) as broken_covers\nFROM book_profiles;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 46FBtXPMNF6LwZ8.root --database ehSrGoKN2NYhXg8UYLtWGw --execute \nSELECT \n  COUNT(*) as total_books,\n  SUM(CASE WHEN s3CoverUrl IS NOT NULL AND s3CoverUrl != '' AND s3CoverUrl != 'not-found' THEN 1 ELSE 0 END) as with_s3_cover,\n  SUM(CASE WHEN coverImageUrl IS NOT NULL AND coverImageUrl != '' AND coverImageUrl != 'not-found' THEN 1 ELSE 0 END) as with_cover_url,\n  SUM(CASE WHEN coverImageUrl = 'not-found' OR coverImageUrl IS NULL OR coverImageUrl = '' THEN 1 ELSE 0 END) as broken_covers\nFROM book_profiles;\n",
+  "rows": [
+    {
+      "total_books": "141",
+      "with_s3_cover": "141",
+      "with_cover_url": "141",
+      "broken_covers": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "total_books\twith_s3_cover\twith_cover_url\tbroken_covers\n141\t141\t141\t0\n",
+  "stderr": "",
+  "execution_time_ms": 73
+}

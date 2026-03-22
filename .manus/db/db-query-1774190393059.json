@@ -1,0 +1,15 @@
+{
+  "query": "SELECT bookTitle, LEFT(s3CoverUrl, 50) as s3, authorName \nFROM book_profiles \nWHERE bookTitle LIKE '%Think%' OR bookTitle LIKE '%Dare%' OR bookTitle LIKE '%Brene%' OR bookTitle LIKE '%Adam Grant%'\nORDER BY bookTitle;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 46FBtXPMNF6LwZ8.root --database ehSrGoKN2NYhXg8UYLtWGw --execute SELECT bookTitle, LEFT(s3CoverUrl, 50) as s3, authorName \nFROM book_profiles \nWHERE bookTitle LIKE '%Think%' OR bookTitle LIKE '%Dare%' OR bookTitle LIKE '%Brene%' OR bookTitle LIKE '%Adam Grant%'\nORDER BY bookTitle;",
+  "rows": [
+    {
+      "bookTitle": "Thinking, Fast and Slow",
+      "s3": "https://d2xsxph8kpxj0f.cloudfront.net/310519663270",
+      "authorName": "Daniel J. Siegel"
+    }
+  ],
+  "messages": [],
+  "stdout": "bookTitle\ts3\tauthorName\nThinking, Fast and Slow\thttps://d2xsxph8kpxj0f.cloudfront.net/310519663270\tDaniel J. Siegel\n",
+  "stderr": "",
+  "execution_time_ms": 58
+}

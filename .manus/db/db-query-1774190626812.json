@@ -1,0 +1,35 @@
+{
+  "query": "SELECT bookTitle, coverImageUrl, s3CoverUrl\nFROM book_profiles\nWHERE bookTitle LIKE '%7 Powers%' OR bookTitle LIKE '%Abundance%' OR bookTitle LIKE '%Active Listen%'\nORDER BY bookTitle;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 46FBtXPMNF6LwZ8.root --database ehSrGoKN2NYhXg8UYLtWGw --execute SELECT bookTitle, coverImageUrl, s3CoverUrl\nFROM book_profiles\nWHERE bookTitle LIKE '%7 Powers%' OR bookTitle LIKE '%Abundance%' OR bookTitle LIKE '%Active Listen%'\nORDER BY bookTitle;",
+  "rows": [
+    {
+      "bookTitle": "7 Powers_ The Foundations of Business Strategy",
+      "coverImageUrl": "https://books.google.com/books/content?id=heEuvgAACAAJ&printsec=frontcover&img=1&zoom=3&source=gbs_api",
+      "s3CoverUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663270229297/ehSrGoKN2NYhXg8UYLtWGw/book-covers/068fbcda.jpg"
+    },
+    {
+      "bookTitle": "Abundance",
+      "coverImageUrl": "https://books.google.com/books/content?id=kMNHEQAAQBAJ&printsec=frontcover&img=1&zoom=3&source=gbs_api",
+      "s3CoverUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663270229297/ehSrGoKN2NYhXg8UYLtWGw/book-covers/2f80f33d.jpg"
+    },
+    {
+      "bookTitle": "Active Listening",
+      "coverImageUrl": "https://m.media-amazon.com/images/I/610UIx0pFGL._SX600_.jpg",
+      "s3CoverUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663270229297/ehSrGoKN2NYhXg8UYLtWGw/book-covers/686a64b0.jpg"
+    },
+    {
+      "bookTitle": "Active Listening Techniques",
+      "coverImageUrl": "https://books.google.com/books/content?id=xidbywEACAAJ&printsec=frontcover&img=1&zoom=3&source=gbs_api",
+      "s3CoverUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663270229297/ehSrGoKN2NYhXg8UYLtWGw/book-covers/1b6c6b0f.jpg"
+    },
+    {
+      "bookTitle": "Active Listening [3-in-1]",
+      "coverImageUrl": "https://m.media-amazon.com/images/I/61uHMdYvj+L._SX600_.jpg",
+      "s3CoverUrl": "https://d2xsxph8kpxj0f.cloudfront.net/310519663270229297/ehSrGoKN2NYhXg8UYLtWGw/book-covers/381465fd.jpg"
+    }
+  ],
+  "messages": [],
+  "stdout": "bookTitle\tcoverImageUrl\ts3CoverUrl\n7 Powers_ The Foundations of Business Strategy\thttps://books.google.com/books/content?id=heEuvgAACAAJ&printsec=frontcover&img=1&zoom=3&source=gbs_api\thttps://d2xsxph8kpxj0f.cloudfront.net/310519663270229297/ehSrGoKN2NYhXg8UYLtWGw/book-covers/068fbcda.jpg\nAbundance\thttps://books.google.com/books/content?id=kMNHEQAAQBAJ&printsec=frontcover&img=1&zoom=3&source=gbs_api\thttps://d2xsxph8kpxj0f.cloudfront.net/310519663270229297/ehSrGoKN2NYhXg8UYLtWGw/book-covers/2f80f33d.jpg\nActive Listening\thttps://m.media-amazon.com/images/I/610UIx0pFGL._SX600_.jpg\thttps://d2xsxph8kpxj0f.cloudfront.net/310519663270229297/ehSrGoKN2NYhXg8UYLtWGw/book-covers/686a64b0.jpg\nActive Listening Techniques\thttps://books.google.com/books/content?id=xidbywEACAAJ&printsec=frontcover&img=1&zoom=3&source=gbs_api\thttps://d2xsxph8kpxj0f.cloudfront.net/310519663270229297/ehSrGoKN2NYhXg8UYLtWGw/book-covers/1b6c6b0f.jpg\nActive Listening [3-in-1]\thttps://m.media-amazon.com/images/I/61uHMdYvj+L._SX600_.jpg\thttps://d2xsxph8kpxj0f.cloudfront.net/310519663270229297/ehSrGoKN2NYhXg8UYLtWGw/book-covers/381465fd.jpg\n",
+  "stderr": "",
+  "execution_time_ms": 59
+}

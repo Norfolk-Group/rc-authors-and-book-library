@@ -1,0 +1,50 @@
+{
+  "query": "SELECT bookTitle, authorName, LEFT(coverImageUrl, 60) as coverUrl FROM book_profiles WHERE bookTitle IN ('Building Successful Partner Channels', 'Chasing Perfection', 'Great Game Business', 'No: The Only Negotiating System You Need', 'Sales Pitch', 'Sapiens', 'Thinking, Fast and Slow', 'Yes, And') ORDER BY bookTitle;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 46FBtXPMNF6LwZ8.root --database ehSrGoKN2NYhXg8UYLtWGw --execute SELECT bookTitle, authorName, LEFT(coverImageUrl, 60) as coverUrl FROM book_profiles WHERE bookTitle IN ('Building Successful Partner Channels', 'Chasing Perfection', 'Great Game Business', 'No: The Only Negotiating System You Need', 'Sales Pitch', 'Sapiens', 'Thinking, Fast and Slow', 'Yes, And') ORDER BY bookTitle;",
+  "rows": [
+    {
+      "bookTitle": "Building Successful Partner Channels",
+      "authorName": "Hans Peter Bech",
+      "coverUrl": "https://m.media-amazon.com/images/I/61h0R3yTJgL._SX600_.jpg"
+    },
+    {
+      "bookTitle": "Chasing Perfection",
+      "authorName": "Sue Hawkes",
+      "coverUrl": "https://covers.openlibrary.org/b/id/10518783-L.jpg"
+    },
+    {
+      "bookTitle": "Great Game Business",
+      "authorName": "Jack Stack",
+      "coverUrl": "https://m.media-amazon.com/images/I/61tLeove3kL._SX600_.jpg"
+    },
+    {
+      "bookTitle": "No: The Only Negotiating System You Need",
+      "authorName": "Jim Camp",
+      "coverUrl": "https://covers.openlibrary.org/b/id/9851024-L.jpg"
+    },
+    {
+      "bookTitle": "Sales Pitch",
+      "authorName": "April Dunford",
+      "coverUrl": "https://covers.openlibrary.org/b/id/10194369-L.jpg"
+    },
+    {
+      "bookTitle": "Sapiens",
+      "authorName": "Yuval Noah Harari",
+      "coverUrl": "https://covers.openlibrary.org/b/id/14369194-L.jpg"
+    },
+    {
+      "bookTitle": "Thinking, Fast and Slow",
+      "authorName": "Daniel Kahneman",
+      "coverUrl": "https://m.media-amazon.com/images/I/61fdrEuPJwL._SX600_.jpg"
+    },
+    {
+      "bookTitle": "Yes, And",
+      "authorName": "Kelly Leonard",
+      "coverUrl": "http://books.google.com/books/content?id=OPM2BAAAQBAJ&prints"
+    }
+  ],
+  "messages": [],
+  "stdout": "bookTitle\tauthorName\tcoverUrl\nBuilding Successful Partner Channels\tHans Peter Bech\thttps://m.media-amazon.com/images/I/61h0R3yTJgL._SX600_.jpg\nChasing Perfection\tSue Hawkes\thttps://covers.openlibrary.org/b/id/10518783-L.jpg\nGreat Game Business\tJack Stack\thttps://m.media-amazon.com/images/I/61tLeove3kL._SX600_.jpg\nNo: The Only Negotiating System You Need\tJim Camp\thttps://covers.openlibrary.org/b/id/9851024-L.jpg\nSales Pitch\tApril Dunford\thttps://covers.openlibrary.org/b/id/10194369-L.jpg\nSapiens\tYuval Noah Harari\thttps://covers.openlibrary.org/b/id/14369194-L.jpg\nThinking, Fast and Slow\tDaniel Kahneman\thttps://m.media-amazon.com/images/I/61fdrEuPJwL._SX600_.jpg\nYes, And\tKelly Leonard\thttp://books.google.com/books/content?id=OPM2BAAAQBAJ&prints\n",
+  "stderr": "",
+  "execution_time_ms": 71
+}

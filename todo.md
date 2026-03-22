@@ -1290,3 +1290,23 @@ Live URL: https://authlib-ehsrgokn.manus.space
 - [x] Final DB state: 141 books, 0 missing authors, 0 bad covers, 0 low-res Amazon URLs, 141/141 S3-mirrored, 0 missing summaries
 - [x] 171 tests passing (13 test files)
 - [ ] Save checkpoint, push to GitHub
+
+## Session March 22, 2026 — Book Cover Display Fix
+
+- [ ] Audit how book covers are fetched and passed to FlowbiteAuthorCard and BookCard
+- [ ] Fix cover display in Author card cover strip (use s3CoverUrl with coverImageUrl fallback)
+- [ ] Fix cover display in Book card (use s3CoverUrl with coverImageUrl fallback)
+- [ ] Verify book cover data is included in the tRPC queries that feed both card types
+- [ ] Run tests, save checkpoint, push to GitHub
+
+## Session March 22, 2026 — Fix 8 Remaining Broken Book Covers
+
+- [x] Identify 8 books with `coverImageUrl = 'not-found'` in DB
+- [x] Fix authorName mismatch: "Thinking, Fast and Slow" had "Daniel J. Siegel" → corrected to "Daniel Kahneman"
+- [x] Scrape 3 covers via Apify Amazon scraper: Building Successful Partner Channels, Great Game Business, Thinking Fast and Slow
+- [x] Find 4 covers via Open Library ISBN API: No (Jim Camp), Sales Pitch (April Dunford), Sapiens (Yuval Noah Harari), Chasing Perfection (Sue Hawkes)
+- [x] Find 1 cover via Google Books API: Yes And (Kelly Leonard) — verified 47KB real image
+- [x] Update DB with all 8 cover URLs
+- [x] Mirror all 8 covers to S3 CDN via mirrorCovers procedure (8/8 mirrored, 0 failed)
+- [x] Final DB state: 141 books, 141/141 with coverImageUrl, 141/141 with s3CoverUrl, 0 broken covers
+- [x] Run tests, save checkpoint, push to GitHub

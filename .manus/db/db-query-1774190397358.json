@@ -1,0 +1,15 @@
+{
+  "query": "SELECT \n  COUNT(*) as total,\n  SUM(CASE WHEN s3CoverUrl IS NOT NULL AND s3CoverUrl != '' THEN 1 ELSE 0 END) as has_s3,\n  SUM(CASE WHEN coverImageUrl IS NOT NULL AND coverImageUrl != '' AND coverImageUrl != 'not-found' THEN 1 ELSE 0 END) as has_cover\nFROM book_profiles;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 46FBtXPMNF6LwZ8.root --database ehSrGoKN2NYhXg8UYLtWGw --execute SELECT \n  COUNT(*) as total,\n  SUM(CASE WHEN s3CoverUrl IS NOT NULL AND s3CoverUrl != '' THEN 1 ELSE 0 END) as has_s3,\n  SUM(CASE WHEN coverImageUrl IS NOT NULL AND coverImageUrl != '' AND coverImageUrl != 'not-found' THEN 1 ELSE 0 END) as has_cover\nFROM book_profiles;",
+  "rows": [
+    {
+      "total": "141",
+      "has_s3": "141",
+      "has_cover": "141"
+    }
+  ],
+  "messages": [],
+  "stdout": "total\thas_s3\thas_cover\n141\t141\t141\n",
+  "stderr": "",
+  "execution_time_ms": 56
+}

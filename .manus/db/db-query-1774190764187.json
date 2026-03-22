@@ -1,0 +1,9 @@
+{
+  "query": "UPDATE book_profiles \nSET coverImageUrl = NULL, s3CoverUrl = NULL, s3CoverKey = NULL\nWHERE bookTitle IN (\n  'Obviously Awesome',\n  'Sales Pitch',\n  'Thinking, Fast and Slow',\n  'Super Agers',\n  'Abundance',\n  'Crossing the Chasm, 3rd Edition',\n  '7 Powers_ The Foundations of Business Strategy',\n  'Building Successful Partner Channels',\n  'Going Global on a Shoestring',\n  'Great Game Business',\n  'Lead Engaging Meetings',\n  'No: The Only Negotiating System You Need',\n  'Steve Jobs_ The Man Who Thought Different_ A Biography',\n  'Yes, And',\n  'Active Listening Techniques',\n  'Chasing Perfection',\n  'We Are All Made of Molecules',\n  'Sapiens',\n  'Never Split the Difference by Chris Voss'\n);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 46FBtXPMNF6LwZ8.root --database ehSrGoKN2NYhXg8UYLtWGw --execute UPDATE book_profiles \nSET coverImageUrl = NULL, s3CoverUrl = NULL, s3CoverKey = NULL\nWHERE bookTitle IN (\n  'Obviously Awesome',\n  'Sales Pitch',\n  'Thinking, Fast and Slow',\n  'Super Agers',\n  'Abundance',\n  'Crossing the Chasm, 3rd Edition',\n  '7 Powers_ The Foundations of Business Strategy',\n  'Building Successful Partner Channels',\n  'Going Global on a Shoestring',\n  'Great Game Business',\n  'Lead Engaging Meetings',\n  'No: The Only Negotiating System You Need',\n  'Steve Jobs_ The Man Who Thought Different_ A Biography',\n  'Yes, And',\n  'Active Listening Techniques',\n  'Chasing Perfection',\n  'We Are All Made of Molecules',\n  'Sapiens',\n  'Never Split the Difference by Chris Voss'\n);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 75
+}
