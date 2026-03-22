@@ -1091,3 +1091,37 @@
 - [ ] Add vendor capability info alert (Gemini = no resolution control; Imagen 3 = aspectRatio only; Replicate = full control)
 - [ ] Add "Reset to Defaults" button for resolution settings
 - [ ] Update Test Portrait button to pass current resolution settings to the pipeline
+
+## Session March 22, 2026 — Suggested Next Steps (Queued for Execution)
+
+### 1. Wire per-card Update Links action end-to-end
+- [ ] After `updateAuthorLinks` mutation completes on a card, auto-refresh the Author Bio Modal's Links section without requiring the user to close and reopen
+- [ ] Invalidate `authorProfiles.get` query for the specific author after mutation settles
+- [ ] Show the new links immediately in the open modal if it is already visible
+
+### 2. Add progress indicator to per-card actions
+- [ ] Show a small spinner overlay on the card while any card-level mutation (Generate Avatar, Update Bio, Update Links) is in-flight
+- [ ] Disable the action menu button while a mutation is running to prevent double-submission
+- [ ] Show a brief success toast with the action name when mutation completes
+
+### 3. Expose authorDescriptionJson in Author Bio Panel
+- [ ] Add a collapsible "View Research Description" panel at the bottom of the Author Bio Modal
+- [ ] Parse and display the cached `authorDescriptionJson` in a readable key-value format (appearance, personality, attire, etc.)
+- [ ] Add a "Refresh Description" button inside the panel that triggers Stage 1–2 of the meticulous pipeline with `forceRefresh: true`
+- [ ] Only show the panel when `authorDescriptionJson` is non-null in the DB row
+
+### 4. Run meticulous pipeline on Aaron Ross
+- [ ] Trigger the meticulous pipeline for Aaron Ross (real photo now set from London Speaker Bureau)
+- [ ] Confirm Stage 2 vision analysis correctly identifies him from the real photo
+- [ ] Verify the generated `AuthorDescription` JSON is accurate and cached in DB
+- [ ] Optionally regenerate AI avatar using the corrected description
+
+## Session March 22, 2026 — Avatar Background Consistency Skill
+
+- [ ] Create skill: `avatar-background-consistency` — enforces uniform background across all author avatars
+- [ ] Document the canonical background spec (color, style, prompt fragment) in the skill
+- [ ] Add background enforcement to AI generation prompts in `promptBuilder.ts`
+- [ ] Add background post-processing step for real photos (remove.bg or Gemini background replacement)
+- [ ] Add background consistency controls to Admin Console → AI tab → Avatar Generation sub-tab
+- [ ] Add batch "Normalize Avatar Backgrounds" action to Admin Console → Authors tab
+- [ ] Update CLAUDE.md with the canonical background spec

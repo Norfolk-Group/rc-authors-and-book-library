@@ -326,6 +326,7 @@ These skills were created from patterns discovered in this project:
 | `webdev-theme-aware-cards` | Theme-aware card backgrounds (bg-card pattern) |
 | `webdev-visualizations` | ECharts + React Flow + Nivo charts |
 | `skill-creation-workflow` | How to package a repeatable process into a skill |
+| `avatar-background-consistency` | Enforce uniform bokeh-gold background across all AI-generated avatars; covers promptBuilder.ts, AppSettings defaults, batch normalization, and audit workflow |
 
 ---
 
@@ -385,6 +386,14 @@ Once implemented, these will be user-configurable in the Admin Console → AI ta
 - **`authorAvatars.ts` takes priority** over DB — if an author has an entry in this static map, the DB `s3AvatarUrl` is never queried for that author's card display.
 - **`authorDescriptionJson` caching** — always check `useCache` flag before re-running Stage 1–2. The cache is per-author in `author_profiles.authorDescriptionJson`.
 
+### Background Consistency
+
+The canonical background for all AI-generated avatars is **`bokeh-gold`** — warm golden bokeh with soft amber/cream circular light orbs, shallow depth of field. This is the default value of `settings.avatarBgColor` in `AppSettingsContext`.
+
+**Rule:** Always pass `settings.avatarBgColor` explicitly when calling `buildMeticulousPrompt()` or `buildGenericFallbackPrompt()`. An omitted `bgColor` falls back to `"neutral gray gradient"` which breaks visual consistency across the card grid.
+
+The full background spec (all named presets, key files, audit procedure, and common pitfalls) is documented in the `avatar-background-consistency` skill at `/home/ubuntu/skills/avatar-background-consistency/SKILL.md`.
+
 ---
 
 ## Common Pitfalls
@@ -434,4 +443,4 @@ All scripts use the `gws` CLI. Run with `python3.11 -u <script>.py`.
 
 ---
 
-*Last updated: March 22, 2026 — Ricardo Cidale's Library v2.2 — Avatar pipeline architecture documented; resolution system planned*
+*Last updated: March 22, 2026 — Ricardo Cidale's Library v2.3 — Avatar background consistency skill added; background spec canonicalized as bokeh-gold; skills table updated*
