@@ -1,0 +1,15 @@
+{
+  "query": "-- Fix using LIKE to handle both straight and curly apostrophes\nUPDATE book_profiles SET authorName = 'Rhea Orion' \nWHERE bookTitle LIKE 'A Therapist%Guide to Consensual Nonmonogamy' AND (authorName IS NULL OR authorName = '');\n\nUPDATE book_profiles SET authorName = 'Stephen Poland' \nWHERE bookTitle LIKE 'Founder%Pocket Guide' AND (authorName IS NULL OR authorName = '');\n\n-- Reset the not-found cover for Immune so the rebuild will re-scrape it\nUPDATE book_profiles SET coverImageUrl = NULL, s3CoverUrl = NULL, s3CoverKey = NULL \nWHERE bookTitle = 'Immune by Philip Dettmer';\n\n-- Verify\nSELECT bookTitle, authorName, coverImageUrl FROM book_profiles \nWHERE (authorName IS NULL OR authorName = '') OR coverImageUrl IN ('not-found','skipped') OR coverImageUrl IS NULL\nORDER BY bookTitle;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 46FBtXPMNF6LwZ8.root --database ehSrGoKN2NYhXg8UYLtWGw --execute -- Fix using LIKE to handle both straight and curly apostrophes\nUPDATE book_profiles SET authorName = 'Rhea Orion' \nWHERE bookTitle LIKE 'A Therapist%Guide to Consensual Nonmonogamy' AND (authorName IS NULL OR authorName = '');\n\nUPDATE book_profiles SET authorName = 'Stephen Poland' \nWHERE bookTitle LIKE 'Founder%Pocket Guide' AND (authorName IS NULL OR authorName = '');\n\n-- Reset the not-found cover for Immune so the rebuild will re-scrape it\nUPDATE book_profiles SET coverImageUrl = NULL, s3CoverUrl = NULL, s3CoverKey = NULL \nWHERE bookTitle = 'Immune by Philip Dettmer';\n\n-- Verify\nSELECT bookTitle, authorName, coverImageUrl FROM book_profiles \nWHERE (authorName IS NULL OR authorName = '') OR coverImageUrl IN ('not-found','skipped') OR coverImageUrl IS NULL\nORDER BY bookTitle;",
+  "rows": [
+    {
+      "bookTitle": "Immune by Philip Dettmer",
+      "authorName": "Philip Dettmer",
+      "coverImageUrl": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "bookTitle\tauthorName\tcoverImageUrl\nImmune by Philip Dettmer\tPhilip Dettmer\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 132
+}

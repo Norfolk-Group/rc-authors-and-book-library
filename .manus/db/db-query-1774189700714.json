@@ -1,0 +1,16 @@
+{
+  "query": "SELECT \n  COUNT(*) as total,\n  SUM(CASE WHEN coverImageUrl LIKE '%_UY218_%' OR coverImageUrl LIKE '%_UL320_%' OR coverImageUrl LIKE '%_UY320_%' THEN 1 ELSE 0 END) as low_res,\n  SUM(CASE WHEN coverImageUrl LIKE '%_SX500_%' OR coverImageUrl LIKE '%_SX600_%' OR coverImageUrl LIKE '%_SL500_%' THEN 1 ELSE 0 END) as high_res,\n  SUM(CASE WHEN authorName IS NULL OR authorName = '' THEN 1 ELSE 0 END) as missing_author\nFROM book_profiles;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 46FBtXPMNF6LwZ8.root --database ehSrGoKN2NYhXg8UYLtWGw --execute SELECT \n  COUNT(*) as total,\n  SUM(CASE WHEN coverImageUrl LIKE '%_UY218_%' OR coverImageUrl LIKE '%_UL320_%' OR coverImageUrl LIKE '%_UY320_%' THEN 1 ELSE 0 END) as low_res,\n  SUM(CASE WHEN coverImageUrl LIKE '%_SX500_%' OR coverImageUrl LIKE '%_SX600_%' OR coverImageUrl LIKE '%_SL500_%' THEN 1 ELSE 0 END) as high_res,\n  SUM(CASE WHEN authorName IS NULL OR authorName = '' THEN 1 ELSE 0 END) as missing_author\nFROM book_profiles;",
+  "rows": [
+    {
+      "total": "146",
+      "low_res": "31",
+      "high_res": "0",
+      "missing_author": "13"
+    }
+  ],
+  "messages": [],
+  "stdout": "total\tlow_res\thigh_res\tmissing_author\n146\t31\t0\t13\n",
+  "stderr": "",
+  "execution_time_ms": 71
+}

@@ -1,0 +1,19 @@
+{
+  "query": "SELECT \n  COUNT(*) as total_books,\n  SUM(CASE WHEN coverImageUrl IS NOT NULL AND coverImageUrl NOT IN ('not-found','skipped','') THEN 1 ELSE 0 END) as has_cover,\n  SUM(CASE WHEN s3CoverUrl IS NOT NULL AND s3CoverUrl != '' THEN 1 ELSE 0 END) as has_s3_cover,\n  SUM(CASE WHEN summary IS NOT NULL AND summary != '' THEN 1 ELSE 0 END) as has_summary,\n  SUM(CASE WHEN amazonUrl IS NOT NULL AND amazonUrl != '' THEN 1 ELSE 0 END) as has_amazon_url,\n  SUM(CASE WHEN coverImageUrl IN ('not-found','skipped') THEN 1 ELSE 0 END) as cover_failed,\n  SUM(CASE WHEN coverImageUrl IS NULL OR coverImageUrl = '' THEN 1 ELSE 0 END) as cover_missing\nFROM book_profiles;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 46FBtXPMNF6LwZ8.root --database ehSrGoKN2NYhXg8UYLtWGw --execute SELECT \n  COUNT(*) as total_books,\n  SUM(CASE WHEN coverImageUrl IS NOT NULL AND coverImageUrl NOT IN ('not-found','skipped','') THEN 1 ELSE 0 END) as has_cover,\n  SUM(CASE WHEN s3CoverUrl IS NOT NULL AND s3CoverUrl != '' THEN 1 ELSE 0 END) as has_s3_cover,\n  SUM(CASE WHEN summary IS NOT NULL AND summary != '' THEN 1 ELSE 0 END) as has_summary,\n  SUM(CASE WHEN amazonUrl IS NOT NULL AND amazonUrl != '' THEN 1 ELSE 0 END) as has_amazon_url,\n  SUM(CASE WHEN coverImageUrl IN ('not-found','skipped') THEN 1 ELSE 0 END) as cover_failed,\n  SUM(CASE WHEN coverImageUrl IS NULL OR coverImageUrl = '' THEN 1 ELSE 0 END) as cover_missing\nFROM book_profiles;",
+  "rows": [
+    {
+      "total_books": "146",
+      "has_cover": "144",
+      "has_s3_cover": "144",
+      "has_summary": "135",
+      "has_amazon_url": "145",
+      "cover_failed": "2",
+      "cover_missing": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "total_books\thas_cover\thas_s3_cover\thas_summary\thas_amazon_url\tcover_failed\tcover_missing\n146\t144\t144\t135\t145\t2\t0\n",
+  "stderr": "",
+  "execution_time_ms": 105
+}

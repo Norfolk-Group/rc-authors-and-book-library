@@ -1,0 +1,18 @@
+{
+  "query": "SELECT \n  COUNT(*) as total_books,\n  SUM(CASE WHEN authorName IS NULL OR authorName = '' THEN 1 ELSE 0 END) as missing_author,\n  SUM(CASE WHEN coverImageUrl IN ('not-found','skipped','') OR coverImageUrl IS NULL THEN 1 ELSE 0 END) as bad_cover,\n  SUM(CASE WHEN coverImageUrl LIKE '%_UY218_%' OR coverImageUrl LIKE '%_UL320_%' OR coverImageUrl LIKE '%_UY320_%' THEN 1 ELSE 0 END) as low_res_amazon,\n  SUM(CASE WHEN summary IS NULL OR summary = '' THEN 1 ELSE 0 END) as missing_summary,\n  SUM(CASE WHEN s3CoverUrl IS NULL OR s3CoverUrl = '' THEN 1 ELSE 0 END) as missing_s3\nFROM book_profiles;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 46FBtXPMNF6LwZ8.root --database ehSrGoKN2NYhXg8UYLtWGw --execute SELECT \n  COUNT(*) as total_books,\n  SUM(CASE WHEN authorName IS NULL OR authorName = '' THEN 1 ELSE 0 END) as missing_author,\n  SUM(CASE WHEN coverImageUrl IN ('not-found','skipped','') OR coverImageUrl IS NULL THEN 1 ELSE 0 END) as bad_cover,\n  SUM(CASE WHEN coverImageUrl LIKE '%_UY218_%' OR coverImageUrl LIKE '%_UL320_%' OR coverImageUrl LIKE '%_UY320_%' THEN 1 ELSE 0 END) as low_res_amazon,\n  SUM(CASE WHEN summary IS NULL OR summary = '' THEN 1 ELSE 0 END) as missing_summary,\n  SUM(CASE WHEN s3CoverUrl IS NULL OR s3CoverUrl = '' THEN 1 ELSE 0 END) as missing_s3\nFROM book_profiles;",
+  "rows": [
+    {
+      "total_books": "141",
+      "missing_author": "2",
+      "bad_cover": "1",
+      "low_res_amazon": "29",
+      "missing_summary": "11",
+      "missing_s3": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "total_books\tmissing_author\tbad_cover\tlow_res_amazon\tmissing_summary\tmissing_s3\n141\t2\t1\t29\t11\t1\n",
+  "stderr": "",
+  "execution_time_ms": 62
+}

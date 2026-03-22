@@ -1,0 +1,25 @@
+{
+  "query": "SELECT bookTitle, authorName, coverImageUrl FROM book_profiles \nWHERE (authorName IS NULL OR authorName = '') OR coverImageUrl IN ('not-found','skipped','') OR coverImageUrl IS NULL\nORDER BY bookTitle;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 46FBtXPMNF6LwZ8.root --database ehSrGoKN2NYhXg8UYLtWGw --execute SELECT bookTitle, authorName, coverImageUrl FROM book_profiles \nWHERE (authorName IS NULL OR authorName = '') OR coverImageUrl IN ('not-found','skipped','') OR coverImageUrl IS NULL\nORDER BY bookTitle;",
+  "rows": [
+    {
+      "bookTitle": "A Therapist’s Guide to Consensual Nonmonogamy",
+      "authorName": "",
+      "coverImageUrl": "https://m.media-amazon.com/images/I/71o9QU+07nL._AC_UY218_.jpg"
+    },
+    {
+      "bookTitle": "Founder’s Pocket Guide",
+      "authorName": "",
+      "coverImageUrl": "https://m.media-amazon.com/images/I/71StQuRgQ6L._AC_UY218_.jpg"
+    },
+    {
+      "bookTitle": "Immune by Philip Dettmer",
+      "authorName": "Philip Dettmer",
+      "coverImageUrl": "not-found"
+    }
+  ],
+  "messages": [],
+  "stdout": "bookTitle\tauthorName\tcoverImageUrl\nA Therapist’s Guide to Consensual Nonmonogamy\t\thttps://m.media-amazon.com/images/I/71o9QU+07nL._AC_UY218_.jpg\nFounder’s Pocket Guide\t\thttps://m.media-amazon.com/images/I/71StQuRgQ6L._AC_UY218_.jpg\nImmune by Philip Dettmer\tPhilip Dettmer\tnot-found\n",
+  "stderr": "",
+  "execution_time_ms": 61
+}

@@ -124,6 +124,33 @@ async function runActorWithRetry<T>(
   return null;
 }
 
+// -- Amazon image resolution helper -------------------------------------------
+
+/**
+ * Upgrade an Amazon CDN image URL from a low-resolution thumbnail to a
+ * high-resolution version (600px wide).  Amazon's CDN supports resolution
+ * substitution by replacing the size segment in the URL.
+ *
+ * Handles patterns like:
+ *   _AC_UY218_  → _SX600_
+ *   _AC_UL320_  → _SX600_
+ *   _AC_UY320_  → _SX600_
+ *   _SX300_     → _SX600_
+ *   _SX385_     → _SX600_
+ *   _SL200_     → _SX600_
+ */
+export function upgradeAmazonImageResolution(url: string): string {
+  if (!url || !url.includes('media-amazon.com')) return url;
+  // Replace any known low-res size segment with _SX600_
+  return url
+    .replace(/\._AC_UY\d+_\./g, '._SX600_.')
+    .replace(/\._AC_UL\d+_\./g, '._SX600_.')
+    .replace(/\._AC_SX\d+_\./g, '._SX600_.')
+    .replace(/\._SX\d+_\./g, '._SX600_.')
+    .replace(/\._SY\d+_\./g, '._SX600_.')
+    .replace(/\._SL\d+_\./g, '._SX600_.');
+}
+
 // -- Amazon book scraper -------------------------------------------------------
 
 /**
@@ -181,7 +208,14 @@ async function pageFunction(context) {
     return aMatch - bMatch;
   });
 
-  return sorted[0] ?? null;
+  const best = sorted[0] ?? null;
+  if (best?.coverUrl) {
+    // Upgrade Amazon CDN thumbnail to high-resolution (600px wide).
+    // Amazon supports resolution substitution: replace any _AC_UY218_, _AC_UL320_,
+    // _AC_UY320_, _SX300_, etc. with _SX600_ for a much sharper image.
+    best.coverUrl = upgradeAmazonImageResolution(best.coverUrl);
+  }
+  return best;
 }
 
 // -- Author avatar scraper ------------------------------------------------------

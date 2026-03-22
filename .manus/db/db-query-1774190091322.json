@@ -1,0 +1,20 @@
+{
+  "query": "SELECT bookTitle, authorName, summary FROM book_profiles \nWHERE summary IS NULL OR summary = ''\nORDER BY bookTitle;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 46FBtXPMNF6LwZ8.root --database ehSrGoKN2NYhXg8UYLtWGw --execute SELECT bookTitle, authorName, summary FROM book_profiles \nWHERE summary IS NULL OR summary = ''\nORDER BY bookTitle;",
+  "rows": [
+    {
+      "bookTitle": "Leading Engaging Meetings",
+      "authorName": "Matthew Dixon",
+      "summary": ""
+    },
+    {
+      "bookTitle": "No",
+      "authorName": "Jim Camp",
+      "summary": ""
+    }
+  ],
+  "messages": [],
+  "stdout": "bookTitle\tauthorName\tsummary\nLeading Engaging Meetings\tMatthew Dixon\t\nNo\tJim Camp\t\n",
+  "stderr": "",
+  "execution_time_ms": 67
+}

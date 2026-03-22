@@ -1,0 +1,130 @@
+{
+  "query": "SELECT bookTitle, authorName, \n  SUBSTRING(coverImageUrl, LOCATE('._', coverImageUrl), 20) as resolution_tag,\n  CASE WHEN s3CoverUrl IS NOT NULL THEN 'yes' ELSE 'no' END as has_s3\nFROM book_profiles \nWHERE coverImageUrl IS NOT NULL AND coverImageUrl NOT IN ('not-found','skipped','')\nORDER BY bookTitle\nLIMIT 20;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 46FBtXPMNF6LwZ8.root --database ehSrGoKN2NYhXg8UYLtWGw --execute SELECT bookTitle, authorName, \n  SUBSTRING(coverImageUrl, LOCATE('._', coverImageUrl), 20) as resolution_tag,\n  CASE WHEN s3CoverUrl IS NOT NULL THEN 'yes' ELSE 'no' END as has_s3\nFROM book_profiles \nWHERE coverImageUrl IS NOT NULL AND coverImageUrl NOT IN ('not-found','skipped','')\nORDER BY bookTitle\nLIMIT 20;",
+  "rows": [
+    {
+      "bookTitle": "10% Happier 10th Anniversary",
+      "authorName": "Dan Harris",
+      "resolution_tag": "",
+      "has_s3": "yes"
+    },
+    {
+      "bookTitle": "100M Leads",
+      "authorName": "Alex Hormozi",
+      "resolution_tag": "",
+      "has_s3": "yes"
+    },
+    {
+      "bookTitle": "1929",
+      "authorName": "Andrew Ross Sorkin",
+      "resolution_tag": "",
+      "has_s3": "yes"
+    },
+    {
+      "bookTitle": "7 Powers_ The Foundations of Business Strategy",
+      "authorName": "Hamilton Helmer",
+      "resolution_tag": "",
+      "has_s3": "yes"
+    },
+    {
+      "bookTitle": "A Therapist\\u2019s Guide to Consensual Nonmonogamy",
+      "authorName": "Rhea Orion",
+      "resolution_tag": "",
+      "has_s3": "yes"
+    },
+    {
+      "bookTitle": "A Therapist’s Guide to Consensual Nonmonogamy",
+      "authorName": "",
+      "resolution_tag": "._AC_UY218_.jpg",
+      "has_s3": "yes"
+    },
+    {
+      "bookTitle": "Abundance",
+      "authorName": "Ezra Klein",
+      "resolution_tag": "",
+      "has_s3": "yes"
+    },
+    {
+      "bookTitle": "Active Listening",
+      "authorName": "",
+      "resolution_tag": "._AC_UL320_.jpg",
+      "has_s3": "yes"
+    },
+    {
+      "bookTitle": "Active Listening Techniques",
+      "authorName": "Nixaly Leonardo",
+      "resolution_tag": "",
+      "has_s3": "yes"
+    },
+    {
+      "bookTitle": "Active Listening [3-in-1]",
+      "authorName": "Emma Leigh Weber",
+      "resolution_tag": "._AC_UY218_.jpg",
+      "has_s3": "yes"
+    },
+    {
+      "bookTitle": "All Marketers are Liars",
+      "authorName": "Seth Godin",
+      "resolution_tag": "",
+      "has_s3": "yes"
+    },
+    {
+      "bookTitle": "Atomic Habits",
+      "authorName": "James Clear",
+      "resolution_tag": "",
+      "has_s3": "yes"
+    },
+    {
+      "bookTitle": "Book PDF",
+      "authorName": "Dale Carnegie",
+      "resolution_tag": "",
+      "has_s3": "yes"
+    },
+    {
+      "bookTitle": "Building Successful Partner Channels",
+      "authorName": "Hans Peter Bech",
+      "resolution_tag": "",
+      "has_s3": "yes"
+    },
+    {
+      "bookTitle": "Charles Duhigg",
+      "authorName": "Charles Duhigg",
+      "resolution_tag": "",
+      "has_s3": "yes"
+    },
+    {
+      "bookTitle": "Chasing Perfection",
+      "authorName": "Sue Hawkes",
+      "resolution_tag": "",
+      "has_s3": "yes"
+    },
+    {
+      "bookTitle": "Contemporary Strategy Analysis",
+      "authorName": "Robert M Grant",
+      "resolution_tag": "",
+      "has_s3": "yes"
+    },
+    {
+      "bookTitle": "Crossing the Chasm, 3rd Edition",
+      "authorName": "Geoffrey A. Moore",
+      "resolution_tag": "",
+      "has_s3": "yes"
+    },
+    {
+      "bookTitle": "David Brooks",
+      "authorName": "David Brooks",
+      "resolution_tag": "._AC_UY218_.jpg",
+      "has_s3": "yes"
+    },
+    {
+      "bookTitle": "Discovering Statistics",
+      "authorName": "Daniel Larose",
+      "resolution_tag": "",
+      "has_s3": "yes"
+    }
+  ],
+  "messages": [],
+  "stdout": "bookTitle\tauthorName\tresolution_tag\thas_s3\n10% Happier 10th Anniversary\tDan Harris\t\tyes\n100M Leads\tAlex Hormozi\t\tyes\n1929\tAndrew Ross Sorkin\t\tyes\n7 Powers_ The Foundations of Business Strategy\tHamilton Helmer\t\tyes\nA Therapist\\u2019s Guide to Consensual Nonmonogamy\tRhea Orion\t\tyes\nA Therapist’s Guide to Consensual Nonmonogamy\t\t._AC_UY218_.jpg\tyes\nAbundance\tEzra Klein\t\tyes\nActive Listening\t\t._AC_UL320_.jpg\tyes\nActive Listening Techniques\tNixaly Leonardo\t\tyes\nActive Listening [3-in-1]\tEmma Leigh Weber\t._AC_UY218_.jpg\tyes\nAll Marketers are Liars\tSeth Godin\t\tyes\nAtomic Habits\tJames Clear\t\tyes\nBook PDF\tDale Carnegie\t\tyes\nBuilding Successful Partner Channels\tHans Peter Bech\t\tyes\nCharles Duhigg\tCharles Duhigg\t\tyes\nChasing Perfection\tSue Hawkes\t\tyes\nContemporary Strategy Analysis\tRobert M Grant\t\tyes\nCrossing the Chasm, 3rd Edition\tGeoffrey A. Moore\t\tyes\nDavid Brooks\tDavid Brooks\t._AC_UY218_.jpg\tyes\nDiscovering Statistics\tDaniel Larose\t\tyes\n",
+  "stderr": "",
+  "execution_time_ms": 58
+}

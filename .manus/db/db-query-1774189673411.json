@@ -1,0 +1,82 @@
+{
+  "query": "SELECT bookTitle, authorName, coverImageUrl, summary IS NOT NULL as hasSummary\nFROM book_profiles \nWHERE coverImageUrl IN ('not-found','skipped') OR summary IS NULL OR summary = ''\nORDER BY bookTitle\nLIMIT 30;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 46FBtXPMNF6LwZ8.root --database ehSrGoKN2NYhXg8UYLtWGw --execute SELECT bookTitle, authorName, coverImageUrl, summary IS NOT NULL as hasSummary\nFROM book_profiles \nWHERE coverImageUrl IN ('not-found','skipped') OR summary IS NULL OR summary = ''\nORDER BY bookTitle\nLIMIT 30;",
+  "rows": [
+    {
+      "bookTitle": "Active Listening",
+      "authorName": "",
+      "coverImageUrl": "https://m.media-amazon.com/images/I/610UIx0pFGL._AC_UL320_.jpg",
+      "hasSummary": "1"
+    },
+    {
+      "bookTitle": "Immune by Philip Dettmer",
+      "authorName": "",
+      "coverImageUrl": "not-found",
+      "hasSummary": "1"
+    },
+    {
+      "bookTitle": "Jefferson-Fisher-Open-Graph",
+      "authorName": "Jefferson Fisher",
+      "coverImageUrl": "skipped",
+      "hasSummary": "1"
+    },
+    {
+      "bookTitle": "Leading Engaging Meetings",
+      "authorName": "",
+      "coverImageUrl": "https://m.media-amazon.com/images/I/61FhaHOlEGL._AC_UY218_.jpg",
+      "hasSummary": "1"
+    },
+    {
+      "bookTitle": "Misbehaving The Making of Behavior Economics by Richard H. Thaler",
+      "authorName": "",
+      "coverImageUrl": "https://m.media-amazon.com/images/I/71L3CCIP1qL._AC_UY218_.jpg",
+      "hasSummary": "1"
+    },
+    {
+      "bookTitle": "Never Split the Difference by Chris Voss",
+      "authorName": "",
+      "coverImageUrl": "https://m.media-amazon.com/images/I/317Sfe9RMnL._AC_UY218_.jpg",
+      "hasSummary": "1"
+    },
+    {
+      "bookTitle": "No",
+      "authorName": "Jim Camp",
+      "coverImageUrl": "https://m.media-amazon.com/images/I/61WYwnMYNML._AC_UY218_.jpg",
+      "hasSummary": "1"
+    },
+    {
+      "bookTitle": "Slow Productivity The Lost Art of Accomplishment Without Burnout",
+      "authorName": "",
+      "coverImageUrl": "https://m.media-amazon.com/images/I/A1qH1SIDMML._AC_UY218_.jpg",
+      "hasSummary": "1"
+    },
+    {
+      "bookTitle": "Start with a No",
+      "authorName": "",
+      "coverImageUrl": "https://m.media-amazon.com/images/I/61WYwnMYNML._AC_UY218_.jpg",
+      "hasSummary": "1"
+    },
+    {
+      "bookTitle": "The Customer Success Professional Handbook",
+      "authorName": "",
+      "coverImageUrl": "https://m.media-amazon.com/images/I/61O1m8j-HRL._AC_UY218_.jpg",
+      "hasSummary": "1"
+    },
+    {
+      "bookTitle": "The Effortless Experience",
+      "authorName": "Matthew Dixon",
+      "coverImageUrl": "https://m.media-amazon.com/images/I/814suMjM4uL._AC_UY218_.jpg",
+      "hasSummary": "1"
+    },
+    {
+      "bookTitle": "The Jolt Effect",
+      "authorName": "",
+      "coverImageUrl": "https://m.media-amazon.com/images/I/71SJT+7O1XL._AC_UY218_.jpg",
+      "hasSummary": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "bookTitle\tauthorName\tcoverImageUrl\thasSummary\nActive Listening\t\thttps://m.media-amazon.com/images/I/610UIx0pFGL._AC_UL320_.jpg\t1\nImmune by Philip Dettmer\t\tnot-found\t1\nJefferson-Fisher-Open-Graph\tJefferson Fisher\tskipped\t1\nLeading Engaging Meetings\t\thttps://m.media-amazon.com/images/I/61FhaHOlEGL._AC_UY218_.jpg\t1\nMisbehaving The Making of Behavior Economics by Richard H. Thaler\t\thttps://m.media-amazon.com/images/I/71L3CCIP1qL._AC_UY218_.jpg\t1\nNever Split the Difference by Chris Voss\t\thttps://m.media-amazon.com/images/I/317Sfe9RMnL._AC_UY218_.jpg\t1\nNo\tJim Camp\thttps://m.media-amazon.com/images/I/61WYwnMYNML._AC_UY218_.jpg\t1\nSlow Productivity The Lost Art of Accomplishment Without Burnout\t\thttps://m.media-amazon.com/images/I/A1qH1SIDMML._AC_UY218_.jpg\t1\nStart with a No\t\thttps://m.media-amazon.com/images/I/61WYwnMYNML._AC_UY218_.jpg\t1\nThe Customer Success Professional Handbook\t\thttps://m.media-amazon.com/images/I/61O1m8j-HRL._AC_UY218_.jpg\t1\nThe Effortless Experience\tMatthew Dixon\thttps://m.media-amazon.com/images/I/814suMjM4uL._AC_UY218_.jpg\t1\nThe Jolt Effect\t\thttps://m.media-amazon.com/images/I/71SJT+7O1XL._AC_UY218_.jpg\t1\n",
+  "stderr": "",
+  "execution_time_ms": 111
+}

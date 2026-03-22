@@ -1,0 +1,60 @@
+{
+  "query": "-- Check remaining empty authorNames\nSELECT bookTitle, authorName, coverImageUrl FROM book_profiles \nWHERE authorName IS NULL OR authorName = ''\nORDER BY bookTitle;\n\n-- Check bad title entries (title = author name, or placeholder titles)\nSELECT bookTitle, authorName, coverImageUrl FROM book_profiles \nWHERE bookTitle IN ('Book PDF', 'Jefferson-Fisher-Open-Graph', 'Charles Duhigg', 'David Brooks', 'No')\n   OR bookTitle LIKE '%Open-Graph%'\nORDER BY bookTitle;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 46FBtXPMNF6LwZ8.root --database ehSrGoKN2NYhXg8UYLtWGw --execute -- Check remaining empty authorNames\nSELECT bookTitle, authorName, coverImageUrl FROM book_profiles \nWHERE authorName IS NULL OR authorName = ''\nORDER BY bookTitle;\n\n-- Check bad title entries (title = author name, or placeholder titles)\nSELECT bookTitle, authorName, coverImageUrl FROM book_profiles \nWHERE bookTitle IN ('Book PDF', 'Jefferson-Fisher-Open-Graph', 'Charles Duhigg', 'David Brooks', 'No')\n   OR bookTitle LIKE '%Open-Graph%'\nORDER BY bookTitle;",
+  "rows": [
+    {
+      "bookTitle": "A Therapist’s Guide to Consensual Nonmonogamy",
+      "authorName": "",
+      "coverImageUrl": "https://m.media-amazon.com/images/I/71o9QU+07nL._AC_UY218_.jpg"
+    },
+    {
+      "bookTitle": "Do You Talk Funny",
+      "authorName": "",
+      "coverImageUrl": "https://books.google.com/books/content?id=fdqFCwAAQBAJ&printsec=frontcover&img=1&zoom=3&source=gbs_api"
+    },
+    {
+      "bookTitle": "Founder’s Pocket Guide",
+      "authorName": "",
+      "coverImageUrl": "https://m.media-amazon.com/images/I/71StQuRgQ6L._AC_UY218_.jpg"
+    },
+    {
+      "bookTitle": "bk_rand_011854",
+      "authorName": "",
+      "coverImageUrl": "https://m.media-amazon.com/images/I/71NVzVbEhsL._AC_UY218_.jpg"
+    },
+    {
+      "bookTitle": "bookTitle",
+      "authorName": "authorName",
+      "coverImageUrl": "coverImageUrl"
+    },
+    {
+      "bookTitle": "Book PDF",
+      "authorName": "Dale Carnegie",
+      "coverImageUrl": "https://books.google.com/books/content?id=D-9DDwAAQBAJ&printsec=frontcover&img=1&zoom=3&source=gbs_api"
+    },
+    {
+      "bookTitle": "Charles Duhigg",
+      "authorName": "Charles Duhigg",
+      "coverImageUrl": "https://books.google.com/books/content?id=PAHltAEACAAJ&printsec=frontcover&img=1&zoom=3&source=gbs_api"
+    },
+    {
+      "bookTitle": "David Brooks",
+      "authorName": "David Brooks",
+      "coverImageUrl": "https://m.media-amazon.com/images/I/910zFieNvXL._AC_UY218_.jpg"
+    },
+    {
+      "bookTitle": "Jefferson-Fisher-Open-Graph",
+      "authorName": "Jefferson Fisher",
+      "coverImageUrl": "skipped"
+    },
+    {
+      "bookTitle": "No",
+      "authorName": "Jim Camp",
+      "coverImageUrl": "https://m.media-amazon.com/images/I/61WYwnMYNML._AC_UY218_.jpg"
+    }
+  ],
+  "messages": [],
+  "stdout": "bookTitle\tauthorName\tcoverImageUrl\nA Therapist’s Guide to Consensual Nonmonogamy\t\thttps://m.media-amazon.com/images/I/71o9QU+07nL._AC_UY218_.jpg\nDo You Talk Funny\t\thttps://books.google.com/books/content?id=fdqFCwAAQBAJ&printsec=frontcover&img=1&zoom=3&source=gbs_api\nFounder’s Pocket Guide\t\thttps://m.media-amazon.com/images/I/71StQuRgQ6L._AC_UY218_.jpg\nbk_rand_011854\t\thttps://m.media-amazon.com/images/I/71NVzVbEhsL._AC_UY218_.jpg\nbookTitle\tauthorName\tcoverImageUrl\nBook PDF\tDale Carnegie\thttps://books.google.com/books/content?id=D-9DDwAAQBAJ&printsec=frontcover&img=1&zoom=3&source=gbs_api\nCharles Duhigg\tCharles Duhigg\thttps://books.google.com/books/content?id=PAHltAEACAAJ&printsec=frontcover&img=1&zoom=3&source=gbs_api\nDavid Brooks\tDavid Brooks\thttps://m.media-amazon.com/images/I/910zFieNvXL._AC_UY218_.jpg\nJefferson-Fisher-Open-Graph\tJefferson Fisher\tskipped\nNo\tJim Camp\thttps://m.media-amazon.com/images/I/61WYwnMYNML._AC_UY218_.jpg\n",
+  "stderr": "",
+  "execution_time_ms": 68
+}

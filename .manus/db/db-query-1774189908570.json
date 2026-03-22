@@ -1,0 +1,30 @@
+{
+  "query": "SELECT bookTitle, authorName, coverImageUrl FROM book_profiles \nWHERE bookTitle IN ('Supercommunicators', 'How to Know a Person', 'Charles Duhigg', 'David Brooks')\nORDER BY bookTitle;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 46FBtXPMNF6LwZ8.root --database ehSrGoKN2NYhXg8UYLtWGw --execute SELECT bookTitle, authorName, coverImageUrl FROM book_profiles \nWHERE bookTitle IN ('Supercommunicators', 'How to Know a Person', 'Charles Duhigg', 'David Brooks')\nORDER BY bookTitle;",
+  "rows": [
+    {
+      "bookTitle": "Charles Duhigg",
+      "authorName": "Charles Duhigg",
+      "coverImageUrl": "https://books.google.com/books/content?id=PAHltAEACAAJ&printsec=frontcover&img=1&zoom=3&source=gbs_api"
+    },
+    {
+      "bookTitle": "David Brooks",
+      "authorName": "David Brooks",
+      "coverImageUrl": "https://m.media-amazon.com/images/I/910zFieNvXL._AC_UY218_.jpg"
+    },
+    {
+      "bookTitle": "How to Know a Person",
+      "authorName": "David Brooks",
+      "coverImageUrl": "https://books.google.com/books/content?id=HZRqEQAAQBAJ&printsec=frontcover&img=1&zoom=3&source=gbs_api"
+    },
+    {
+      "bookTitle": "Supercommunicators",
+      "authorName": "Charles Duhigg",
+      "coverImageUrl": "https://books.google.com/books/content?id=oNa_EAAAQBAJ&printsec=frontcover&img=1&zoom=3&source=gbs_api"
+    }
+  ],
+  "messages": [],
+  "stdout": "bookTitle\tauthorName\tcoverImageUrl\nCharles Duhigg\tCharles Duhigg\thttps://books.google.com/books/content?id=PAHltAEACAAJ&printsec=frontcover&img=1&zoom=3&source=gbs_api\nDavid Brooks\tDavid Brooks\thttps://m.media-amazon.com/images/I/910zFieNvXL._AC_UY218_.jpg\nHow to Know a Person\tDavid Brooks\thttps://books.google.com/books/content?id=HZRqEQAAQBAJ&printsec=frontcover&img=1&zoom=3&source=gbs_api\nSupercommunicators\tCharles Duhigg\thttps://books.google.com/books/content?id=oNa_EAAAQBAJ&printsec=frontcover&img=1&zoom=3&source=gbs_api\n",
+  "stderr": "",
+  "execution_time_ms": 65
+}

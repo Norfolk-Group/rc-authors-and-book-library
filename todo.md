@@ -1272,4 +1272,21 @@ Live URL: https://authlib-ehsrgokn.manus.space
 - [x] MEDIUM: Improve Tavily photo ranking — Wikipedia+15, LinkedIn+12, publisher+10, TED+10; book covers-12, group/event-8
 - [ ] LOW: Add per-author loading state in author card UI during individual regeneration
 - [x] Run 171 tests — all passing (13 test files)
+- [x] Save checkpoint (7d266104), pushed to GitHub
+
+## Session March 22, 2026 — Rebuild Entire Book Cover + Info Database
+
+- [x] Audit database: 141 books, 31 low-res covers, 13 empty authorNames, 6 junk/duplicate entries, 11 missing summaries
+- [x] Add `upgradeAmazonImageResolution()` helper to apify.ts — replaces _AC_UY218_/_UL320_/_UY320_ with _SX600_
+- [x] Update `scrapeAmazonBook()` to always return high-res cover URLs going forward
+- [x] Add `rebuildAllBookCovers` procedure to bookProfiles.router.ts (upgrade URLs + re-scrape failed + re-mirror to S3)
+- [x] Fix bad data in DB: delete 4 junk entries (bookTitle=authorName placeholders, bk_rand_011854, Jefferson-Fisher-Open-Graph, Book PDF)
+- [x] Fix duplicate title=author entries: delete Charles Duhigg and David Brooks rows (proper book entries already existed)
+- [x] Fix 13 empty authorName fields via SQL UPDATE
+- [x] Wire `rebuildAllBookCovers` into Admin Console Media tab with destructive ActionCard + confirmation dialog
+- [x] Trigger rebuild: upgraded 29 low-res URLs to _SX600_, re-scraped Immune by Philip Dettmer, mirrored 30 covers to S3
+- [x] Fill 9 of 11 missing summaries via updateAllBookSummaries
+- [x] Manually write summaries for "No" (Jim Camp) and "Leading Engaging Meetings" (Matthew Dixon) — titles too ambiguous for API
+- [x] Final DB state: 141 books, 0 missing authors, 0 bad covers, 0 low-res Amazon URLs, 141/141 S3-mirrored, 0 missing summaries
+- [x] 171 tests passing (13 test files)
 - [ ] Save checkpoint, push to GitHub

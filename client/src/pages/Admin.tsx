@@ -290,6 +290,7 @@ export default function Admin() {
   const mirrorAvatarsMutation = trpc.authorProfiles.mirrorAvatars.useMutation();
   const updateAllAuthorLinksMutation = trpc.authorProfiles.updateAllAuthorLinks.useMutation();
   const updateAllBookSummariesMutation = trpc.bookProfiles.updateAllBookSummaries.useMutation();
+  const rebuildAllBookCoversMutation = trpc.bookProfiles.rebuildAllBookCovers.useMutation();
   const auditAvatarBackgroundsMutation = trpc.authorProfiles.auditAvatarBackgrounds.useMutation();
   const normalizeAvatarBackgroundsMutation = trpc.authorProfiles.normalizeAvatarBackgrounds.useMutation();
 
@@ -306,6 +307,7 @@ export default function Admin() {
   const [auditBgState, setAuditBgState] = useState<ActionState>(INITIAL_STATE);
   const [normalizeBgState, setNormalizeBgState] = useState<ActionState>(INITIAL_STATE);
   const [bgMismatchList, setBgMismatchList] = useState<string[]>([]);
+  const [rebuildCoversState, setRebuildCoversState] = useState<ActionState>(INITIAL_STATE);
 
   // -- Research Cascade stats --
   const authorStats = trpc.cascade.authorStats.useQuery(undefined, { staleTime: 60_000 });
@@ -654,7 +656,37 @@ export default function Admin() {
     }
   }, [mirrorCoversState.status, mirrorCoversMutation, recordAction]);
 
-  // -- 7. Mirror Avatars to S3 --
+  // -- 7. Rebuild All Book Covers (upgrade resolution + re-scrape failed + re-mirror) --
+  const handleRebuildCovers = useCallback(async () => {
+    if (rebuildCoversState.status === "running") return;
+    setRebuildCoversState({ ...INITIAL_STATE, status: "running", message: "Rebuilding book covers..." });
+    const start = Date.now();
+    try {
+      const result = await rebuildAllBookCoversMutation.mutateAsync({
+        concurrency: settings.batchConcurrency ?? 2,
+        rescrapeAll: false,
+      });
+      const summary = `Upgraded ${result.upgraded} URLs, scraped ${result.scraped} new covers, mirrored ${result.mirrored} to S3`;
+      setRebuildCoversState({
+        status: "done",
+        progress: 100,
+        message: summary,
+        done: result.mirrored,
+        total: result.total,
+        failed: result.mirrorFailed + result.notFound,
+      });
+      toast.success("Book cover rebuild complete.");
+      void utils.bookProfiles.getMany.invalidate();
+      await recordAction("rebuild-covers", "Rebuild Book Covers", start, "success", result.mirrored);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setRebuildCoversState((s) => ({ ...s, status: "error", message: msg }));
+      toast.error("Rebuild covers failed: " + msg);
+      await recordAction("rebuild-covers", "Rebuild Book Covers", start, `error: ${msg}`, 0);
+    }
+  }, [rebuildCoversState.status, rebuildAllBookCoversMutation, settings, utils, recordAction]);
+
+  // -- 8. Mirror Avatars to S3 --
   const handleMirrorPhotos = useCallback(async () => {
     if (mirrorAvatarsState.status === "running") return;
     setMirrorAvatarsState({ ...INITIAL_STATE, status: "running", message: "Mirroring avatars..." });
@@ -1045,6 +1077,20 @@ export default function Admin() {
               lastRun={getLastRun("mirror-covers")}
               onRun={handleMirrorCovers}
               buttonLabel="Mirror Covers"
+              disabled={anyRunning}
+            />
+            <ActionCard
+              title="Rebuild All Book Covers"
+              description="Upgrade all Amazon cover URLs to high-resolution (_SX600_), re-scrape failed covers, and re-mirror everything to S3. Cleans up bad data automatically."
+              icon={RefreshCw}
+              actionKey="rebuild-covers"
+              state={rebuildCoversState}
+              lastRun={getLastRun("rebuild-covers")}
+              destructive
+              confirmTitle="Rebuild all book covers?"
+              confirmDescription="This will upgrade all low-res Amazon URLs to _SX600_, re-scrape covers for books that failed, and re-mirror everything to S3. Existing S3 URLs will be replaced. This may take 2-5 minutes."
+              onRun={handleRebuildCovers}
+              buttonLabel="Rebuild Covers"
               disabled={anyRunning}
             />
           </TabsContent>
