@@ -197,13 +197,13 @@ export function AuthorCard({ author, query, onBioClick, isEnriched, coverMap, on
                             <img
                               src={coverUrl}
                               alt={titleKey}
-                              className="w-16 h-[88px] object-cover rounded shadow-sm ring-1 ring-border group-hover/cover:ring-2 transition-all duration-150"
+                              className="w-[90px] h-[123px] object-cover rounded shadow-sm ring-1 ring-border group-hover/cover:ring-2 transition-all duration-150"
                               style={{ "--tw-ring-color": color + "55" } as React.CSSProperties}
                               loading="lazy"
                             />
                           ) : (
                             <div
-                              className="w-16 h-[88px] rounded shadow-sm ring-1 ring-border flex items-center justify-center group-hover/cover:ring-2 transition-all duration-150"
+                              className="w-[90px] h-[123px] rounded shadow-sm ring-1 ring-border flex items-center justify-center group-hover/cover:ring-2 transition-all duration-150"
                               style={{ backgroundColor: color + "18", "--tw-ring-color": color + "55" } as React.CSSProperties}
                             >
                               <BookOpen className="w-5 h-5" style={{ color, opacity: 0.7 }} />

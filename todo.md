@@ -1135,16 +1135,16 @@
 - [x] Reduce staleTime on authorProfiles.get in AuthorModal to 30s for instant post-update refresh
 
 ## Session March 22, 2026 — Parallel Batch Execution
-- [ ] Build `server/lib/parallelBatch.ts` utility — pLimit-style pool with configurable concurrency, progress callback, and error isolation per item
-- [ ] Add `batchConcurrency` field to `AppSettings` (default: 3, range: 1–10)
-- [ ] Add default value for `batchConcurrency` in `AppSettingsContext.tsx`
+- [x] Build `server/lib/parallelBatch.ts` utility — pLimit-style pool with configurable concurrency, progress callback, and error isolation per item
+- [x] Add `batchConcurrency` field to `AppSettings` (default: 3, range: 1–10)
+- [x] Add default value for `batchConcurrency` in `AppSettingsContext.tsx`
 - [ ] Update `generateAllPortraits` procedure to use parallel pool (authorProfiles.router.ts)
-- [ ] Update `enrichBatch` procedure to use parallel pool (authorProfiles.router.ts)
-- [ ] Update `updateAllAuthorLinks` procedure to use parallel pool (authorProfiles.router.ts)
-- [ ] Update `normalizeAvatarBackgrounds` procedure to use parallel pool (authorProfiles.router.ts)
-- [ ] Update `updateAllBookSummaries` procedure to use parallel pool (bookProfiles.router.ts)
-- [ ] Add `concurrency` input param to all batch procedures so Admin Console can pass the setting
-- [ ] Add Concurrency Slider component to Admin Console AI tab (1–10, shows "N authors at a time")
+- [x] Update `enrichBatch` procedure to use parallel pool (authorProfiles.router.ts)
+- [x] Update `updateAllAuthorLinks` procedure to use parallel pool (authorProfiles.router.ts)
+- [x] Update `normalizeAvatarBackgrounds` procedure to use parallel pool (authorProfiles.router.ts)
+- [x] Update `updateAllBookSummaries` procedure to use parallel pool (bookProfiles.router.ts)
+- [x] Add `concurrency` input param to all batch procedures so Admin Console can pass the setting
+- [x] Add Concurrency Slider component to Admin Console AI tab (1–10, shows "N authors at a time")
 - [ ] Write vitest tests for parallelBatch utility (concurrency cap, error isolation, progress callback)
 
 ## Session March 22, 2026 — Fix Per-Card Avatar Regeneration
@@ -1164,4 +1164,22 @@
 - [x] Update CLAUDE.md v2.4 with Photo Recency section
 - [x] Regenerate avatar for Aaron Ross — bokeh-gold portrait generated in 34.6s (Tier 5, nano-banana)
 - [x] Regenerate avatar for Albert Rutherford — bokeh-gold portrait generated in 20.6s (Tier 5, nano-banana)
-- [ ] Commit and push to GitHub
+- [x] Commit and push to GitHub (9f0eb98)
+
+## Session March 22, 2026 — Enlarge Covers + Parallel Batch + Drive Fix
+- [x] Enlarge book cover icons by 40% in BookCard (grid view): 67x90 → 94x126px
+- [x] Enlarge book cover icons by 40% in BookModal (detail view): 134x90 → 188x126px
+- [x] Enlarge book cover icons by 40% in FlowbiteAuthorCard cover strip: 123x90 → 172x126px
+- [x] Enlarge book cover icons by 40% in BookDetailPanel: w-20 h-28 → w-28 h-40
+- [x] Fix Drive upload /tmp path bug in meticulousPipeline.ts: use relative path + cwd option
+- [x] Build parallelBatch.ts utility (configurable concurrency pool, p-limit style)
+- [x] Wire parallelBatch into enrichBatch (author bios) procedure
+- [x] Wire parallelBatch into updateAllAuthorLinks procedure
+- [x] Wire parallelBatch into normalizeAvatarBackgrounds procedure
+- [x] Wire parallelBatch into updateAllBookSummaries procedure
+- [x] Add concurrency setting to AppSettingsContext (default: 3)
+- [x] Add concurrency slider to Admin Console AI tab
+- [ ] Clean and optimize code throughout (remove dead code, consolidate duplicate Tavily fetch logic)
+- [x] Write vitest tests for parallelBatch utility (concurrency cap, error isolation, progress callback) — 11 tests, all passing
+- [x] Run tests: 152 tests passing (12 test files)
+- [ ] Save checkpoint, push to GitHub

@@ -40,24 +40,33 @@ async function uploadToGoogleDrive(
   try {
     const { exec } = await import("child_process");
     const { promisify } = await import("util");
-    const { writeFile, unlink } = await import("fs/promises");
-    const { tmpdir } = await import("os");
+    const { writeFile, unlink, mkdir } = await import("fs/promises");
     const { join } = await import("path");
 
     const execAsync = promisify(exec);
     const ext = mimeType.includes("png") ? "png" : mimeType.includes("webp") ? "webp" : "jpg";
     const sanitized = authorName.replace(/[^a-zA-Z0-9 ]/g, "").replace(/\s+/g, " ").trim();
     const filename = `${sanitized}.${ext}`;
-    const tmpPath = join(tmpdir(), `avatar-${Date.now()}-${filename}`);
 
-    // Write buffer to temp file
+    // gws CLI requires the file to be within the current working directory (not /tmp).
+    // Write to .avatar-uploads/ inside the project root, then pass a relative path
+    // to gws so it resolves within its own CWD (which we also set to projectRoot).
+    const projectRoot = process.cwd();
+    const uploadDir = join(projectRoot, ".avatar-uploads");
+    await mkdir(uploadDir, { recursive: true });
+    const relFilename = `avatar-${Date.now()}-${filename}`;
+    const tmpPath = join(uploadDir, relFilename);
+    const relPath = `.avatar-uploads/${relFilename}`;
+
+    // Write buffer to local file
     await writeFile(tmpPath, buffer);
 
-    // Upload to Google Drive "Author Pictures" folder using gws CLI
-    // Folder ID: 1_sTZD5m4d7Hnb3oBHxRFXONBnFJlJqJF (Author Pictures)
+    // Upload to Google Drive "Author Pictures" folder using gws CLI.
+    // Pass cwd: projectRoot so gws resolves the relative path correctly.
     const DRIVE_FOLDER_ID = "1_sTZD5m4d7Hnb3oBHxRFXONBnFJlJqJF";
     const { stdout } = await execAsync(
-      `gws drive files create --params '{"name":"${sanitized}","parents":["${DRIVE_FOLDER_ID}"]}' --upload '${tmpPath}' --upload-content-type 'image/png'`
+      `gws drive files create --params '{"name":"${sanitized}","parents":["${DRIVE_FOLDER_ID}"]}' --upload '${relPath}' --upload-content-type 'image/png'`,
+      { cwd: projectRoot }
     );
 
     // Clean up temp file

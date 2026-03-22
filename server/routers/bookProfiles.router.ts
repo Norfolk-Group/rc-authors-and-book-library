@@ -12,6 +12,7 @@ import { eq, inArray, isNotNull, isNull, or } from "drizzle-orm";
 import { mirrorBatchToS3 } from "../mirrorToS3";
 
 import { enrichBookViaGoogleBooks } from "../lib/bookEnrichment";
+import { parallelBatch } from "../lib/parallelBatch";
 
 // -- Router -----------------------------------------------------------------
 
@@ -313,6 +314,7 @@ export const bookProfilesRouter = router({
         researchVendor: z.string().optional(),
         researchModel: z.string().optional(),
         onlyMissing: z.boolean().optional().default(true),
+        concurrency: z.number().min(1).max(10).optional().default(3),
       })
     )
     .mutation(async ({ input }) => {
@@ -328,45 +330,42 @@ export const bookProfilesRouter = router({
             .select({ bookTitle: bookProfiles.bookTitle, authorName: bookProfiles.authorName })
             .from(bookProfiles);
       const total = books.length;
-      let enriched = 0;
-      let failed = 0;
-      const BATCH_SIZE = 5;
-      for (let i = 0; i < books.length; i += BATCH_SIZE) {
-        const batch = books.slice(i, i + BATCH_SIZE);
-        await Promise.all(
-          batch.map(async (item) => {
-            try {
-              const result = await enrichBookSummary(
-                item.bookTitle,
-                item.authorName ?? "",
-                input.researchVendor ?? "perplexity",
-                input.researchModel ?? "sonar-pro"
-              );
-              if (!result.summary) { failed++; return; }
-              await db
-                .update(bookProfiles)
-                .set({
-                  summary: result.summary || undefined,
-                  keyThemes: result.keyThemes || undefined,
-                  rating: result.rating,
-                  ratingCount: result.ratingCount,
-                  publishedDate: result.publishedDate,
-                  publisher: result.publisher,
-                  isbn: result.isbn,
-                  amazonUrl: result.amazonUrl,
-                  goodreadsUrl: result.goodreadsUrl,
-                  publisherUrl: result.publisherUrl,
-                  summaryEnrichmentSource: result.source,
-                  lastSummaryEnrichedAt: new Date(),
-                  enrichedAt: new Date(),
-                })
-                .where(eq(bookProfiles.bookTitle, item.bookTitle));
-              enriched++;
-            } catch { failed++; }
-          })
-        );
-      }
-      return { total, enriched, failed };
+
+      const batchResult = await parallelBatch(
+        books.map((b) => `${b.bookTitle}|||${b.authorName ?? ""}`),
+        input.concurrency ?? 3,
+        async (key) => {
+          const [bookTitle, authorName] = key.split("|||");
+          const result = await enrichBookSummary(
+            bookTitle,
+            authorName,
+            input.researchVendor ?? "perplexity",
+            input.researchModel ?? "sonar-pro"
+          );
+          if (!result.summary) throw new Error("No summary returned");
+          await db
+            .update(bookProfiles)
+            .set({
+              summary: result.summary || undefined,
+              keyThemes: result.keyThemes || undefined,
+              rating: result.rating,
+              ratingCount: result.ratingCount,
+              publishedDate: result.publishedDate,
+              publisher: result.publisher,
+              isbn: result.isbn,
+              amazonUrl: result.amazonUrl,
+              goodreadsUrl: result.goodreadsUrl,
+              publisherUrl: result.publisherUrl,
+              summaryEnrichmentSource: result.source,
+              lastSummaryEnrichedAt: new Date(),
+              enrichedAt: new Date(),
+            })
+            .where(eq(bookProfiles.bookTitle, bookTitle));
+          return { bookTitle, success: true };
+        }
+      );
+
+      return { total, enriched: batchResult.succeeded, failed: batchResult.failed };
     }),
 
   /**
@@ -392,38 +391,28 @@ export const bookProfilesRouter = router({
         );
 
       const total = missing.length;
-      let enriched = 0;
-      let failed = 0;
-      let skipped = 0;
 
-      // Process in batches of 5 to avoid overwhelming the API
-      const BATCH_SIZE = 5;
-      for (let i = 0; i < missing.length; i += BATCH_SIZE) {
-        const batch = missing.slice(i, i + BATCH_SIZE);
-        await Promise.all(
-          batch.map(async (item) => {
-            try {
-              const data = await enrichBookViaGoogleBooks(
-                item.bookTitle,
-                item.authorName ?? "",
-                input.model
-              );
-              if (!data.summary) {
-                skipped++;
-                return;
-              }
-              await db
-                .update(bookProfiles)
-                .set({ summary: data.summary, enrichedAt: new Date() })
-                .where(eq(bookProfiles.bookTitle, item.bookTitle));
-              enriched++;
-            } catch {
-              failed++;
-            }
-          })
-        );
-      }
+      const batchResult = await parallelBatch(
+        missing.map((b) => `${b.bookTitle}|||${b.authorName ?? ""}`),
+        3,
+        async (key) => {
+          const [bookTitle, authorName] = key.split("|||");
+          const data = await enrichBookViaGoogleBooks(bookTitle, authorName, input.model);
+          if (!data.summary) return { bookTitle, skipped: true };
+          await db
+            .update(bookProfiles)
+            .set({ summary: data.summary, enrichedAt: new Date() })
+            .where(eq(bookProfiles.bookTitle, bookTitle));
+          return { bookTitle, skipped: false };
+        }
+      );
 
-      return { total, enriched, skipped, failed };
+      const skipped = batchResult.results.filter((r) => r.result?.skipped).length;
+      return {
+        total,
+        enriched: batchResult.succeeded - skipped,
+        skipped,
+        failed: batchResult.failed,
+      };
     }),
 });

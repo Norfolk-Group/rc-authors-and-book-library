@@ -92,14 +92,14 @@ export function BookCard({ book, query, onDetailClick, coverImageUrl, isEnriched
           <div className="flex items-start gap-3 mb-2">
             {coverImageUrl && (
               <div
-                className="cover-zoom-wrap flex-shrink-0 w-12 h-16 cursor-zoom-in"
+                className="cover-zoom-wrap flex-shrink-0 w-[94px] h-[126px] cursor-zoom-in"
                 onClick={(e) => { e.stopPropagation(); onCoverClick?.(coverImageUrl, displayTitle, color); }}
                 title="Click to enlarge cover"
               >
                 <img
                   src={coverImageUrl}
                   alt={displayTitle}
-                  className="w-12 h-16 object-cover rounded shadow-sm ring-1 ring-border hover:ring-2 transition-all duration-150"
+                  className="w-[94px] h-[126px] object-cover rounded shadow-sm ring-1 ring-border hover:ring-2 transition-all duration-150"
                   style={{ '--tw-ring-color': color + '55' } as React.CSSProperties}
                   loading="lazy"
                 />

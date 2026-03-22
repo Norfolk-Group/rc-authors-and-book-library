@@ -102,6 +102,8 @@ export interface AppSettings {
   replicateModel: string;
   /** Perplexity: default research model ID */
   perplexityModel: string;
+  /** Batch concurrency: max parallel tasks for all batch operations (1–10, default: 3) */
+  batchConcurrency: number;
 }
 
 interface AppSettingsContextType {
@@ -148,6 +150,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   otherAiSecondaryModel: "gemini-2.5-pro",
   // External tool defaults
   apifyActor: "apify/cheerio-scraper",
+  batchConcurrency: 3,
   replicateModel: "black-forest-labs/flux-1.1-pro",
   perplexityModel: "sonar-pro",
 };

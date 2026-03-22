@@ -6,6 +6,7 @@ import { getDb } from "../db";
 import { authorProfiles } from "../../drizzle/schema";
 import { publicProcedure, router } from "../_core/trpc";
 import { processAuthorAvatarWaterfall } from "../lib/authorAvatars/waterfall";
+import { parallelBatch } from "../lib/parallelBatch";
 
 import { enrichAuthorViaWikipedia } from "../lib/authorEnrichment";
 
@@ -182,12 +183,12 @@ export const authorProfilesRouter = router({
       authorNames: z.array(z.string()).max(20),
       model: z.string().optional(),
       secondaryModel: z.string().optional(),
+      concurrency: z.number().min(1).max(10).optional().default(3),
     }))
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) return { results: [], total: 0, succeeded: 0 };
 
-      const results: Array<{ authorName: string; success: boolean }> = [];
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
       // Pre-fetch all existing rows in a single query (avoids N+1 per-author lookup)
@@ -199,17 +200,17 @@ export const authorProfilesRouter = router({
         : [];
       const existingMap = new Map(existingRows.map((r) => [r.authorName, r]));
 
-      for (const authorName of input.authorNames) {
-        try {
+      // Run enrichment in parallel with configurable concurrency
+      const batchResult = await parallelBatch(
+        input.authorNames,
+        input.concurrency,
+        async (authorName) => {
           const existing = existingMap.get(authorName);
           if (existing?.enrichedAt && existing.enrichedAt > thirtyDaysAgo) {
-            results.push({ authorName, success: true });
-            continue;
+            return { authorName, success: true, skipped: true };
           }
-
           const info = await enrichAuthorViaWikipedia(authorName, input.model, input.secondaryModel);
           const now = new Date();
-
           if (existing) {
             await db
               .update(authorProfiles)
@@ -218,11 +219,13 @@ export const authorProfilesRouter = router({
           } else {
             await db.insert(authorProfiles).values({ authorName, ...info, enrichedAt: now });
           }
-          results.push({ authorName, success: true });
-        } catch {
-          results.push({ authorName, success: false });
+          return { authorName, success: true, skipped: false };
         }
-      }
+      );
+      const results = batchResult.results.map((r) => ({
+        authorName: r.input,
+        success: r.error === undefined,
+      }));
 
       // Auto-mirror newly enriched author avatars to S3 in the background (fire-and-forget)
       const succeededCount = results.filter((r) => r.success).length;
@@ -392,7 +395,7 @@ export const authorProfilesRouter = router({
   generateAllMissingAvatars: publicProcedure
     .input(
       z.object({
-        batchSize: z.number().min(1).max(10).optional().default(5),
+        concurrency: z.number().min(1).max(10).optional().default(3),
         maxTier: z.number().min(1).max(5).optional().default(5),
         skipValidation: z.boolean().optional().default(false),
         avatarGenVendor: z.string().optional().default("google"),
@@ -417,86 +420,66 @@ export const authorProfilesRouter = router({
       }
 
       const names = missing.map((r) => r.authorName);
-      const results: Array<{
-        name: string;
-        success: boolean;
-        source: string;
-        isAiGenerated: boolean;
-        tier: number;
-        avatarUrl: string | null;
-        error?: string;
-      }> = [];
 
-      // Process in batches
-      for (let i = 0; i < names.length; i += input.batchSize) {
-        const batch = names.slice(i, i + input.batchSize);
-        for (const originalName of batch) {
-          try {
-            const result = await processAuthorAvatarWaterfall(originalName, {
-              skipValidation: input.skipValidation,
-              maxTier: input.maxTier,
-              avatarGenVendor: input.avatarGenVendor,
-              avatarGenModel: input.avatarGenModel,
-              avatarResearchVendor: input.avatarResearchVendor,
-              avatarResearchModel: input.avatarResearchModel,
-              avatarBgColor: input.avatarBgColor,
-            });
-            if (result.avatarUrl || result.s3AvatarUrl) {
-              const avatarSourceVal2 =
-                result.source === "wikipedia" ? "wikipedia" as const
-                : result.source === "tavily" ? "tavily" as const
-                : result.source === "apify" ? "apify" as const
-                : result.source === "ai-generated" ? "google-imagen" as const
-                : undefined;
-              const pipelineMeta2 = (result as unknown as Record<string, unknown>).__pipelineResult as {
-                authorDescription?: object;
-                imagePrompt?: string;
-                driveFileId?: string;
-                vendor?: string;
-                model?: string;
-              } | undefined;
-              await db
-                .update(authorProfiles)
-                .set({
-                  avatarUrl: result.s3AvatarUrl ?? result.avatarUrl,
-                  s3AvatarUrl: result.s3AvatarUrl,
-                  enrichedAt: new Date(),
-                  ...(avatarSourceVal2 ? { avatarSource: avatarSourceVal2 } : {}),
-                  ...(pipelineMeta2?.authorDescription ? {
-                    authorDescriptionJson: JSON.stringify(pipelineMeta2.authorDescription),
-                    authorDescriptionCachedAt: new Date(),
-                  } : {}),
-                  ...(pipelineMeta2?.imagePrompt ? {
-                    lastAvatarPrompt: pipelineMeta2.imagePrompt,
-                    lastAvatarPromptBuiltAt: new Date(),
-                  } : {}),
-                  ...(pipelineMeta2?.driveFileId ? { driveAvatarFileId: pipelineMeta2.driveFileId } : {}),
-                  ...(pipelineMeta2?.vendor ? { avatarGenVendor: pipelineMeta2.vendor } : {}),
-                  ...(pipelineMeta2?.model ? { avatarGenModel: pipelineMeta2.model } : {}),
-                })
-                .where(eq(authorProfiles.authorName, originalName));
-            }
-            results.push({
-              name: originalName,
-              success: result.source !== "failed" && result.source !== "skipped",
-              source: result.source,
-              isAiGenerated: result.isAiGenerated,
-              tier: result.tier,
+      // Run in parallel with configurable concurrency
+      const batch = await parallelBatch(names, input.concurrency, async (originalName) => {
+        const result = await processAuthorAvatarWaterfall(originalName, {
+          skipValidation: input.skipValidation,
+          maxTier: input.maxTier,
+          avatarGenVendor: input.avatarGenVendor,
+          avatarGenModel: input.avatarGenModel,
+          avatarResearchVendor: input.avatarResearchVendor,
+          avatarResearchModel: input.avatarResearchModel,
+          avatarBgColor: input.avatarBgColor,
+        });
+        if (result.avatarUrl || result.s3AvatarUrl) {
+          const avatarSourceVal2 =
+            result.source === "wikipedia" ? "wikipedia" as const
+            : result.source === "tavily" ? "tavily" as const
+            : result.source === "apify" ? "apify" as const
+            : result.source === "ai-generated" ? "google-imagen" as const
+            : undefined;
+          const pipelineMeta2 = (result as unknown as Record<string, unknown>).__pipelineResult as {
+            authorDescription?: object;
+            imagePrompt?: string;
+            driveFileId?: string;
+            vendor?: string;
+            model?: string;
+          } | undefined;
+          await db
+            .update(authorProfiles)
+            .set({
               avatarUrl: result.s3AvatarUrl ?? result.avatarUrl,
-            });
-          } catch (err) {
-            results.push({
-              name: originalName,
-              success: false,
-              source: "failed",
-              isAiGenerated: false,
-              tier: 0,
-              avatarUrl: null,
-              error: String(err),
-            });
-          }
+              s3AvatarUrl: result.s3AvatarUrl,
+              enrichedAt: new Date(),
+              ...(avatarSourceVal2 ? { avatarSource: avatarSourceVal2 } : {}),
+              ...(pipelineMeta2?.authorDescription ? {
+                authorDescriptionJson: JSON.stringify(pipelineMeta2.authorDescription),
+                authorDescriptionCachedAt: new Date(),
+              } : {}),
+              ...(pipelineMeta2?.imagePrompt ? {
+                lastAvatarPrompt: pipelineMeta2.imagePrompt,
+                lastAvatarPromptBuiltAt: new Date(),
+              } : {}),
+              ...(pipelineMeta2?.driveFileId ? { driveAvatarFileId: pipelineMeta2.driveFileId } : {}),
+              ...(pipelineMeta2?.vendor ? { avatarGenVendor: pipelineMeta2.vendor } : {}),
+              ...(pipelineMeta2?.model ? { avatarGenModel: pipelineMeta2.model } : {}),
+            })
+            .where(eq(authorProfiles.authorName, originalName));
         }
-      }
+        return {
+          name: originalName,
+          success: result.source !== "failed" && result.source !== "skipped",
+          source: result.source,
+          isAiGenerated: result.isAiGenerated,
+          tier: result.tier,
+          avatarUrl: result.s3AvatarUrl ?? result.avatarUrl,
+        };
+      });
+
+      const results = batch.results.map((r) =>
+        r.result ?? { name: r.input, success: false, source: "failed", isAiGenerated: false, tier: 0, avatarUrl: null, error: r.error }
+      );
 
       return {
         total: results.length,
@@ -693,6 +676,7 @@ export const authorProfilesRouter = router({
         researchVendor: z.string().optional(),
         researchModel: z.string().optional(),
         onlyMissing: z.boolean().optional().default(true),
+        concurrency: z.number().min(1).max(10).optional().default(3),
       })
     )
     .mutation(async ({ input }) => {
@@ -708,44 +692,44 @@ export const authorProfilesRouter = router({
             .select({ authorName: authorProfiles.authorName })
             .from(authorProfiles);
       const total = authors.length;
-      let enriched = 0;
-      let failed = 0;
-      const BATCH_SIZE = 5;
-      for (let i = 0; i < authors.length; i += BATCH_SIZE) {
-        const batch = authors.slice(i, i + BATCH_SIZE);
-        await Promise.all(
-          batch.map(async (item) => {
-            try {
-              const result = await enrichAuthorLinks(
-                item.authorName,
-                input.researchVendor ?? "perplexity",
-                input.researchModel ?? "sonar-pro"
-              );
-              await db
-                .update(authorProfiles)
-                .set({
-                  websiteUrl: result.websiteUrl,
-                  twitterUrl: result.twitterUrl,
-                  linkedinUrl: result.linkedinUrl,
-                  podcastUrl: result.podcastUrl,
-                  blogUrl: result.blogUrl,
-                  substackUrl: result.substackUrl,
-                  newspaperArticlesJson: result.newspaperArticles.length > 0
-                    ? JSON.stringify(result.newspaperArticles)
-                    : undefined,
-                  otherLinksJson: result.otherLinks.length > 0
-                    ? JSON.stringify(result.otherLinks)
-                    : undefined,
-                  lastLinksEnrichedAt: new Date(),
-                  enrichedAt: new Date(),
-                })
-                .where(eq(authorProfiles.authorName, item.authorName));
-              enriched++;
-            } catch { failed++; }
-          })
-        );
-      }
-      return { total, enriched, failed };
+
+      const batchResult = await parallelBatch(
+        authors.map((a) => a.authorName),
+        input.concurrency,
+        async (authorName) => {
+          const result = await enrichAuthorLinks(
+            authorName,
+            input.researchVendor ?? "perplexity",
+            input.researchModel ?? "sonar-pro"
+          );
+          await db
+            .update(authorProfiles)
+            .set({
+              websiteUrl: result.websiteUrl,
+              twitterUrl: result.twitterUrl,
+              linkedinUrl: result.linkedinUrl,
+              podcastUrl: result.podcastUrl,
+              blogUrl: result.blogUrl,
+              substackUrl: result.substackUrl,
+              newspaperArticlesJson: result.newspaperArticles.length > 0
+                ? JSON.stringify(result.newspaperArticles)
+                : undefined,
+              otherLinksJson: result.otherLinks.length > 0
+                ? JSON.stringify(result.otherLinks)
+                : undefined,
+              lastLinksEnrichedAt: new Date(),
+              enrichedAt: new Date(),
+            })
+            .where(eq(authorProfiles.authorName, authorName));
+          return { authorName, success: true };
+        }
+      );
+
+      return {
+        total,
+        enriched: batchResult.succeeded,
+        failed: batchResult.failed,
+      };
     }),
 
   /**
@@ -828,17 +812,18 @@ export const authorProfilesRouter = router({
         avatarGenModel: z.string().default("nano-banana"),
         avatarResearchVendor: z.string().default("google"),
         avatarResearchModel: z.string().default("gemini-2.5-flash"),
+        concurrency: z.number().min(1).max(10).optional().default(3),
       })
     )
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) return { total: input.authorNames.length, normalized: 0, failed: 0 };
 
-      let normalized = 0;
-      let failed = 0;
-
-      for (const authorName of input.authorNames) {
-        try {
+      // Run background normalization in parallel with configurable concurrency
+      const batchResult = await parallelBatch(
+        input.authorNames,
+        input.concurrency,
+        async (authorName) => {
           const result = await processAuthorAvatarWaterfall(authorName, {
             avatarBgColor: input.bgColor,
             avatarGenVendor: input.avatarGenVendor,
@@ -848,21 +833,20 @@ export const authorProfilesRouter = router({
             minTier: 5, // Force AI regeneration, skip Wikipedia/Tavily/Apify
           });
           const finalUrl = result.s3AvatarUrl ?? result.avatarUrl;
-          if (finalUrl) {
-            await db
-              .update(authorProfiles)
-              .set({ s3AvatarUrl: finalUrl })
-              .where(eq(authorProfiles.authorName, authorName));
-            normalized++;
-          } else {
-            failed++;
-          }
-        } catch {
-          failed++;
+          if (!finalUrl) throw new Error("No avatar URL returned");
+          await db
+            .update(authorProfiles)
+            .set({ s3AvatarUrl: finalUrl })
+            .where(eq(authorProfiles.authorName, authorName));
+          return { authorName, url: finalUrl };
         }
-      }
+      );
 
-      return { total: input.authorNames.length, normalized, failed };
+      return {
+        total: input.authorNames.length,
+        normalized: batchResult.succeeded,
+        failed: batchResult.failed,
+      };
     }),
 
   /**

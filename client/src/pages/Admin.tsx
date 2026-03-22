@@ -420,6 +420,7 @@ export default function Admin() {
           secondaryModel: settings.authorResearchSecondaryEnabled
             ? settings.authorResearchSecondaryModel
             : undefined,
+          concurrency: settings.batchConcurrency ?? 3,
         });
         done += result.succeeded;
         failed += result.total - result.succeeded;
@@ -722,6 +723,7 @@ export default function Admin() {
       const result = await updateAllAuthorLinksMutation.mutateAsync({
         researchVendor: settings.authorResearchVendor,
         researchModel: settings.authorResearchModel,
+        concurrency: settings.batchConcurrency ?? 3,
       });
       setUpdateLinksState({
         status: "done",
@@ -751,6 +753,7 @@ export default function Admin() {
       const result = await updateAllBookSummariesMutation.mutateAsync({
         researchVendor: settings.bookResearchVendor,
         researchModel: settings.bookResearchModel,
+        concurrency: settings.batchConcurrency ?? 3,
       });
       setUpdateBookSummariesState({
         status: "done",
@@ -822,6 +825,7 @@ export default function Admin() {
         avatarGenModel: settings.avatarGenModel,
         avatarResearchVendor: settings.avatarResearchVendor,
         avatarResearchModel: settings.avatarResearchModel,
+        concurrency: settings.batchConcurrency ?? 3,
       });
       setNormalizeBgState({
         status: "done",

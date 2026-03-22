@@ -486,7 +486,7 @@ export function FlowbiteAuthorCard({
                     const coverEl = (
                       <div
                         key={book.id}
-                        className="relative h-[88px] w-16 flex-shrink-0 cursor-pointer"
+                        className="relative h-[172px] w-[126px] flex-shrink-0 cursor-pointer"
                         onClick={(e) => { e.stopPropagation(); handleBookClick(bookMini); }}
                       >
                         {coverUrl ? (

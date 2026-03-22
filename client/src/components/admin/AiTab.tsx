@@ -812,6 +812,48 @@ export function AiTab({ settings, updateSettings }: AiTabProps) {
           );
         })}
       </Tabs>
+
+      {/* ── Batch Concurrency Slider ─────────────────────────────────────────── */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <Zap className="w-4 h-4" />
+            Batch Concurrency
+          </CardTitle>
+          <CardDescription className="text-xs">
+            Maximum number of authors or books processed simultaneously during batch operations.
+            Higher values are faster but increase API rate-limit risk.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs text-muted-foreground">Parallel tasks</Label>
+              <span className="text-sm font-bold tabular-nums">
+                {settings.batchConcurrency ?? 3}
+              </span>
+            </div>
+            <input
+              type="range"
+              min={1}
+              max={10}
+              step={1}
+              value={settings.batchConcurrency ?? 3}
+              onChange={(e) => updateSettings({ batchConcurrency: Number(e.target.value) })}
+              className="w-full h-2 rounded-full accent-primary cursor-pointer"
+            />
+            <div className="flex justify-between text-[9px] text-muted-foreground">
+              <span>1 (sequential)</span>
+              <span>5 (balanced)</span>
+              <span>10 (max)</span>
+            </div>
+            <p className="text-[10px] text-muted-foreground bg-muted/50 rounded p-2">
+              Current: <strong>{settings.batchConcurrency ?? 3} authors/books at a time</strong>.
+              Default is 3. Increase to 5–7 for faster batch runs; keep at 1–2 if hitting rate limits.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
