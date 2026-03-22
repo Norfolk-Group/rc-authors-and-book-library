@@ -1353,10 +1353,20 @@ Live URL: https://authlib-ehsrgokn.manus.space
 
 ## Session March 22, 2026 — Enhanced Research Quality Badge
 
-- [ ] Enhance Research Quality badge on author cards: more prominent visual design with icon, color-coded pill, tooltip with explanation, and wire into library/AuthorCard (currently missing)
+- [x] Enhance Research Quality badge on author cards: more prominent visual design with icon, color-coded pill, tooltip with explanation, and wire into library/AuthorCard (currently missing)
 
 ## Session March 22, 2026 — BookCard High-Impact Features (Claude Opus Audit)
 
 - [x] Add star rating + publication year to BookCard grid (thread from bookInfoMap)
 - [x] Add Book Enrichment Level Badge to BookCard (scoring function + badge component)
 - [x] Unify BookModal and BookDetailPanel into single component with variant prop
+
+## Session March 22, 2026 — BookCard Follow-up (3 tasks)
+
+- [x] Trigger Enrich All Books in Admin Console to populate ratings/themes/summaries for unenriched books
+- [x] Add Enrichment Level filter chips to Books tab (Fully Enriched / Well Enriched / Partially Enriched / Basic)
+- [x] Add BookEnrichmentBadge to full BookDetailPanel header (visible when detail modal is open)
+
+## Session March 22, 2026 — Bug Fix
+
+- [x] Fix duplicate book cards caused by punctuation mismatch in title key deduplication (e.g. "Do You Talk Funny" vs "Do You Talk Funny?")

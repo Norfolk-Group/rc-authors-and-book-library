@@ -26,7 +26,8 @@ import {
   X,
 } from "lucide-react";
 import { BOOKS, CATEGORY_COLORS, CATEGORY_ICONS, CONTENT_TYPE_ICONS, CONTENT_TYPE_COLORS } from "@/lib/libraryData";
-import { ICON_MAP, CT_ICON_MAP, normalizeContentTypes } from "./libraryConstants";
+import { ICON_MAP, CT_ICON_MAP, normalizeContentTypes, getBookEnrichmentLevel } from "./libraryConstants";
+import { BookEnrichmentBadge } from "@/components/BookEnrichmentBadge";
 import { fireConfetti } from "@/hooks/useConfetti";
 import { useAppSettings } from "@/contexts/AppSettingsContext";
 
@@ -302,8 +303,12 @@ export function BookDetailPanel({ book, onClose, variant = 'full', asDialog = fa
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
               <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ backgroundColor: color + "22", color }}>{book.category}</span>
+              <BookEnrichmentBadge
+                level={getBookEnrichmentLevel(profile as Parameters<typeof getBookEnrichmentLevel>[0])}
+                size="sm"
+              />
             </div>
             <DialogTitle className="text-lg font-bold font-display leading-snug">{displayTitle}</DialogTitle>
             {bookAuthor && <DialogDescription className="text-sm mt-0.5">by {bookAuthor}</DialogDescription>}

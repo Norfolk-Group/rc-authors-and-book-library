@@ -62,7 +62,7 @@ import { AudioCard } from "@/components/library/AudioCard";
 import { AuthorBioPanel } from "@/components/library/AuthorBioPanel";
 import { BookDetailPanel } from "@/components/library/BookDetailPanel";
 import { StatCard, EmptyState } from "@/components/library/LibraryPrimitives";
-import { ICON_MAP, FORMAT_CLASSES, FORMAT_LABEL, STATS } from "@/components/library/libraryConstants";
+import { ICON_MAP, FORMAT_CLASSES, FORMAT_LABEL, STATS, getBookEnrichmentLevel, type BookEnrichmentLevel } from "@/components/library/libraryConstants";
 
 import {
   Search,
@@ -83,6 +83,20 @@ type TabType = "authors" | "books" | "audio";
 type AuthorSort = "name-asc" | "name-desc" | "books-desc" | "category" | "quality-desc";
 type BookSort = "name-asc" | "name-desc" | "author" | "content-desc";
 
+/**
+ * Normalise a raw book name into a stable lookup key.
+ * Strips the " - Author" suffix, trims whitespace, removes trailing
+ * punctuation (?, !, ., ,) and lowercases — so "Do You Talk Funny" and
+ * "Do You Talk Funny?" resolve to the same key and deduplicate correctly.
+ */
+function normalizeTitleKey(raw: string): string {
+  return raw
+    .split(" - ")[0]
+    .trim()
+    .replace(/[?!.,;:]+$/, "")
+    .toLowerCase();
+}
+
 export default function Home() {
   const { settings: { colorMode: appTheme } } = useAppSettings();
   const [query, setQuery] = useState("");
@@ -90,6 +104,7 @@ export default function Home() {
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
   const [authorSort, setAuthorSort] = useState<AuthorSort>("name-asc");
   const [bookSort, setBookSort] = useState<BookSort>("name-asc");
+  const [enrichFilter, setEnrichFilter] = useState<BookEnrichmentLevel | "all">("all");
   // Modal state
   const [selectedAuthor, setSelectedAuthor] = useState<AuthorEntry | null>(null);
   const [bioSheetOpen, setBioSheetOpen] = useState(false);
@@ -158,7 +173,10 @@ export default function Home() {
   const enrichedTitlesQuery = trpc.bookProfiles.getAllEnrichedTitles.useQuery(undefined, { staleTime: 60_000 });
   const enrichedTitlesSet = useMemo(() => new Set(enrichedTitlesQuery.data ?? []), [enrichedTitlesQuery.data]);
 
-  const allBookTitles = useMemo(() => Array.from(new Set(BOOKS.map((b) => b.name.split(" - ")[0].trim()))), []);
+  const allBookTitles = useMemo(
+    () => Array.from(new Set(BOOKS.map((b) => b.name.split(" - ")[0].trim().replace(/[?!.,;:]+$/, "")))),
+    []
+  );
   const bookCoversQuery = trpc.bookProfiles.getMany.useQuery({ bookTitles: allBookTitles }, { staleTime: 60_000 });
   const bookCoverMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -184,7 +202,8 @@ export default function Home() {
     const map = new Map<string, { summary?: string; rating?: string; ratingCount?: number; publishedDate?: string; keyThemes?: string }>();
     for (const p of bookCoversQuery.data ?? []) {
       const hasRating = p.rating && String(p.rating).trim() !== '' && parseFloat(String(p.rating)) > 0;
-      map.set(p.bookTitle.toLowerCase(), {
+      // Normalise stored title to match the key used during deduplication
+      map.set(p.bookTitle.replace(/[?!.,;:]+$/, "").toLowerCase(), {
         summary: p.summary ?? undefined,
         rating: hasRating ? String(p.rating) : undefined,
         ratingCount: hasRating && p.ratingCount ? Number(p.ratingCount) : undefined,
@@ -280,7 +299,7 @@ export default function Home() {
     for (const author of Array.from(seen.values())) {
       const bookByTitle = new Map<string, typeof author.books[number]>();
       for (const book of author.books) {
-        const titleKey = book.name.split(" - ")[0].trim().toLowerCase();
+        const titleKey = normalizeTitleKey(book.name);
         const existing = bookByTitle.get(titleKey);
         if (!existing) {
           bookByTitle.set(titleKey, book);
@@ -319,7 +338,7 @@ export default function Home() {
     const q = query.toLowerCase();
     const seen = new Map<string, typeof BOOKS[number]>();
     for (const b of BOOKS) {
-      const titleKey = b.name.split(" - ")[0].trim().toLowerCase();
+      const titleKey = normalizeTitleKey(b.name);
       const existing = seen.get(titleKey);
       if (!existing) {
         seen.set(titleKey, b);
@@ -333,7 +352,11 @@ export default function Home() {
     return Array.from(seen.values()).filter((b) => {
       const matchesCat = selectedCategories.size === 0 || selectedCategories.has(b.category);
       const matchesQ = !q || b.name.toLowerCase().includes(q) || b.category.toLowerCase().includes(q);
-      return matchesCat && matchesQ;
+      const tk = normalizeTitleKey(b.name);
+      const profile = bookCoversQuery.data?.find((p) => p.bookTitle.replace(/[?!.,;:]+$/, "").toLowerCase() === tk) ?? null;
+      const level = getBookEnrichmentLevel(profile as Parameters<typeof getBookEnrichmentLevel>[0]);
+      const matchesEnrich = enrichFilter === "all" || level === enrichFilter;
+      return matchesCat && matchesQ && matchesEnrich;
     }).sort((a, b) => {
       switch (bookSort) {
         case "name-asc": return a.name.localeCompare(b.name);
@@ -347,7 +370,7 @@ export default function Home() {
         default: return a.name.localeCompare(b.name);
       }
     });
-  }, [query, selectedCategories, bookSort]);
+  }, [query, selectedCategories, bookSort, enrichFilter, bookCoversQuery.data]);
 
   const filteredAudio = useMemo(() => {
     const q = query.toLowerCase();
@@ -633,6 +656,41 @@ export default function Home() {
               )}
             </div>
 
+            {/* Enrichment Level filter chips — Books tab only */}
+            {activeTab === "books" && (
+              <div className="flex flex-wrap items-center gap-2 mb-4">
+                <span className="text-xs text-muted-foreground font-medium">Enrichment:</span>
+                {([
+                  { value: "all",      label: "All",              color: "hsl(var(--muted-foreground))",  bg: "hsl(var(--muted))" },
+                  { value: "complete", label: "Fully Enriched",   color: "#d97706",                       bg: "#fef3c7" },
+                  { value: "enriched", label: "Well Enriched",    color: "#059669",                       bg: "#d1fae5" },
+                  { value: "basic",    label: "Partially Enriched",color: "#0284c7",                      bg: "#e0f2fe" },
+                  { value: "none",     label: "Basic",            color: "#6b7280",                       bg: "#f3f4f6" },
+                ] as const).map(({ value, label, color, bg }) => {
+                  const isActive = enrichFilter === value;
+                  return (
+                    <button
+                      key={value}
+                      onClick={() => setEnrichFilter(value)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border transition-all"
+                      style={{
+                        backgroundColor: isActive ? bg : "transparent",
+                        color: isActive ? color : "hsl(var(--muted-foreground))",
+                        borderColor: isActive ? color : "hsl(var(--border))",
+                      }}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+                {enrichFilter !== "all" && (
+                  <button onClick={() => setEnrichFilter("all")} className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 ml-1">
+                    Clear
+                  </button>
+                )}
+              </div>
+            )}
+
             {/* Card grid */}
             <div className="relative">
               {activeTab === "authors" ? (
@@ -670,8 +728,8 @@ export default function Home() {
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 tab-content-enter">
                     {filteredBooks.map((b, i) => {
-                      const titleKey = b.name.split(" - ")[0].trim();
-                      const tk = titleKey.toLowerCase();
+                      const titleKey = b.name.split(" - ")[0].trim().replace(/[?!.,;:]+$/, "");
+                      const tk = normalizeTitleKey(b.name);
                       return (
                         <div
                           key={b.id + i}
