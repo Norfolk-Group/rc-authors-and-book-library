@@ -1217,3 +1217,32 @@
 - [x] All interactive elements use cursor-pointer
 - [x] Run 171 tests — all passing (13 test files)
 - [x] Save checkpoint, push to GitHub
+
+## Session State — March 22, 2026 (End of Session)
+
+### Where We Are
+Checkpoint: 74461385 | Branch: main | Tests: 171 passing (13 test files)
+Live URL: https://authlib-ehsrgokn.manus.space
+
+### What Was Completed This Session
+- [x] parallelBatch.ts utility wired into all batch procedures (enrichBatch, updateAllAuthorLinks, normalizeAvatarBackgrounds, updateAllBookSummaries)
+- [x] batchConcurrency setting added to AppSettings (default 3, range 1–10) + concurrency slider in Admin Console AI tab
+- [x] Drive upload /tmp path bug fixed in meticulousPipeline.ts
+- [x] Book cover sizes: +40% (previous session) then -10% (this session) → net +26% from original
+- [x] Avatar resemblance overhaul: Claude Opus redesigned prompt system (10-section sectioned prompts, identity anchoring, micro-features, reference-image injection into Gemini generation)
+- [x] BookCard fully redesigned to match Author card visual standard (centered cover, category pill, author name live link, content-type badges)
+- [x] Bidirectional navigation: book cover in AuthorCard → Books tab + highlight; author name in BookCard → Authors tab + highlight
+- [x] Resource pills / file badges moved from AuthorCard to BookCard
+- [x] All interactive elements upgraded to framer-motion spring animations (avatar whileHover/whileTap, book covers whileHover/whileTap, cards whileHover/whileTap)
+
+### Pending / Next Steps
+- [ ] Test live avatar generation on 2–3 authors to verify improved resemblance (Admin Console > AI > Regenerate Avatar)
+- [ ] Clean and optimize code: consolidate duplicate Tavily fetch logic (authorLinks.ts vs authorAvatars/waterfall.ts)
+- [ ] Wire parallelBatch into generateAllPortraits procedure (last batch procedure still using sequential loop)
+- [ ] Add "Reference photo used" thumbnail to Admin view for avatar quality inspection + manual override
+- [ ] Add live per-item progress stream to Admin Console batch operations (tRPC subscription or SSE)
+- [ ] Add "Research Quality" badge (high/medium/low) to author cards based on sourceConfidence.overallConfidence
+- [ ] BookDetailPanel: add framer-motion spring animation to cover image (currently static)
+- [ ] BookModal: add framer-motion spring animation to cover image (currently static)
+- [ ] Consider adding a "Recently Added" or "Featured" section to the home/landing area
+- [ ] Add keyboard navigation: arrow keys to move between cards in grid view
