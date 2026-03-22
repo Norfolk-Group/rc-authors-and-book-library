@@ -97,12 +97,12 @@ export function BookDetailPanel({ book, onClose }: BookDetailPanelProps) {
               <img
                 src={effectiveCoverUrl}
                 alt={displayTitle}
-                className="w-28 h-40 object-cover rounded-md shadow-md ring-1 ring-border book-cover-3d"
+                className="w-[101px] h-[144px] object-cover rounded-md shadow-md ring-1 ring-border book-cover-3d"
                 loading="lazy"
               />
             ) : (
               <div
-                className="w-28 h-40 rounded-md flex items-center justify-center shadow-md ring-1 ring-border"
+                className="w-[101px] h-[144px] rounded-md flex items-center justify-center shadow-md ring-1 ring-border"
                 style={{ backgroundColor: color + "18" }}
               >
                 {isLoadingProfile || scrapeMutation.isPending ? (

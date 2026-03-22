@@ -1,27 +1,17 @@
 /**
  * FlowbiteAuthorCard
  *
- * Theme-compliant author card using flowbite-react Card + Badge.
+ * Theme-compliant author card.
  *
- * -- DESIGN RULES (absolute - no exceptions without explicit user request) --
- *   - Zero hardcoded hex / rgb / rgba / hsl values
- *   - Zero Tailwind colour classes (rose-*, emerald-*, indigo-*, amber-*, slate-*, gray-*, etc.)
- *   - All colours from CSS variable tokens: bg-card, bg-muted, text-foreground,
- *     text-muted-foreground, border-border, shadow-sm/md/lg, ring-border
- *   - Category identity via icon + label only (no coloured stripes or tints)
- *   - Shadows are neutral - no RGBA colour tinting
- *   - Card content is top-justified (flex-col, items start at top)
+ * -- DESIGN RULES --
+ *   - Zero hardcoded hex/rgb values — CSS variable tokens only
+ *   - Category identity via icon + label only
+ *   - Card content is top-justified
  *
- * -- INTERACTION MODEL (exactly 3 hotspots) --
- *   1. Avatar / author name group  → click opens AuthorModal (bio, links)
- *   2. Book cover / book title row → click opens BookModal (summary, Amazon, Drive)
- *   3. Card surface                → click calls onBioClick (opens full bio panel in parent)
- *
- *   Everything else (category chip, Bio-ready badge, resource pills, watermark)
- *   is purely presentational - cursor-default, no onClick.
- *
- *   Avatar hover: scale-[1.15] - subtle, doesn't break layout.
- *   Book cover hover: scale-[1.2] - subtle, doesn't break layout.
+ * -- INTERACTION MODEL (3 hotspots) --
+ *   1. Avatar / author name  → opens AuthorModal (bio, links)
+ *   2. Book cover strip      → navigates to Books tab, highlights the book card
+ *   3. Card surface          → calls onBioClick (opens bio panel in parent)
  */
 import { useState, useCallback, useRef, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
@@ -35,27 +25,20 @@ import { motion } from "framer-motion";
 import {
   BookOpen,
   Briefcase,
-  ExternalLink,
   UserCheck,
   Users,
-  Folder,
 } from "lucide-react";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { getAuthorAvatar } from "@/lib/authorAvatars";
 import { canonicalName } from "@/lib/authorAliases";
 import {
   CATEGORY_ICONS,
-  CONTENT_TYPE_ICONS,
   type AuthorEntry,
-  type BookEntry,
 } from "@/lib/libraryData";
 import { AuthorModal } from "@/components/AuthorModal";
-import { BookModal, type BookModalBook } from "@/components/BookModal";
 import { AuthorCardActions } from "@/components/AuthorCardActions";
 import {
   ICON_MAP,
-  CT_ICON_MAP,
-  normalizeContentTypes,
 } from "@/components/library/libraryConstants";
 
 // -- Shared LucideIcon type -----------------------------------------------------
@@ -79,74 +62,7 @@ function Highlight({ text, query }: { text: string; query: string }) {
   );
 }
 
-// -- Resource pill - presentational only, no onClick ---------------------------
-function ResourcePill({ type, count }: { type: string; count: number }) {
-  const iconName = CONTENT_TYPE_ICONS[type] ?? "folder";
-  const Icon = (CT_ICON_MAP[iconName] ?? Folder) as LucideIcon;
-  return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-[10px] font-medium text-muted-foreground cursor-default select-none">
-      <Icon className="w-3 h-3" />
-      {type}
-      {count > 1 && <span className="opacity-60 ml-0.5">{count}</span>}
-    </span>
-  );
-}
-
-// -- HOTSPOT 2: Book row - clicking opens BookModal ----------------------------
-function BookRow({
-  book,
-  onBookClick,
-}: {
-  book: BookEntry;
-  onBookClick: (b: BookModalBook) => void;
-}) {
-  const rawTitle = book.name.includes(" - ")
-    ? book.name.slice(0, book.name.lastIndexOf(" - "))
-    : book.name;
-  const titleKey = rawTitle.trim().toLowerCase();
-  const displayTitle = rawTitle.trim();
-  const normalised = normalizeContentTypes(book.contentTypes ?? {});
-  const hasContent = Object.keys(normalised).length > 0;
-
-  const handleClick = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      onBookClick({ id: book.id, titleKey, contentTypes: book.contentTypes ?? {} });
-    },
-    [book, titleKey, onBookClick]
-  );
-
-  return (
-    <button
-      type="button"
-      onClick={handleClick}
-      className="flex flex-col gap-1 px-2 py-1.5 rounded-md hover:bg-accent transition-colors group/book w-full text-left"
-    >
-      <div className="flex items-center gap-1.5">
-        <BookOpen className="w-3 h-3 text-muted-foreground flex-shrink-0 group-hover/book:text-foreground transition-colors" />
-        <span className="text-[11px] font-medium leading-tight text-muted-foreground group-hover/book:text-foreground transition-colors line-clamp-1 flex-1">
-          {displayTitle}
-        </span>
-        <ExternalLink className="w-2.5 h-2.5 text-muted-foreground opacity-0 group-hover/book:opacity-50 transition-opacity flex-shrink-0" />
-      </div>
-      {hasContent && (
-        <div className="flex flex-wrap gap-1 pl-4">
-          {Object.entries(normalised).map(([type, count]) => (
-            <span
-              key={type}
-              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-muted text-muted-foreground text-[10px] font-medium"
-            >
-              {type}{count > 1 && <span className="opacity-60">·{count}</span>}
-            </span>
-          ))}
-        </div>
-      )}
-    </button>
-  );
-}
-
-// -- 3-D tilt hook -------------------------------------------------------------
-// Simple expand-on-hover, contract-on-click card interaction
+// -- Card hover ref hook -------------------------------------------------------
 function useCardHover() {
   const ref = useRef<HTMLDivElement>(null);
   return { ref };
@@ -167,6 +83,12 @@ export interface FlowbiteAuthorCardProps {
   bio?: string | null;
   /** Map of lowercase book title → { summary, rating, ratingCount } for cover thumbnail tooltips. */
   bookInfoMap?: Map<string, { summary?: string; rating?: string; ratingCount?: string }>;
+  /** Navigate to the Books tab and highlight the book card with this titleKey */
+  onNavigateToBook?: (titleKey: string) => void;
+  /** When true, renders a highlight ring (navigation target) */
+  isHighlighted?: boolean;
+  /** Ref callback for scroll-to support from parent */
+  cardRef?: (el: HTMLDivElement | null) => void;
 }
 
 // -- Main component -------------------------------------------------------------
@@ -179,6 +101,9 @@ export function FlowbiteAuthorCard({
   dbAvatarMap,
   bio,
   bookInfoMap,
+  onNavigateToBook,
+  isHighlighted,
+  cardRef,
 }: FlowbiteAuthorCardProps) {
   const iconName = CATEGORY_ICONS[author.category] ?? "briefcase";
   const Icon = (ICON_MAP[iconName] ?? Briefcase) as LucideIcon;
@@ -196,23 +121,6 @@ export function FlowbiteAuthorCard({
     e.stopPropagation();
     setAuthorModalOpen(true);
   }, []);
-
-  // -- HOTSPOT 2: Book modal --
-  const [activeBook, setActiveBook] = useState<BookModalBook | null>(null);
-  const handleBookClick = useCallback((b: BookModalBook) => {
-    setActiveBook(b);
-  }, []);
-
-  // -- Resource totals across all books --
-  const resourceTotals = useMemo(() => {
-    const totals: Record<string, number> = {};
-    for (const book of author.books ?? []) {
-      for (const [type, count] of Object.entries(normalizeContentTypes(book.contentTypes ?? {}))) {
-        totals[type] = (totals[type] ?? 0) + count;
-      }
-    }
-    return totals;
-  }, [author.books]);
 
   // -- Deduplicated books for the cover strip --
   const dedupedBooks = useMemo(() => {
@@ -244,7 +152,7 @@ export function FlowbiteAuthorCard({
   return (
     <>
       <motion.div
-        ref={ref}
+        ref={(el) => { (ref as React.MutableRefObject<HTMLDivElement | null>).current = el; cardRef?.(el); }}
         className="card-animate group h-full"
         whileHover={{ scale: 1.04 }}
         whileTap={{ scale: 0.97 }}
@@ -257,7 +165,7 @@ export function FlowbiteAuthorCard({
          */}
         <div
           onClick={() => onBioClick(author)}
-          className="
+          className={`
             h-full overflow-hidden relative p-0
             bg-card text-card-foreground
             border border-border rounded-2xl
@@ -265,7 +173,8 @@ export function FlowbiteAuthorCard({
             transition-shadow duration-200
             flex flex-col items-stretch justify-start
             cursor-pointer
-          "
+            ${isHighlighted ? "ring-2 ring-offset-2 ring-primary" : ""}
+          `}
         >
           {/* Category watermark - presentational, no pointer events */}
           <div
@@ -328,17 +237,20 @@ export function FlowbiteAuthorCard({
               <div className="relative h-28 w-28 flex-shrink-0">
                 <AvatarUpload authorName={displayName} currentAvatarUrl={avatarUrl} size={112}>
                   {(url) => {
+                    const springProps = {
+                      whileHover: { scale: 1.12 },
+                      whileTap: { scale: 0.90 },
+                      transition: { type: "spring" as const, stiffness: 400, damping: 20 },
+                    };
                     const avatarEl = url ? (
-                      <img
+                      <motion.img
                         src={url}
                         alt={displayName}
                         onClick={handleAvatarClick}
+                        {...springProps}
                         className="
                           h-28 w-28 rounded-full object-cover shadow-md
                           ring-2 ring-border ring-offset-2
-                          transition-transform duration-200 ease-out
-                          hover:scale-110
-                          active:scale-95
                           origin-center
                           cursor-pointer
                           relative z-20
@@ -346,22 +258,20 @@ export function FlowbiteAuthorCard({
                         loading="lazy"
                       />
                     ) : (
-                      <div
+                      <motion.div
                         onClick={handleAvatarClick}
+                        {...springProps}
                         className="
                           h-28 w-28 rounded-full bg-muted text-muted-foreground
                           flex items-center justify-center text-3xl font-bold
                           ring-2 ring-border ring-offset-2
-                          transition-transform duration-200 ease-out
-                          hover:scale-110
-                          active:scale-95
                           origin-center
                           cursor-pointer
                           relative z-20
                         "
                       >
                         {displayName.charAt(0)}
-                      </div>
+                      </motion.div>
                     );
                     if (!bioSnippet) return avatarEl;
                     return (
@@ -437,125 +347,114 @@ export function FlowbiteAuthorCard({
           {/* -- Divider -- */}
           <div className="mx-4 h-px bg-border flex-shrink-0" />
 
-          {/* -- SECTION 2: Books -- */}
+          {/* -- SECTION 2: Book cover strip ─ clicking navigates to Books tab -- */}
           {hasBooks && (
             <div className="px-4 py-3 relative z-10 flex flex-col items-start gap-2">
               <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground cursor-default">
-                Books ({author.books.length})
+                Books ({dedupedBooks.length})
               </p>
 
-              {/* Resource pills - presentational */}
-              {Object.keys(resourceTotals).length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {Object.entries(resourceTotals).map(([type, count]) => (
-                    <ResourcePill key={type} type={type} count={count} />
-                  ))}
-                </div>
-              )}
+              {/* Cover strip — HOTSPOT 2: each cover navigates to the book card in Books tab */}
+              <div className="flex flex-wrap gap-2 w-full">
+                {dedupedBooks.map((book) => {
+                  const rawTitle = book.name.includes(" - ")
+                    ? book.name.slice(0, book.name.lastIndexOf(" - "))
+                    : book.name;
+                  const titleKey = rawTitle.trim().toLowerCase();
+                  const coverUrl = coverMap?.get(titleKey);
+                  const bookInfo = bookInfoMap?.get(titleKey);
+                  const summary = bookInfo?.summary;
+                  const rating = bookInfo?.rating ? parseFloat(bookInfo.rating) : null;
+                  const ratingCount = bookInfo?.ratingCount ? parseInt(bookInfo.ratingCount, 10) : null;
+                  const summarySnippet = summary
+                    ? (() => {
+                        const s = summary.trim();
+                        const dot = Math.min(
+                          s.indexOf('. ') > 0 ? s.indexOf('. ') + 1 : s.length,
+                          120
+                        );
+                        return s.slice(0, dot);
+                      })()
+                    : null;
 
-              {/* Cover strip - HOTSPOT 2: each cover opens BookModal */}
-              {coverMap && (
-                <div className="flex flex-wrap gap-2 w-full">
-                  {dedupedBooks.map((book) => {
-                    const rawTitle = book.name.includes(" - ")
-                      ? book.name.slice(0, book.name.lastIndexOf(" - "))
-                      : book.name;
-                    const titleKey = rawTitle.trim().toLowerCase();
-                    const coverUrl = coverMap.get(titleKey);
-                    const bookInfo = bookInfoMap?.get(titleKey);
-                    const summary = bookInfo?.summary;
-                    const rating = bookInfo?.rating ? parseFloat(bookInfo.rating) : null;
-                    const ratingCount = bookInfo?.ratingCount ? parseInt(bookInfo.ratingCount, 10) : null;
-                    // Trim summary to first sentence (up to ~120 chars)
-                    const summarySnippet = summary
-                      ? (() => {
-                          const s = summary.trim();
-                          const dot = Math.min(
-                            s.indexOf('. ') > 0 ? s.indexOf('. ') + 1 : s.length,
-                            120
-                          );
-                          return s.slice(0, dot) + (dot < s.length ? '' : '');
-                        })()
-                      : null;
-                    const bookMini: BookModalBook = {
-                      id: book.id,
-                      titleKey,
-                      coverUrl,
-                      contentTypes: book.contentTypes ?? {},
-                    };
-                    const coverEl = (
-                      <div
-                        key={book.id}
-                        className="relative h-[172px] w-[126px] flex-shrink-0 cursor-pointer"
-                        onClick={(e) => { e.stopPropagation(); handleBookClick(bookMini); }}
+                  const coverEl = (
+                    <motion.div
+                      key={book.id}
+                      className="relative h-[140px] w-[102px] flex-shrink-0 cursor-pointer"
+                      whileHover={{ scale: 1.12, y: -3 }}
+                      whileTap={{ scale: 0.92 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 22 }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onNavigateToBook?.(titleKey);
+                      }}
+                    >
+                      {coverUrl ? (
+                        <img
+                          src={coverUrl}
+                          alt={rawTitle.trim()}
+                          className="
+                            h-full w-full rounded-lg object-cover shadow-md
+                            ring-1 ring-border
+                          "
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div
+                          className="
+                            h-full w-full rounded-lg bg-muted shadow-md
+                            ring-1 ring-border
+                            flex items-center justify-center
+                          "
+                        >
+                          <BookOpen className="w-5 h-5 text-muted-foreground" />
+                        </div>
+                      )}
+                      {/* Book title overlay on hover */}
+                      <div className="
+                        absolute inset-x-0 bottom-0 rounded-b-lg
+                        bg-gradient-to-t from-black/70 to-transparent
+                        px-1.5 py-1
+                        opacity-0 group-hover/cover:opacity-100
+                        transition-opacity duration-200
+                        pointer-events-none
+                      ">
+                        <p className="text-white text-[9px] font-medium leading-tight line-clamp-2">{rawTitle.trim()}</p>
+                      </div>
+                    </motion.div>
+                  );
+
+                  if (!summarySnippet && !rating) {
+                    return <div key={book.id} className="group/cover">{coverEl}</div>;
+                  }
+                  return (
+                    <Tooltip key={book.id}>
+                      <TooltipTrigger asChild>
+                        <div className="group/cover">{coverEl}</div>
+                      </TooltipTrigger>
+                      <TooltipContent
+                        side="top"
+                        className="max-w-[220px] p-2.5 z-50"
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        {coverUrl ? (
-                          <img
-                            src={coverUrl}
-                            alt={rawTitle.trim()}
-                            className="
-                              h-full w-full rounded object-cover shadow-sm
-                              ring-1 ring-border
-                              transition-transform duration-300 ease-out
-                              hover:scale-[1.2]
-                              origin-center
-                              relative z-20
-                            "
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div
-                            className="
-                              h-full w-full rounded bg-muted shadow-sm
-                              ring-1 ring-border
-                              flex items-center justify-center
-                              transition-transform duration-300 ease-out
-                              hover:scale-[1.2]
-                              origin-center
-                              relative z-20
-                            "
-                          >
-                            <BookOpen className="w-5 h-5 text-muted-foreground" />
+                        <p className="font-semibold text-xs mb-1 leading-snug">{rawTitle.trim()}</p>
+                        {rating !== null && (
+                          <div className="flex items-center gap-1 mb-1">
+                            <span className="text-amber-400 text-xs">{"★".repeat(Math.round(rating))}{"☆".repeat(Math.max(0, 5 - Math.round(rating)))}</span>
+                            <span className="text-xs font-medium text-foreground">{rating.toFixed(1)}</span>
+                            {ratingCount !== null && ratingCount > 0 && (
+                              <span className="text-xs text-muted-foreground">({ratingCount.toLocaleString()})</span>
+                            )}
                           </div>
                         )}
-                      </div>
-                    );
-                    if (!summarySnippet && !rating) {
-                      return <div key={book.id}>{coverEl}</div>;
-                    }
-                    return (
-                      <Tooltip key={book.id}>
-                        <TooltipTrigger asChild>{coverEl}</TooltipTrigger>
-                        <TooltipContent
-                          side="top"
-                          className="max-w-[220px] p-2.5 z-50"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <p className="font-semibold text-xs mb-1 leading-snug">{rawTitle.trim()}</p>
-                          {rating !== null && (
-                            <div className="flex items-center gap-1 mb-1">
-                              <span className="text-amber-400 text-xs">{"\u2605".repeat(Math.round(rating))}{"\u2606".repeat(Math.max(0, 5 - Math.round(rating)))}</span>
-                              <span className="text-xs font-medium text-foreground">{rating.toFixed(1)}</span>
-                              {ratingCount !== null && ratingCount > 0 && (
-                                <span className="text-xs text-muted-foreground">({ratingCount.toLocaleString()})</span>
-                              )}
-                            </div>
-                          )}
-                          {summarySnippet && (
-                            <p className="text-xs leading-relaxed text-muted-foreground">{summarySnippet}</p>
-                          )}
-                        </TooltipContent>
-                      </Tooltip>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* Book rows - HOTSPOT 2: each row opens BookModal */}
-              <div className="flex flex-col gap-0.5 max-h-40 overflow-y-auto w-full">
-                {author.books.map((book) => (
-                  <BookRow key={book.id} book={book} onBookClick={handleBookClick} />
-                ))}
+                        {summarySnippet && (
+                          <p className="text-xs leading-relaxed text-muted-foreground">{summarySnippet}</p>
+                        )}
+                        <p className="text-[10px] text-muted-foreground mt-1 italic">Click to view in Books tab</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -569,11 +468,7 @@ export function FlowbiteAuthorCard({
         onClose={() => setAuthorModalOpen(false)}
       />
 
-      {/* -- HOTSPOT 2 modal: Book detail -- */}
-      <BookModal
-        book={activeBook}
-        onClose={() => setActiveBook(null)}
-      />
+      {/* Book modal removed — covers now navigate to Books tab via onNavigateToBook */}
     </>
   );
 }

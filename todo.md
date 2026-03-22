@@ -1198,5 +1198,22 @@
 - [x] Update `google.ts` generator — reference-image injection: instruction → reference photo → generation prompt (multimodal)
 - [x] Update `meticulousPipeline.ts` — fetch bestReferencePhotoUrl as base64, pass to generator; fallback to first reference photo
 - [x] Write 19 vitest tests for refined promptBuilder — all 171 tests pass (13 test files)
-- [ ] Test live generation on 2-3 authors to verify improved resemblance
-- [ ] Save checkpoint, push to GitHub
+- [ ] Test live generation on 2-3 authors to verify improved resemblance (ready — trigger via Admin Console > AI > Regenerate Avatar)
+- [x] Save checkpoint (3eb980ae), push to GitHub
+
+## Session March 22, 2026 — Book Card Redesign + Bidirectional Navigation + Interactions
+
+- [x] Reduce book cover icon size by 10% across all components: BookCard (114→103px h, 84→76px w), BookModal (188→169px h, 126→113px w), FlowbiteAuthorCard strip (155→140px h, 113→102px w), BookDetailPanel (w-28 h-40 → 101×144px)
+- [x] Redesign BookCard (Books page) to match Author card visual standard: centered cover as avatar, category pill, author name as live link, content-type badges in lower section, hover lift + spring animations
+- [x] Move all file badges (PDF, Transcript, Binder, etc.) and Drive links from AuthorCard to BookCard (AuthorCard now shows only author-specific content)
+- [x] Author card book cover strip: clicking a cover navigates to the equivalent book card in the Books tab (scroll + highlight ring)
+- [x] Book card author name: clicking navigates to the author card in the Authors tab (scroll + highlight ring)
+- [x] Add hover scale effect on all cards (author cards, book cards) — whileHover scale + y lift via framer-motion spring
+- [x] Add hover scale effect on book cover thumbnails in author card strip (whileHover scale 1.12, y -3)
+- [x] Upgrade author avatar to framer-motion spring (whileHover scale 1.12, whileTap scale 0.90, stiffness 400)
+- [x] Add press/click animation on author avatar (whileTap scale 0.90 spring back)
+- [x] Add press/click animation on book cover thumbnails in author strip (whileTap scale 0.92)
+- [x] Add press/click animation on BookCard cover (whileTap scale 0.94)
+- [x] All interactive elements use cursor-pointer
+- [x] Run 171 tests — all passing (13 test files)
+- [x] Save checkpoint, push to GitHub

@@ -9,7 +9,7 @@
  *   client/src/components/library/
  */
 
-import { useState, useMemo, useCallback, useRef } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { CoverLightbox } from "@/components/CoverLightbox";
 import { BackToTop } from "@/components/BackToTop";
@@ -99,6 +99,48 @@ export default function Home() {
 
   // Scroll container ref for BackToTop
   const mainRef = useRef<HTMLElement>(null);
+  // Bidirectional navigation: highlight target card after tab switch
+  const [highlightedBookTitle, setHighlightedBookTitle] = useState<string | null>(null);
+  const [highlightedAuthorName, setHighlightedAuthorName] = useState<string | null>(null);
+  const bookCardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const authorCardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+
+  // Clear highlight after 2 seconds
+  useEffect(() => {
+    if (!highlightedBookTitle) return;
+    const t = setTimeout(() => setHighlightedBookTitle(null), 2000);
+    return () => clearTimeout(t);
+  }, [highlightedBookTitle]);
+  useEffect(() => {
+    if (!highlightedAuthorName) return;
+    const t = setTimeout(() => setHighlightedAuthorName(null), 2000);
+    return () => clearTimeout(t);
+  }, [highlightedAuthorName]);
+
+  // Navigate from author card → book card in Books tab
+  const navigateToBook = useCallback((titleKey: string) => {
+    setActiveTab("books");
+    setSelectedCategories(new Set());
+    const tk = titleKey.trim().toLowerCase();
+    setHighlightedBookTitle(tk);
+    // Scroll after tab renders
+    setTimeout(() => {
+      const el = bookCardRefs.current.get(tk);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 120);
+  }, []);
+
+  // Navigate from book card → author card in Authors tab
+  const navigateToAuthor = useCallback((authorName: string) => {
+    setActiveTab("authors");
+    setSelectedCategories(new Set());
+    const key = authorName.trim().toLowerCase();
+    setHighlightedAuthorName(key);
+    setTimeout(() => {
+      const el = authorCardRefs.current.get(key);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 120);
+  }, []);
 
   // --- Data queries ---
   const enrichedNamesQuery = trpc.authorProfiles.getAllEnrichedNames.useQuery(undefined, { staleTime: 60_000 });
@@ -593,11 +635,12 @@ export default function Home() {
                           coverMap={bookCoverMap}
                           dbAvatarMap={dbAvatarMap}
                           bookInfoMap={bookInfoMap}
-                          onBookClick={(bookId, titleKey) => {
-                            const found = booksByIdMap.get(bookId) ?? BOOKS.find((b) => b.name.split(" - ")[0].trim().toLowerCase() === titleKey.toLowerCase());
-                            const coverUrl = bookCoverMap?.get(titleKey) ?? null;
-                            const color = found ? (CATEGORY_COLORS[found.category] ?? undefined) : undefined;
-                            setLightboxCover({ url: coverUrl, title: titleKey, color });
+                          onNavigateToBook={navigateToBook}
+                          isHighlighted={highlightedAuthorName === canonicalName(a.name).toLowerCase()}
+                          cardRef={(el) => {
+                            const key = canonicalName(a.name).toLowerCase();
+                            if (el) authorCardRefs.current.set(key, el);
+                            else authorCardRefs.current.delete(key);
                           }}
                         />
                       </div>
@@ -611,8 +654,16 @@ export default function Home() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 tab-content-enter">
                     {filteredBooks.map((b, i) => {
                       const titleKey = b.name.split(" - ")[0].trim();
+                      const tk = titleKey.toLowerCase();
                       return (
-                        <div key={b.id + i} style={{ animationDelay: `${Math.min(i * 30, 400)}ms` }}>
+                        <div
+                          key={b.id + i}
+                          style={{ animationDelay: `${Math.min(i * 30, 400)}ms` }}
+                          ref={(el) => {
+                            if (el) bookCardRefs.current.set(tk, el);
+                            else bookCardRefs.current.delete(tk);
+                          }}
+                        >
                           <BookCard
                             book={b}
                             query={query}
@@ -621,6 +672,8 @@ export default function Home() {
                             isEnriched={enrichedTitlesSet.has(titleKey)}
                             amazonUrl={amazonUrlMap.get(titleKey)}
                             onCoverClick={(url, title, color) => setLightboxCover({ url, title, color })}
+                            onAuthorClick={navigateToAuthor}
+                            isHighlighted={highlightedBookTitle === tk}
                           />
                         </div>
                       );

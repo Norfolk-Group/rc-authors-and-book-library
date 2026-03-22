@@ -126,11 +126,11 @@ export function BookModal({ book, onClose }: BookModalProps) {
                   <img
                     src={coverUrl}
                     alt={book.titleKey}
-                    className="h-[188px] w-[126px] rounded object-cover shadow-sm flex-shrink-0 ring-1 ring-border"
+                    className="h-[169px] w-[113px] rounded object-cover shadow-sm flex-shrink-0 ring-1 ring-border"
                     loading="lazy"
                   />
                 ) : (
-                  <div className="h-[188px] w-[126px] rounded bg-muted flex items-center justify-center flex-shrink-0 ring-1 ring-border">
+                  <div className="h-[169px] w-[113px] rounded bg-muted flex items-center justify-center flex-shrink-0 ring-1 ring-border">
                     <BookOpen className="w-6 h-6 text-muted-foreground" />
                   </div>
                 )}
