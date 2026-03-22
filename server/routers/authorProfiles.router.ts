@@ -540,6 +540,9 @@ export const authorProfilesRouter = router({
         avatarResearchVendor: input.avatarResearchVendor ?? "google",
         avatarResearchModel: input.avatarResearchModel ?? "gemini-2.5-flash",
         avatarBgColor: input.bgColor,
+        // forceRefresh clears cached AuthorDescription so the pipeline re-researches
+        // using the author's current real photo (important after a photo correction)
+        forceRefresh: input.forceRegenerate ?? false,
       });
 
       if (!result || result.source === "failed" || (!result.avatarUrl && !result.s3AvatarUrl)) {

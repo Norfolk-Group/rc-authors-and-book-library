@@ -113,6 +113,8 @@ export interface WaterfallOptions {
   avatarResearchModel?: string;
   /** Avatar background color hex or sentinel key (e.g. 'bokeh-gold') */
   avatarBgColor?: string;
+  /** If true, force re-research even if a cached AuthorDescription exists in DB */
+  forceRefresh?: boolean;
 }
 
 /** Default per-tier timeouts (ms) */
@@ -120,7 +122,7 @@ const DEFAULT_TIER_TIMEOUTS: Record<1 | 2 | 3 | 5, number> = {
   1: 5_000,   // Wikipedia REST API
   2: 10_000,  // Tavily image search
   3: 90_000,  // Apify actor (slow)
-  5: 30_000,  // Replicate AI generation
+  5: 180_000,  // Meticulous pipeline (research + Gemini Vision + image generation — can take 45-120s)
 };
 
 // -- Upload helper -------------------------------------------------------------
@@ -181,6 +183,7 @@ export async function processAuthorAvatarWaterfall(
     avatarResearchVendor = "google",
     avatarResearchModel = "gemini-2.5-flash",
     avatarBgColor,
+    forceRefresh = false,
   } = options;
 
   const timeouts = { ...DEFAULT_TIER_TIMEOUTS, ...tierTimeouts };
@@ -305,7 +308,8 @@ export async function processAuthorAvatarWaterfall(
           model: avatarGenModel,
           researchVendor: avatarResearchVendor,
           researchModel: avatarResearchModel,
-          useCache: true,
+          useCache: !forceRefresh,
+          forceRefresh,
         }),
         new Promise<null>((_, reject) =>
           setTimeout(() => reject(new Error(`T5 timeout after ${timeouts[5]}ms`)), timeouts[5])

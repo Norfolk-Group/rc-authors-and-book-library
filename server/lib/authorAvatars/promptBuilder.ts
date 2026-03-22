@@ -54,7 +54,8 @@ function describeColor(hex: string): string {
 }
 
 function getBackgroundDescription(bgColor?: string): string {
-  if (!bgColor) return "neutral gray gradient background, professional studio lighting";
+  // Default to canonical bokeh-gold background for consistency across all avatars
+  if (!bgColor) return SPECIAL_BACKGROUNDS["bokeh-gold"];
   const key = bgColor.toLowerCase();
   if (SPECIAL_BACKGROUNDS[key]) return SPECIAL_BACKGROUNDS[key];
   if (key.startsWith("#") && key.length === 7) {

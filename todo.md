@@ -1133,3 +1133,24 @@
 - [x] Wire updateAuthorLinks per-card mutation to auto-refresh Author Bio Modal on settle
 - [x] Expand Author Bio Modal Links section: podcast, blog, substack, newspaper articles, other links
 - [x] Reduce staleTime on authorProfiles.get in AuthorModal to 30s for instant post-update refresh
+
+## Session March 22, 2026 — Parallel Batch Execution
+- [ ] Build `server/lib/parallelBatch.ts` utility — pLimit-style pool with configurable concurrency, progress callback, and error isolation per item
+- [ ] Add `batchConcurrency` field to `AppSettings` (default: 3, range: 1–10)
+- [ ] Add default value for `batchConcurrency` in `AppSettingsContext.tsx`
+- [ ] Update `generateAllPortraits` procedure to use parallel pool (authorProfiles.router.ts)
+- [ ] Update `enrichBatch` procedure to use parallel pool (authorProfiles.router.ts)
+- [ ] Update `updateAllAuthorLinks` procedure to use parallel pool (authorProfiles.router.ts)
+- [ ] Update `normalizeAvatarBackgrounds` procedure to use parallel pool (authorProfiles.router.ts)
+- [ ] Update `updateAllBookSummaries` procedure to use parallel pool (bookProfiles.router.ts)
+- [ ] Add `concurrency` input param to all batch procedures so Admin Console can pass the setting
+- [ ] Add Concurrency Slider component to Admin Console AI tab (1–10, shows "N authors at a time")
+- [ ] Write vitest tests for parallelBatch utility (concurrency cap, error isolation, progress callback)
+
+## Session March 22, 2026 — Fix Per-Card Avatar Regeneration
+- [x] Debug per-card "Regenerate Avatar" button — root cause: T5 timeout was 30s (too short), meticulous pipeline needs 45-120s
+- [x] Ensure `forceRegenerate: true` path in `generateAvatar` procedure clears cached `authorDescriptionJson` before re-running pipeline (forceRefresh: true now passed)
+- [x] Enforce bokeh-gold background in `promptBuilder.ts` as default when no bgColor passed
+- [x] Fix T5 timeout from 30s to 180s in waterfall.ts
+- [ ] Fix Aaron Ross avatar: regenerate with correct bokeh-gold background using real photo as reference (ready to run)
+- [ ] Verify card updates immediately after regeneration via `getAvatarMap` invalidation
