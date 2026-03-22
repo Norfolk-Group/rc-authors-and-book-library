@@ -57,7 +57,6 @@ import { canonicalName } from "@/lib/authorAliases";
 import { useAppSettings } from "@/contexts/AppSettingsContext";
 
 // Extracted library sub-components
-import { AuthorCard } from "@/components/library/AuthorCard";
 import { BookCard } from "@/components/library/BookCard";
 import { AudioCard } from "@/components/library/AudioCard";
 import { AuthorBioPanel } from "@/components/library/AuthorBioPanel";
@@ -85,15 +84,12 @@ type AuthorSort = "name-asc" | "name-desc" | "books-desc" | "category";
 type BookSort = "name-asc" | "name-desc" | "author" | "content-desc";
 
 export default function Home() {
-  const { settings: { colorMode: appTheme, viewMode: savedViewMode }, updateSettings } = useAppSettings();
+  const { settings: { colorMode: appTheme } } = useAppSettings();
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<TabType>("authors");
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
   const [authorSort, setAuthorSort] = useState<AuthorSort>("name-asc");
   const [bookSort, setBookSort] = useState<BookSort>("name-asc");
-  const authorViewMode = savedViewMode === "accordion" ? "accordion" : "card";
-  const setAuthorViewMode = (mode: "card" | "accordion") => updateSettings({ viewMode: mode === "card" ? "cards" : "accordion" });
-
   // Modal state
   const [selectedAuthor, setSelectedAuthor] = useState<AuthorEntry | null>(null);
   const [bioSheetOpen, setBioSheetOpen] = useState(false);

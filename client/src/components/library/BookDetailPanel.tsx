@@ -12,7 +12,6 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import {
-  BookOpen,
   ExternalLink,
   Globe,
   RefreshCw,

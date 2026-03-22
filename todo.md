@@ -955,3 +955,20 @@
 - [x] Update AuthorModal book list cover dimensions 2x (N/A - modal has no book cover list)
 - [x] Update any other card components showing book covers within author context
 - [x] Verify covers render correctly across all 3 themes
+
+## Session March 21, 2026 — Comprehensive Dead Code Audit
+
+- [ ] Run automated unused-import analysis (ESLint no-unused-vars, tsc --noUnusedLocals)
+- [ ] Fix unused imports in all client/src/pages/*.tsx files
+- [ ] Fix unused imports in all client/src/components/*.tsx files
+- [ ] Fix unused imports in all client/src/components/library/*.tsx files
+- [ ] Fix unused imports in all client/src/components/admin/*.tsx files
+- [ ] Fix unused imports in all server/routers/*.ts files
+- [ ] Fix unused imports in all server/lib/**/*.ts files
+- [ ] Remove stale/unused variables and function parameters
+- [ ] Remove dead JSX branches (unreachable conditionals, always-false guards)
+- [ ] Remove unused React state (useState hooks whose value is never read)
+- [ ] Remove unused props from component interfaces
+- [ ] Remove unused exports and dead utility functions
+- [ ] Verify 0 TypeScript errors after cleanup
+- [ ] Run 122 tests, commit, push, save checkpoint

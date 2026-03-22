@@ -8,7 +8,7 @@ import { z } from "zod";
 import { publicProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 import { bookProfiles } from "../../drizzle/schema";
-import { eq, inArray, isNotNull, isNull, or, and, ne } from "drizzle-orm";
+import { eq, inArray, isNotNull, isNull, or } from "drizzle-orm";
 import { mirrorBatchToS3 } from "../mirrorToS3";
 
 import { enrichBookViaGoogleBooks } from "../lib/bookEnrichment";

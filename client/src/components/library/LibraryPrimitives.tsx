@@ -10,65 +10,14 @@ import {
   Folder,
   BookOpen,
   ExternalLink,
-  FileText,
-  File,
-  AlignLeft,
-  Headphones,
-  Video,
-  Image,
-  Package,
-  Scroll,
-  Newspaper,
-  Link,
-  List,
-  Book,
 } from "lucide-react";
 import {
   CONTENT_TYPE_ICONS,
 } from "@/lib/libraryData";
-
-// -- Icon map for content types -------------------------------
-export const CT_ICON_MAP: Record<string, LucideIcon> = {
-  "file-text": FileText,
-  "book": Book,
-  "file": File,
-  "align-left": AlignLeft,
-  "headphones": Headphones,
-  "video": Video,
-  "image": Image,
-  "package": Package,
-  "scroll": Scroll,
-  "newspaper": Newspaper,
-  "link": Link,
-  "list": List,
-  "folder": Folder,
-};
-
-// Normalize raw content type names for display
-export const DISPLAY_NAME_MAP: Record<string, string> = {
-  "Additional DOC": "Supplemental",
-  "PDF Extra": "PDF",
-  "PDF Extra 2": "PDF",
-  "PDF Extras": "PDF",
-  "Complete Book in PDF": "PDF",
-  "DOC": "Transcript",
-  "ChatGPT": "Supplemental",
-  "Sana AI": "Supplemental",
-  "Notes": "Supplemental",
-  "Knowledge Base": "Supplemental",
-  "temp": "Supplemental",
-  "Temp": "Supplemental",
-  "TEMP": "Supplemental",
-};
-
-export function normalizeContentTypes(raw: Record<string, number>): Record<string, number> {
-  const result: Record<string, number> = {};
-  for (const [type, count] of Object.entries(raw)) {
-    const normalized = DISPLAY_NAME_MAP[type] ?? type;
-    result[normalized] = (result[normalized] ?? 0) + count;
-  }
-  return result;
-}
+import {
+  CT_ICON_MAP,
+  normalizeContentTypes,
+} from "./libraryConstants";
 
 // -- Content Type Badge ---------------------------------------
 export function ContentTypeBadge({ type, count }: { type: string; count: number }) {

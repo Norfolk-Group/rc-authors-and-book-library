@@ -10,8 +10,8 @@ import {
   BookMarked as BookMarkedIcon,
   type LucideIcon,
 } from "lucide-react";
-import { CATEGORY_COLORS, CATEGORY_ICONS, CONTENT_TYPE_ICONS, CONTENT_TYPE_COLORS, type BookRecord } from "@/lib/libraryData";
-import { ICON_MAP, CT_ICON_MAP } from "./libraryConstants";
+import { CATEGORY_COLORS, CATEGORY_ICONS, type BookRecord } from "@/lib/libraryData";
+import { ICON_MAP } from "./libraryConstants";
 import { ContentTypeBadge } from "./LibraryPrimitives";
 
 interface BookCardProps {

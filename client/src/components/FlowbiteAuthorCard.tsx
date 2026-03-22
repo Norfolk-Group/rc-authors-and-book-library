@@ -34,29 +34,10 @@ import { motion } from "framer-motion";
 import {
   BookOpen,
   Briefcase,
-  Brain,
-  Handshake,
-  Users2,
-  Zap,
-  MessageCircle,
-  Cpu,
-  TrendingUp,
-  BookMarked,
   ExternalLink,
   UserCheck,
   Users,
-  FileText,
-  AlignLeft,
-  Book,
-  List,
-  Package,
-  Video,
-  Image,
   Folder,
-  Scroll,
-  Newspaper,
-  Link,
-  File,
 } from "lucide-react";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { getAuthorAvatar } from "@/lib/authorAvatars";
@@ -69,6 +50,11 @@ import {
 } from "@/lib/libraryData";
 import { AuthorModal } from "@/components/AuthorModal";
 import { BookModal, type BookModalBook } from "@/components/BookModal";
+import {
+  ICON_MAP,
+  CT_ICON_MAP,
+  normalizeContentTypes,
+} from "@/components/library/libraryConstants";
 
 // -- Shared LucideIcon type -----------------------------------------------------
 type LucideIcon = React.FC<{
@@ -76,59 +62,6 @@ type LucideIcon = React.FC<{
   style?: React.CSSProperties;
   strokeWidth?: number;
 }>;
-
-// -- Icon maps ------------------------------------------------------------------
-const ICON_MAP: Record<string, LucideIcon> = {
-  briefcase:        Briefcase as LucideIcon,
-  brain:            Brain as LucideIcon,
-  handshake:        Handshake as LucideIcon,
-  users:            Users2 as LucideIcon,
-  zap:              Zap as LucideIcon,
-  "message-circle": MessageCircle as LucideIcon,
-  cpu:              Cpu as LucideIcon,
-  "trending-up":    TrendingUp as LucideIcon,
-  "book-open":      BookMarked as LucideIcon,
-};
-
-const CT_ICON_MAP: Record<string, LucideIcon> = {
-  "file-text":  FileText as LucideIcon,
-  "book":       Book as LucideIcon,
-  "file":       File as LucideIcon,
-  "align-left": AlignLeft as LucideIcon,
-  "video":      Video as LucideIcon,
-  "image":      Image as LucideIcon,
-  "package":    Package as LucideIcon,
-  "scroll":     Scroll as LucideIcon,
-  "newspaper":  Newspaper as LucideIcon,
-  "link":       Link as LucideIcon,
-  "list":       List as LucideIcon,
-  "folder":     Folder as LucideIcon,
-};
-
-// -- Content-type normalisation -------------------------------------------------
-const DISPLAY_NAME_MAP: Record<string, string> = {
-  "Additional DOC":       "Supplemental",
-  "PDF Extra":            "PDF",
-  "PDF Extra 2":          "PDF",
-  "PDF Extras":           "PDF",
-  "Complete Book in PDF": "PDF",
-  "DOC":                  "Transcript",
-  "ChatGPT":              "Supplemental",
-  "Sana AI":              "Supplemental",
-  "Notes":                "Supplemental",
-  "Knowledge Base":       "Supplemental",
-  "temp":                 "Supplemental",
-  "Temp":                 "Supplemental",
-  "TEMP":                 "Supplemental",
-};
-function normalizeContentTypes(raw: Record<string, number>): Record<string, number> {
-  const result: Record<string, number> = {};
-  for (const [type, count] of Object.entries(raw)) {
-    const normalized = DISPLAY_NAME_MAP[type] ?? type;
-    result[normalized] = (result[normalized] ?? 0) + count;
-  }
-  return result;
-}
 
 // -- Search highlight -----------------------------------------------------------
 function Highlight({ text, query }: { text: string; query: string }) {

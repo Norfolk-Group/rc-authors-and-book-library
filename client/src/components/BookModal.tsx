@@ -13,56 +13,20 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  BookOpen, FileText, AlignLeft, Book, File, Video, Image,
-  Package, Scroll, Newspaper, Link, List, Folder, ExternalLink,
+  BookOpen, Folder, ExternalLink,
   ShoppingCart, RefreshCw, Camera, X,
 } from "lucide-react";
 import { CONTENT_TYPE_ICONS } from "@/lib/libraryData";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { useState } from "react";
+import {
+  CT_ICON_MAP,
+  normalizeContentTypes,
+} from "@/components/library/libraryConstants";
 
-// -- Icon map ------------------------------------------------------------------
+// -- Icon type -----------------------------------------------------------------
 type LucideIcon = React.FC<{ className?: string }>;
-const CT_ICON_MAP: Record<string, LucideIcon> = {
-  "file-text":  FileText as LucideIcon,
-  "book":       Book as LucideIcon,
-  "file":       File as LucideIcon,
-  "align-left": AlignLeft as LucideIcon,
-  "video":      Video as LucideIcon,
-  "image":      Image as LucideIcon,
-  "package":    Package as LucideIcon,
-  "scroll":     Scroll as LucideIcon,
-  "newspaper":  Newspaper as LucideIcon,
-  "link":       Link as LucideIcon,
-  "list":       List as LucideIcon,
-  "folder":     Folder as LucideIcon,
-};
-
-// -- Content-type normalisation (mirrors FlowbiteAuthorCard) -------------------
-const DISPLAY_NAME_MAP: Record<string, string> = {
-  "Additional DOC":       "Supplemental",
-  "PDF Extra":            "PDF",
-  "PDF Extra 2":          "PDF",
-  "PDF Extras":           "PDF",
-  "Complete Book in PDF": "PDF",
-  "DOC":                  "Transcript",
-  "ChatGPT":              "Supplemental",
-  "Sana AI":              "Supplemental",
-  "Notes":                "Supplemental",
-  "Knowledge Base":       "Supplemental",
-  "temp":                 "Supplemental",
-  "Temp":                 "Supplemental",
-  "TEMP":                 "Supplemental",
-};
-function normalizeContentTypes(raw: Record<string, number>): Record<string, number> {
-  const result: Record<string, number> = {};
-  for (const [type, count] of Object.entries(raw)) {
-    const normalized = DISPLAY_NAME_MAP[type] ?? type;
-    result[normalized] = (result[normalized] ?? 0) + count;
-  }
-  return result;
-}
 
 // -- Content-type pill ---------------------------------------------------------
 function ContentTypePill({ type, count }: { type: string; count: number }) {
