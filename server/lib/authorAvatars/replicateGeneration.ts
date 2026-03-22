@@ -1,6 +1,6 @@
 /**
- * Tier 5: Replicate AI Portrait Generation - last resort, ~$0.003/image
- * Generates a realistic professional headshot when no real photo is found.
+ * Tier 5: Replicate AI Avatar Generation - last resort, ~$0.003/image
+ * Generates a realistic professional avatar headshot when no real avatar is found.
  *
  * NOTE: The Replicate SDK (>=1.0) returns FileOutput objects, not plain strings.
  * FileOutput.toString() returns the URL string directly.
@@ -55,7 +55,7 @@ function describeColor(hex: string): string {
 const SPECIAL_BACKGROUNDS: Record<string, string> = {
   "bokeh-gold":
     "warm golden bokeh background with soft amber and cream circular light orbs, " +
-    "professional studio portrait photography with warm backlighting, " +
+    "professional studio avatar photography with warm backlighting, " +
     "shallow depth of field, elegant and inviting atmosphere",
 };
 
@@ -73,7 +73,7 @@ function buildPrompt(authorName: string, bgColor?: string): string {
     ? specialBg + " background"
     : `solid ${bgColor ? describeColor(bgColor) : "neutral gray"} background`;
 
-  return `Professional corporate headshot photograph of a professional ${gender} business author and thought leader. Warm approachable expression with a slight confident smile. Smart business attire suitable for a book author avatar. Clean studio lighting, soft shadows, ${bgPhrase}. High-end corporate portrait photography. Sharp focus on face, shallow depth of field. 85mm portrait lens, f/2.8, professional studio lighting, photorealistic. The portrait looks like it could appear on the back cover of a bestselling business book. No text, watermarks, or logos.`;
+  return `Professional corporate headshot avatar of a professional ${gender} business author and thought leader. Warm approachable expression with a slight confident smile. Smart business attire suitable for a book author avatar. Clean studio lighting, soft shadows, ${bgPhrase}. High-end corporate avatar photography. Sharp focus on face, shallow depth of field. 85mm portrait lens, f/2.8, professional studio lighting, photorealistic. The avatar looks like it could appear on the back cover of a bestselling business book. No text, watermarks, or logos.`;
 }
 
 export interface GeneratedPortrait {
@@ -95,7 +95,7 @@ function extractUrl(item: unknown): string | null {
   return null;
 }
 
-export async function generateAIPortrait(
+export async function generateAIAvatar(
   authorName: string,
   bgColor?: string
 ): Promise<GeneratedPortrait | null> {
@@ -128,7 +128,7 @@ export async function generateAIPortrait(
     }
     return { url: imageUrl, isAiGenerated: true };
   } catch (err) {
-    console.error(`[Replicate] Portrait generation error for ${authorName}:`, err);
+    console.error(`[Replicate] Avatar generation error for ${authorName}:`, err);
     return null;
   }
 }

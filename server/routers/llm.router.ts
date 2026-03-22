@@ -116,7 +116,7 @@ const VENDOR_CATALOGUE_RAW: LLMVendor[] = [
       {
         id: "nano-banana",
         displayName: "Nano Banana (Image Gen)",
-        description: "Google Nano Banana — state-of-the-art image generation model for AI portraits and avatars.",
+        description: "Google Nano Banana — state-of-the-art image generation model for AI avatars.",
         contextWindow: 0,
         outputTokens: 0,
         tier: "image-gen",

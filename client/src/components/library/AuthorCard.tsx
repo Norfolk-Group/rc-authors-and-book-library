@@ -121,7 +121,7 @@ export function AuthorCard({ author, query, onBioClick, isEnriched, coverMap, on
 
           {/* Avatar + name */}
           <div className="flex flex-col items-center gap-2 mb-1">
-            <AvatarUpload authorName={displayName} currentPhotoUrl={avatarUrl} size={120}>
+            <AvatarUpload authorName={displayName} currentAvatarUrl={avatarUrl} size={120}>
               {(url) =>
                 url ? (
                   <img

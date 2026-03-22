@@ -1,0 +1,265 @@
+/**
+ * Meticulous Avatar Pipeline — Stage Orchestrator
+ *
+ * Full pipeline for generating a research-grounded, highly specific author avatar:
+ *
+ *   Stage 1: Research (Wikipedia + Tavily + Apify in parallel)
+ *   Stage 2: Gemini Vision Analysis → AuthorDescription JSON
+ *   Stage 3: Prompt Builder → ImagePromptPackage (vendor-specific)
+ *   Stage 4: Graphics LLM (vendor-switchable: Google Imagen, Replicate, etc.)
+ *   Stage 5: Storage (S3 + Google Drive)
+ *
+ * The pipeline is designed to be:
+ *   - Resumable: each stage result is cached in DB
+ *   - Configurable: vendor/model can be changed by the user at any time
+ *   - Auditable: all intermediate results are stored
+ *   - Resilient: each stage has its own error handling and fallback
+ */
+
+import {
+  AuthorDescription,
+  MeticulousPipelineOptions,
+  MeticulousPipelineResult,
+} from "./types.js";
+import { researchAndDescribeAuthor } from "./authorResearcher.js";
+import { buildMeticulousPrompt, buildGenericFallbackPrompt } from "./promptBuilder.js";
+import {
+  createImageGenerator,
+  resultToBuffer,
+} from "./imageGenerators/index.js";
+import { storagePut } from "../../storage.js";
+
+// ── Google Drive upload helper ─────────────────────────────────────────────────
+
+async function uploadToGoogleDrive(
+  buffer: Buffer,
+  mimeType: string,
+  authorName: string
+): Promise<string | null> {
+  // Drive upload is best-effort — failure doesn't block the pipeline
+  try {
+    const { exec } = await import("child_process");
+    const { promisify } = await import("util");
+    const { writeFile, unlink } = await import("fs/promises");
+    const { tmpdir } = await import("os");
+    const { join } = await import("path");
+
+    const execAsync = promisify(exec);
+    const ext = mimeType.includes("png") ? "png" : mimeType.includes("webp") ? "webp" : "jpg";
+    const sanitized = authorName.replace(/[^a-zA-Z0-9 ]/g, "").replace(/\s+/g, " ").trim();
+    const filename = `${sanitized}.${ext}`;
+    const tmpPath = join(tmpdir(), `avatar-${Date.now()}-${filename}`);
+
+    // Write buffer to temp file
+    await writeFile(tmpPath, buffer);
+
+    // Upload to Google Drive "Author Pictures" folder using gws CLI
+    // Folder ID: 1_sTZD5m4d7Hnb3oBHxRFXONBnFJlJqJF (Author Pictures)
+    const DRIVE_FOLDER_ID = "1_sTZD5m4d7Hnb3oBHxRFXONBnFJlJqJF";
+    const { stdout } = await execAsync(
+      `gws drive files create --params '{"name":"${sanitized}","parents":["${DRIVE_FOLDER_ID}"]}' --media '${tmpPath}'`
+    );
+
+    // Clean up temp file
+    await unlink(tmpPath).catch(() => {});
+
+    // Parse file ID from response
+    try {
+      const parsed = JSON.parse(stdout);
+      return parsed.id ?? null;
+    } catch {
+      return null;
+    }
+  } catch (err) {
+    console.warn(`[meticulousPipeline] Drive upload failed for ${authorName}:`, err);
+    return null;
+  }
+}
+
+// ── Main pipeline ──────────────────────────────────────────────────────────────
+
+/**
+ * Run the full meticulous avatar generation pipeline for a single author.
+ *
+ * @param authorName  Clean display name of the author
+ * @param options     Pipeline configuration (vendor, model, bgColor, cache settings)
+ * @param cachedDescription  Pre-loaded AuthorDescription from DB (skip research stage)
+ */
+export async function runMeticulousPipeline(
+  authorName: string,
+  options: MeticulousPipelineOptions = {},
+  cachedDescription?: AuthorDescription | null
+): Promise<MeticulousPipelineResult> {
+  const startTime = Date.now();
+  const stages: MeticulousPipelineResult["stages"] = {
+    research: "skipped",
+    promptBuild: "skipped",
+    imageGen: "failed",
+    s3Upload: "skipped",
+    driveUpload: "skipped",
+  };
+
+  const vendor = options.vendor ?? "google";
+  const model = options.model ?? "gemini-2.5-flash-image";
+  const researchVendor = options.researchVendor ?? "google";
+  const researchModel = options.researchModel ?? "gemini-2.5-flash";
+
+  let authorDescription: AuthorDescription | null = null;
+
+  // ── Stage 1 & 2: Research + LLM Analysis ──────────────────────────────────
+  if (options.promptOnly) {
+    // Skip research entirely — use cached prompt directly
+    stages.research = "skipped";
+    stages.promptBuild = "skipped";
+    console.log(`[meticulousPipeline] Prompt-only mode for ${authorName}`);
+  } else if (cachedDescription && !options.forceRefresh) {
+    // Use cached description from DB
+    authorDescription = cachedDescription;
+    stages.research = "cached";
+    stages.promptBuild = "cached";
+    console.log(`[meticulousPipeline] Using cached description for ${authorName}`);
+  } else {
+    // Run full research pipeline
+    console.log(`[meticulousPipeline] Running research for ${authorName}`);
+    try {
+      authorDescription = await researchAndDescribeAuthor(authorName, researchModel, researchVendor);
+      stages.research = authorDescription ? "executed" : "failed";
+      stages.promptBuild = authorDescription ? "executed" : "failed";
+    } catch (err) {
+      console.error(`[meticulousPipeline] Research failed for ${authorName}:`, err);
+      stages.research = "failed";
+      stages.promptBuild = "failed";
+    }
+  }
+
+  // ── Stage 3: Prompt Building ───────────────────────────────────────────────
+  let promptPackage;
+  if (authorDescription) {
+    promptPackage = buildMeticulousPrompt(authorDescription, {
+      bgColor: options.bgColor,
+      vendor,
+      model,
+    });
+    stages.promptBuild = "executed";
+  } else {
+    // Fallback to generic prompt
+    promptPackage = buildGenericFallbackPrompt(authorName, options.bgColor, vendor);
+    console.warn(
+      `[meticulousPipeline] Using generic fallback prompt for ${authorName} (no description available)`
+    );
+    stages.promptBuild = "executed";
+  }
+
+  console.log(
+    `[meticulousPipeline] Prompt built for ${authorName} (${promptPackage.prompt.length} chars)`
+  );
+
+  // ── Stage 4: Image Generation ──────────────────────────────────────────────
+  const generator = createImageGenerator({ vendor: vendor as "google" | "replicate" | "openai" | "stability", model });
+
+  if (!generator.isAvailable()) {
+    return {
+      success: false,
+      avatarSource: "ai",
+      durationMs: Date.now() - startTime,
+      error: `Vendor "${vendor}" is not available (API key not configured)`,
+      stages,
+    };
+  }
+
+  const imageResult = await generator.generate({
+    prompt: promptPackage.prompt,
+    negativePrompt: promptPackage.negativePrompt,
+    aspectRatio: "1:1",
+    guidanceScale: 7.5,
+  });
+
+  if (imageResult.error) {
+    stages.imageGen = "failed";
+    return {
+      success: false,
+      avatarSource: "ai",
+      authorDescription: authorDescription ?? undefined,
+      imagePrompt: promptPackage.prompt,
+      vendor,
+      model,
+      durationMs: Date.now() - startTime,
+      error: imageResult.error,
+      stages,
+    };
+  }
+
+  stages.imageGen = "executed";
+
+  // ── Stage 5a: S3 Upload ────────────────────────────────────────────────────
+  const imageData = await resultToBuffer(imageResult);
+  if (!imageData) {
+    stages.s3Upload = "failed";
+    return {
+      success: false,
+      avatarSource: "ai",
+      authorDescription: authorDescription ?? undefined,
+      imagePrompt: promptPackage.prompt,
+      vendor,
+      model,
+      durationMs: Date.now() - startTime,
+      error: "Failed to convert image result to buffer",
+      stages,
+    };
+  }
+
+  let s3AvatarUrl: string | undefined;
+  let s3AvatarKey: string | undefined;
+
+  try {
+    const ext = imageData.mimeType.includes("png")
+      ? "png"
+      : imageData.mimeType.includes("webp")
+      ? "webp"
+      : "jpg";
+    const sanitized = authorName.toLowerCase().replace(/[^a-z0-9]/g, "-");
+    const key = `author-avatars/ai-${sanitized}-${Date.now()}.${ext}`;
+    const { url } = await storagePut(key, imageData.buffer, imageData.mimeType);
+    s3AvatarUrl = url;
+    s3AvatarKey = key;
+    stages.s3Upload = "executed";
+    console.log(`[meticulousPipeline] S3 upload complete for ${authorName}: ${url}`);
+  } catch (err) {
+    stages.s3Upload = "failed";
+    console.error(`[meticulousPipeline] S3 upload failed for ${authorName}:`, err);
+    // S3 failure is non-fatal — we still have the image
+  }
+
+  // ── Stage 5b: Google Drive Upload (best-effort) ────────────────────────────
+  let driveFileId: string | undefined;
+  try {
+    const fileId = await uploadToGoogleDrive(
+      imageData.buffer,
+      imageData.mimeType,
+      authorName
+    );
+    if (fileId) {
+      driveFileId = fileId;
+      stages.driveUpload = "executed";
+      console.log(`[meticulousPipeline] Drive upload complete for ${authorName}: ${fileId}`);
+    } else {
+      stages.driveUpload = "failed";
+    }
+  } catch {
+    stages.driveUpload = "failed";
+  }
+
+  return {
+    success: true,
+    s3AvatarUrl,
+    s3AvatarKey,
+    driveFileId,
+    avatarSource: "google-imagen",
+    authorDescription: authorDescription ?? undefined,
+    imagePrompt: promptPackage.prompt,
+    vendor,
+    model,
+    durationMs: Date.now() - startTime,
+    stages,
+  };
+}

@@ -35,7 +35,7 @@ function inferMimeFromUrl(url: string): string {
   if (lower.endsWith(".webp")) return "image/webp";
   if (lower.endsWith(".gif")) return "image/gif";
   if (lower.endsWith(".avif")) return "image/avif";
-  return "image/jpeg"; // default for most book covers and author photos
+  return "image/jpeg"; // default for most book covers and author avatars
 }
 
 /** Generate a deterministic S3 key from a prefix and a source URL */
@@ -66,7 +66,7 @@ export interface MirrorResult {
  * Fetch an external image URL and upload it to Manus S3.
  *
  * @param sourceUrl - The external image URL to mirror
- * @param s3Prefix  - S3 key prefix, e.g. "book-covers" or "author-photos"
+ * @param s3Prefix  - S3 key prefix, e.g. "book-covers" or "author-avatars"
  * @param existingKey - If provided and matches the computed key, skip re-upload
  * @returns MirrorResult with stable CDN url, key, and uploaded flag
  */

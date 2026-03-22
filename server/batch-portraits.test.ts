@@ -1,7 +1,7 @@
 /**
- * Tests for the batch portrait generation logic.
+ * Tests for the batch avatar generation logic.
  * Validates: missing-author detection, sequential processing, rate-limit delay,
- * partial-failure handling, and early-exit when all authors have photos.
+ * partial-failure handling, and early-exit when all authors have avatars.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -17,10 +17,10 @@ vi.mock("../client/src/lib/authorAvatars", () => ({
 
 // -- Helpers --------------------------------------------------------------------
 
-/** Simulate the client-side batch logic extracted from generateAllPortraits */
-async function runBatchPortraits(
+/** Simulate the client-side batch logic extracted from generateAllAvatars */
+async function runBatchAvatars(
   authorNames: string[],
-  generatePortrait: (name: string) => Promise<void>,
+  generateAvatar: (name: string) => Promise<void>,
   delayMs = 0
 ): Promise<{ done: number; failed: number; processed: string[] }> {
   const { getAuthorAvatar } = await import("../client/src/lib/authorAvatars");
@@ -33,7 +33,7 @@ async function runBatchPortraits(
   for (let i = 0; i < missing.length; i++) {
     const name = missing[i];
     try {
-      await generatePortrait(name);
+      await generateAvatar(name);
       done++;
       processed.push(name);
     } catch {
@@ -49,7 +49,7 @@ async function runBatchPortraits(
 
 // -- Tests ----------------------------------------------------------------------
 
-describe("batch portrait generation logic", () => {
+describe("batch avatar generation logic", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -58,7 +58,7 @@ describe("batch portrait generation logic", () => {
     const generate = vi.fn().mockResolvedValue(undefined);
     const authors = ["Adam Grant", "James Clear", "Unknown Author"];
 
-    const { done, failed, processed } = await runBatchPortraits(authors, generate);
+    const { done, failed, processed } = await runBatchAvatars(authors, generate);
 
     expect(done).toBe(1);
     expect(failed).toBe(0);
@@ -67,11 +67,11 @@ describe("batch portrait generation logic", () => {
     expect(generate).toHaveBeenCalledWith("Unknown Author");
   });
 
-  it("returns done=0 and calls generate 0 times when all authors have photos", async () => {
+  it("returns done=0 and calls generate 0 times when all authors have avatars", async () => {
     const generate = vi.fn().mockResolvedValue(undefined);
     const authors = ["Adam Grant", "James Clear"];
 
-    const { done, failed } = await runBatchPortraits(authors, generate);
+    const { done, failed } = await runBatchAvatars(authors, generate);
 
     expect(done).toBe(0);
     expect(failed).toBe(0);
@@ -87,7 +87,7 @@ describe("batch portrait generation logic", () => {
 
     const authors = ["Author A", "Author B", "Author C"];
 
-    const { done, failed, processed } = await runBatchPortraits(authors, generate);
+    const { done, failed, processed } = await runBatchAvatars(authors, generate);
 
     expect(done).toBe(2);
     expect(failed).toBe(1);
@@ -102,7 +102,7 @@ describe("batch portrait generation logic", () => {
 
     const authors = ["Author X", "Author Y", "Adam Grant", "Author Z"];
 
-    await runBatchPortraits(authors, generate);
+    await runBatchAvatars(authors, generate);
 
     expect(callOrder).toEqual(["Author X", "Author Y", "Author Z"]);
   });
@@ -110,7 +110,7 @@ describe("batch portrait generation logic", () => {
   it("handles empty author list gracefully", async () => {
     const generate = vi.fn().mockResolvedValue(undefined);
 
-    const { done, failed } = await runBatchPortraits([], generate);
+    const { done, failed } = await runBatchAvatars([], generate);
 
     expect(done).toBe(0);
     expect(failed).toBe(0);
@@ -129,7 +129,7 @@ describe("batch portrait generation logic", () => {
     const generate = vi.fn().mockResolvedValue(undefined);
     const authors = ["Author 1", "Author 2", "Author 3"];
 
-    await runBatchPortraits(authors, generate, 2000);
+    await runBatchAvatars(authors, generate, 2000);
 
     // Should have 2 delays (between 1→2 and 2→3), not 3
     expect(delays.length).toBe(2);
@@ -146,7 +146,7 @@ describe("batch portrait generation logic", () => {
 
     const authors = ["Fail Author", "Success Author 1", "Success Author 2"];
 
-    const { done, failed } = await runBatchPortraits(authors, generate);
+    const { done, failed } = await runBatchAvatars(authors, generate);
 
     expect(done).toBe(2);
     expect(failed).toBe(1);

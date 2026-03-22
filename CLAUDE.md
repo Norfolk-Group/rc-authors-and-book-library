@@ -10,7 +10,7 @@ working on this codebase. Read this before making any changes.
 **Ricardo Cidale's Library** (`authors-books-library`) is a personal digital library
 for Ricardo Cidale / Norfolk Consulting Group. It displays 109 authors and 178 books
 sourced from a Google Drive folder hierarchy, enriched with AI-generated bios, author
-portraits, book cover images, ratings, and summaries.
+avatars, book cover images, ratings, and summaries.
 
 **Live URL:** `https://authlib-ehsrgokn.manus.space`
 **GitHub:** `https://github.com/norfolk-ai/authors-books-library` (private)
@@ -50,14 +50,14 @@ client/src/
     NotFound.tsx           ← 404 page with breadcrumb
   components/
     FlowbiteAuthorCard.tsx  ← Primary author card (cover strip + hover tooltips + 3 hotspots)
-    AuthorModal.tsx         ← Full author detail modal (bio, photo, social links, portrait gen)
+    AuthorModal.tsx         ← Full author detail modal (bio, avatar, social links, avatar gen)
     BookModal.tsx           ← Full book detail modal (cover, summary, rating, Amazon link)
     AuthorAccordionRow.tsx  ← Accordion view row (same 3-hotspot model as card)
     DashboardLayout.tsx     ← Sidebar layout wrapper (Preferences, ResearchCascade)
     CategoryChart.tsx       ← ECharts category breakdown chart
     CoverLightbox.tsx       ← Full-screen cover image viewer (Framer Motion)
     CardGridSparkles.tsx    ← R3F sparkles canvas overlay over card grid
-    AvatarUpload.tsx        ← Click-to-upload author portrait with crop modal
+    AvatarUpload.tsx        ← Click-to-upload author avatar with crop modal
     AvatarCropModal.tsx     ← react-image-crop circular crop + zoom
     PageHeader.tsx          ← Breadcrumb nav bar for non-home pages
     AnimatedIcons.tsx       ← Phosphor icon wrappers with motion
@@ -69,9 +69,9 @@ client/src/
     authorBios.json         ← Static bio cache (JSON, used as first-pass before DB)
 server/routers/
   library.router.ts         ← Drive sync, author/book list queries
-  authorProfiles.router.ts  ← Bio, photo, social link enrichment; getAllBios; generatePortrait
+  authorProfiles.router.ts  ← Bio, avatar, social link enrichment; getAllBios; generatePortrait
   bookProfiles.router.ts    ← Summary, cover, rating enrichment; enrichAllMissingSummaries
-  apify.router.ts           ← Apify Amazon scrape + S3 mirror for covers and photos
+  apify.router.ts           ← Apify Amazon scrape + S3 mirror for covers and avatars
   cascade.router.ts         ← ResearchCascade waterfall stats (authorStats + bookStats)
   llm.router.ts             ← LLM model list + test ping
   index.ts                  ← Merges all routers into appRouter
@@ -93,10 +93,10 @@ scripts/
 |---|---|---|
 | `authorName` | varchar(255) PK | Canonical name, e.g. "Adam Grant" |
 | `bio` | text | LLM/Wikipedia-generated bio |
-| `photoUrl` | text | External photo URL (original source) |
-| `s3PhotoUrl` | text | CDN URL for mirrored portrait |
-| `s3PhotoKey` | varchar(500) | S3 key for mirrored portrait |
-| `photoSource` | enum | `wikipedia` \| `tavily` \| `apify` \| `ai` \| NULL (no photo) |
+| `avatarUrl` | text | External avatar URL (original source) |
+| `s3AvatarUrl` | text | CDN URL for mirrored avatar |
+| `s3AvatarKey` | varchar(500) | S3 key for mirrored avatar |
+| `avatarSource` | enum | `wikipedia | tavily | apify | ai | NULL (no avatar) |
 | `websiteUrl` | text | Author's website |
 | `twitterUrl` | text | Twitter/X profile URL |
 | `linkedinUrl` | text | LinkedIn profile URL |
@@ -167,8 +167,8 @@ Do not add new click handlers outside these three zones.
 
 ### S3 Storage
 Use `storagePut(key, buffer, contentType)` from `server/storage.ts`. Key conventions:
-- Author portraits (AI-generated): `author-photos/ai-<8-char-hex>.jpg`
-- Author portraits (real): `author-photos/<8-char-hex>.jpg`
+- Author avatars (AI-generated): `author-avatars/ai-<8-char-hex>.jpg`
+- Author avatars (real): `author-avatars/<8-char-hex>.jpg`
 - Book covers: `book-covers/<8-char-hex>.<ext>`
 
 Never store file bytes in the database. Store only the S3 key and CDN URL.
@@ -189,7 +189,7 @@ Never store file bytes in the database. Store only the S3 key and CDN URL.
 ### Multi-Author Splitting
 Authors with combined names (e.g. "Aaron Ross and Jason Lemkin") are split into
 individual cards in `filteredAuthors`. The `dbPhotoMap` in `Home.tsx` is extended to
-add individual name keys from combined entries so each split author gets their photo.
+add individual name keys from combined entries so each split author gets their avatar.
 
 ---
 
@@ -251,7 +251,7 @@ Norfolk Consulting Group/
 | Folder | ID |
 |---|---|
 | Authors (root) | `119tuydLrpyvavFEouf3SCq38LAD4_ln5` |
-| Author Pictures | `1XGBfvnqN3W9LFpFJjqhDEZVBRPrXGf9W` |
+| Author Avatars | `1XGBfvnqN3W9LFpFJjqhDEZVBRPrXGf9W` |
 | Bios | `1DDxUQhlMmqudPFzkp5oOjru1zZd_XAl-` |
 
 ---
@@ -269,7 +269,7 @@ All secrets are injected by the Manus platform — never hardcode or commit them
 | `BUILT_IN_FORGE_API_KEY` | Server-side Forge bearer token |
 | `VITE_FRONTEND_FORGE_API_KEY` | Client-side Forge bearer token |
 | `PERPLEXITY_API_KEY` | Perplexity Sonar bio enrichment |
-| `REPLICATE_API_TOKEN` | Replicate flux-schnell portraits |
+| `REPLICATE_API_TOKEN` | Replicate flux-schnell avatars |
 | `TAVILY_API_KEY` | Tavily image search |
 
 ---
@@ -304,8 +304,8 @@ then mirrors all pending covers to S3. The script is idempotent and safe to re-r
 | `batch-enrich.test.ts` | Batch enrichment pipeline |
 | `sort-and-profiles.test.ts` | Sorting, filtering, profile queries |
 | `apify.test.ts` | Amazon scrape + S3 mirror logic |
-| `generate-portrait.test.ts` | Replicate portrait generation |
-| `batch-portraits.test.ts` | Batch portrait pipeline |
+| `generate-avatar.test.ts` | Replicate portrait generation |
+| `batch-avatars.test.ts` | Batch portrait pipeline |
 | `auth.logout.test.ts` | Auth logout flow |
 
 ---
@@ -320,7 +320,7 @@ These skills were created from patterns discovered in this project:
 | `book-cover-dedup` | Detect and remove duplicate book cover entries (DB + UI) |
 | `book-profile-enrichment` | Google Books + LLM enrichment pipeline for book summaries |
 | `author-bio-enrichment` | Wikipedia + Perplexity + LLM bio enrichment pipeline |
-| `library-content-enrichment` | Full enrichment workflow (photos, bios, covers) |
+| `library-content-enrichment` | Full enrichment workflow (avatars, bios, covers) |
 | `webdev-card-system` | Flowbite card + modal system with 3-hotspot model |
 | `webdev-flowbite` | Flowbite React + Tailwind v4 integration |
 | `webdev-theme-aware-cards` | Theme-aware card backgrounds (bg-card pattern) |

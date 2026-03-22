@@ -30,7 +30,7 @@ export async function fetchTavilyAuthorPhoto(authorName: string): Promise<string
   const apiKey = process.env.TAVILY_API_KEY;
   if (!apiKey) return null;
 
-  const query = `"${authorName}" author headshot portrait photo`;
+  const query = `"${authorName}" author headshot avatar photo`;
   try {
     const res = await fetch("https://api.tavily.com/search", {
       method: "POST",

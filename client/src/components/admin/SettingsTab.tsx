@@ -127,7 +127,7 @@ export function SettingsTab({ settings, updateSettings }: SettingsTabProps) {
             Avatar Background Color
           </CardTitle>
           <CardDescription className="text-xs">
-            Background color injected into AI portrait generation prompts.
+            Background color injected into AI avatar generation prompts.
             Norfolk AI palette colors are shown — darker teal is the default.
           </CardDescription>
         </CardHeader>

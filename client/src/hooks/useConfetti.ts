@@ -6,7 +6,7 @@
  */
 
 type ConfettiMode =
-  | "portrait"
+  | "avatar"
   | "batch"
   | "scrape"
   | "mirror"
@@ -16,7 +16,7 @@ type ConfettiMode =
 /**
  * No-op confetti function. Call sites remain unchanged.
  */
-export function fireConfetti(_mode: ConfettiMode = "portrait"): void {
+export function fireConfetti(_mode: ConfettiMode = "avatar"): void {
   // Intentionally empty — confetti dependency removed
 }
 

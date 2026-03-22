@@ -37,7 +37,7 @@ vi.mock("apify-client", () => {
 
 // -- Import after mocking ------------------------------------------------------
 
-import { scrapeAmazonBook, scrapeAuthorPhoto, scrapeUrl } from "./apify";
+import { scrapeAmazonBook, scrapeAuthorAvatar, scrapeUrl } from "./apify";
 import { ApifyClient } from "apify-client";
 
 // -- Tests ---------------------------------------------------------------------
@@ -47,8 +47,8 @@ describe("Apify helper - module structure", () => {
     expect(typeof scrapeAmazonBook).toBe("function");
   });
 
-  it("exports scrapeAuthorPhoto as a function", () => {
-    expect(typeof scrapeAuthorPhoto).toBe("function");
+  it("exports scrapeAuthorAvatar as a function", () => {
+    expect(typeof scrapeAuthorAvatar).toBe("function");
   });
 
   it("exports scrapeUrl as a function", () => {
@@ -130,7 +130,7 @@ describe("scrapeAmazonBook - with mocked Apify client", () => {
   });
 });
 
-describe("scrapeAuthorPhoto - with mocked Apify client", () => {
+describe("scrapeAuthorAvatar - with mocked Apify client", () => {
   beforeEach(() => {
     process.env.APIFY_API_TOKEN = "test-token";
     vi.clearAllMocks();
@@ -141,7 +141,7 @@ describe("scrapeAuthorPhoto - with mocked Apify client", () => {
   });
 
   it("returns null when no avatar items found", async () => {
-    const result = await scrapeAuthorPhoto("Adam Grant");
+    const result = await scrapeAuthorAvatar("Adam Grant");
     expect(result).toBeNull();
   });
 
@@ -152,7 +152,7 @@ describe("scrapeAuthorPhoto - with mocked Apify client", () => {
       call: vi.fn().mockRejectedValue(new Error("Timeout")),
     });
 
-    const result = await scrapeAuthorPhoto("Adam Grant");
+    const result = await scrapeAuthorAvatar("Adam Grant");
     expect(result).toBeNull();
   });
 });

@@ -316,7 +316,7 @@ export function FlowbiteAuthorCard({
             >
               {/* Avatar - tripled to 108px, expand-on-hover */}
               <div className="relative h-28 w-28 flex-shrink-0">
-                <AvatarUpload authorName={displayName} currentPhotoUrl={avatarUrl} size={112}>
+                <AvatarUpload authorName={displayName} currentAvatarUrl={avatarUrl} size={112}>
                   {(url) => {
                     const avatarEl = url ? (
                       <img

@@ -152,44 +152,6 @@ export const authorProfilesRouter = router({
       return { mirrored, skipped: pending.length - toMirror.length, failed, total: pending.length };
     }),
 
-  /** @deprecated Use mirrorAvatars */
-  mirrorPhotos: publicProcedure
-    .input(z.object({ batchSize: z.number().min(1).max(20).default(10) }))
-    .mutation(async ({ input }) => {
-      const db = await getDb();
-      if (!db) throw new Error("Database not available");
-      const pending = await db
-        .select({
-          id: authorProfiles.id,
-          avatarUrl: authorProfiles.avatarUrl,
-          s3AvatarKey: authorProfiles.s3AvatarKey,
-        })
-        .from(authorProfiles)
-        .where(or(isNull(authorProfiles.s3AvatarUrl), eq(authorProfiles.s3AvatarUrl, "")))
-        .limit(input.batchSize);
-      const toMirror = pending.filter((a) => a.avatarUrl?.startsWith("http"));
-      if (toMirror.length === 0) {
-        return { mirrored: 0, skipped: pending.length, failed: 0, total: pending.length };
-      }
-      const results = await mirrorBatchToS3(
-        toMirror.map((a) => ({ id: a.id, sourceUrl: a.avatarUrl!, existingKey: a.s3AvatarKey })),
-        "author-avatars"
-      );
-      let mirrored = 0;
-      let failed = 0;
-      for (const result of results) {
-        if (result.url && result.key) {
-          await db.update(authorProfiles)
-            .set({ s3AvatarUrl: result.url, s3AvatarKey: result.key })
-            .where(eq(authorProfiles.id, result.id));
-          mirrored++;
-        } else {
-          failed++;
-        }
-      }
-      return { mirrored, skipped: pending.length - toMirror.length, failed, total: pending.length };
-    }),
-
   /** Count how many author avatars still need S3 mirroring */
   getMirrorAvatarStats: publicProcedure.query(async () => {
     const db = await getDb();
@@ -328,6 +290,8 @@ export const authorProfilesRouter = router({
         maxTier: z.number().min(1).max(5).optional().default(5),
         avatarGenVendor: z.string().optional().default("google"),
         avatarGenModel: z.string().optional().default("nano-banana"),
+        avatarResearchVendor: z.string().optional().default("google"),
+        avatarResearchModel: z.string().optional().default("gemini-2.5-flash"),
         avatarBgColor: z.string().optional(),
       })
     )
@@ -351,6 +315,8 @@ export const authorProfilesRouter = router({
             maxTier: input.maxTier,
             avatarGenVendor: input.avatarGenVendor,
             avatarGenModel: input.avatarGenModel,
+            avatarResearchVendor: input.avatarResearchVendor,
+            avatarResearchModel: input.avatarResearchModel,
             avatarBgColor: input.avatarBgColor,
           });
 
@@ -361,8 +327,16 @@ export const authorProfilesRouter = router({
               result.source === "wikipedia" ? "wikipedia" as const
               : result.source === "tavily" ? "tavily" as const
               : result.source === "apify" ? "apify" as const
-              : result.source === "ai-generated" ? "ai" as const
+              : result.source === "ai-generated" ? "google-imagen" as const
               : undefined;
+            // Extract pipeline metadata if available (from meticulous Tier 5)
+            const pipelineMeta = (result as unknown as Record<string, unknown>).__pipelineResult as {
+              authorDescription?: object;
+              imagePrompt?: string;
+              driveFileId?: string;
+              vendor?: string;
+              model?: string;
+            } | undefined;
             await db
               .update(authorProfiles)
               .set({
@@ -370,6 +344,17 @@ export const authorProfilesRouter = router({
                 s3AvatarUrl: result.s3AvatarUrl,
                 enrichedAt: new Date(),
                 ...(avatarSourceVal ? { avatarSource: avatarSourceVal } : {}),
+                ...(pipelineMeta?.authorDescription ? {
+                  authorDescriptionJson: JSON.stringify(pipelineMeta.authorDescription),
+                  authorDescriptionCachedAt: new Date(),
+                } : {}),
+                ...(pipelineMeta?.imagePrompt ? {
+                  lastAvatarPrompt: pipelineMeta.imagePrompt,
+                  lastAvatarPromptBuiltAt: new Date(),
+                } : {}),
+                ...(pipelineMeta?.driveFileId ? { driveAvatarFileId: pipelineMeta.driveFileId } : {}),
+                ...(pipelineMeta?.vendor ? { avatarGenVendor: pipelineMeta.vendor } : {}),
+                ...(pipelineMeta?.model ? { avatarGenModel: pipelineMeta.model } : {}),
               })
               .where(eq(authorProfiles.authorName, originalName));
           }
@@ -412,6 +397,8 @@ export const authorProfilesRouter = router({
         skipValidation: z.boolean().optional().default(false),
         avatarGenVendor: z.string().optional().default("google"),
         avatarGenModel: z.string().optional().default("nano-banana"),
+        avatarResearchVendor: z.string().optional().default("google"),
+        avatarResearchModel: z.string().optional().default("gemini-2.5-flash"),
         avatarBgColor: z.string().optional(),
       })
     )
@@ -450,6 +437,8 @@ export const authorProfilesRouter = router({
               maxTier: input.maxTier,
               avatarGenVendor: input.avatarGenVendor,
               avatarGenModel: input.avatarGenModel,
+              avatarResearchVendor: input.avatarResearchVendor,
+              avatarResearchModel: input.avatarResearchModel,
               avatarBgColor: input.avatarBgColor,
             });
             if (result.avatarUrl || result.s3AvatarUrl) {
@@ -457,8 +446,15 @@ export const authorProfilesRouter = router({
                 result.source === "wikipedia" ? "wikipedia" as const
                 : result.source === "tavily" ? "tavily" as const
                 : result.source === "apify" ? "apify" as const
-                : result.source === "ai-generated" ? "ai" as const
+                : result.source === "ai-generated" ? "google-imagen" as const
                 : undefined;
+              const pipelineMeta2 = (result as unknown as Record<string, unknown>).__pipelineResult as {
+                authorDescription?: object;
+                imagePrompt?: string;
+                driveFileId?: string;
+                vendor?: string;
+                model?: string;
+              } | undefined;
               await db
                 .update(authorProfiles)
                 .set({
@@ -466,6 +462,17 @@ export const authorProfilesRouter = router({
                   s3AvatarUrl: result.s3AvatarUrl,
                   enrichedAt: new Date(),
                   ...(avatarSourceVal2 ? { avatarSource: avatarSourceVal2 } : {}),
+                  ...(pipelineMeta2?.authorDescription ? {
+                    authorDescriptionJson: JSON.stringify(pipelineMeta2.authorDescription),
+                    authorDescriptionCachedAt: new Date(),
+                  } : {}),
+                  ...(pipelineMeta2?.imagePrompt ? {
+                    lastAvatarPrompt: pipelineMeta2.imagePrompt,
+                    lastAvatarPromptBuiltAt: new Date(),
+                  } : {}),
+                  ...(pipelineMeta2?.driveFileId ? { driveAvatarFileId: pipelineMeta2.driveFileId } : {}),
+                  ...(pipelineMeta2?.vendor ? { avatarGenVendor: pipelineMeta2.vendor } : {}),
+                  ...(pipelineMeta2?.model ? { avatarGenModel: pipelineMeta2.model } : {}),
                 })
                 .where(eq(authorProfiles.authorName, originalName));
             }
@@ -499,15 +506,19 @@ export const authorProfilesRouter = router({
       };
     }),
 
-  // -- Generate an AI portrait (routes to Google Imagen or Replicate based on vendor) --------
-  generatePortrait: publicProcedure
+  // -- Generate an AI avatar (routes to Google Imagen or Replicate based on vendor) --------
+  generateAvatar: publicProcedure
     .input(z.object({
       authorName: z.string().min(1),
       bgColor: z.string().optional(),
-      /** Avatar Generation vendor from AI tab settings (e.g. "google", "replicate") */
+      /** Avatar Generation — Graphics LLM vendor (e.g. "google", "replicate") */
       avatarGenVendor: z.string().optional(),
-      /** Avatar Generation model ID from AI tab settings (e.g. "gemini-2.5-flash-image") */
+      /** Avatar Generation — Graphics LLM model ID (e.g. "nano-banana") */
       avatarGenModel: z.string().optional(),
+      /** Avatar Generation — Research LLM vendor for meticulous pipeline */
+      avatarResearchVendor: z.string().optional(),
+      /** Avatar Generation — Research LLM model ID for meticulous pipeline */
+      avatarResearchModel: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -542,17 +553,17 @@ export const authorProfilesRouter = router({
           input.bgColor,
           resolvedModel,
         );
-        if (!generated) throw new Error("Google Imagen portrait generation failed - please try again");
+        if (!generated) throw new Error("Google Imagen avatar generation failed - please try again");
         buffer = generated.buffer;
         mimeType = generated.mimeType;
       } else {
         // Default: Replicate flux-schnell
-        const { generateAIPortrait } = await import("../lib/authorAvatars/replicateGeneration");
-        const generated = await generateAIPortrait(input.authorName, input.bgColor);
-        if (!generated) throw new Error("Portrait generation failed - please try again");
+        const { generateAIAvatar } = await import("../lib/authorAvatars/replicateGeneration");
+        const generated = await generateAIAvatar(input.authorName, input.bgColor);
+        if (!generated) throw new Error("Avatar generation failed - please try again");
         // Mirror to S3 immediately (Replicate URLs expire after ~1 hour)
         const res = await fetch(generated.url, { signal: AbortSignal.timeout(20_000) });
-        if (!res.ok) throw new Error("Failed to download generated portrait");
+        if (!res.ok) throw new Error("Failed to download generated avatar");
         buffer = Buffer.from(await res.arrayBuffer());
         mimeType = "image/webp";
       }
@@ -561,7 +572,7 @@ export const authorProfilesRouter = router({
       const key = `author-avatars/ai-${slug}-${Date.now()}.${ext}`;
       const { url } = await storagePut(key, buffer, mimeType);
 
-      // Persist to DB - AI-generated portrait
+      // Persist to DB - AI-generated avatar
       await db
         .update(authorProfiles)
         .set({ avatarUrl: url, s3AvatarUrl: url, s3AvatarKey: key, enrichedAt: new Date(), avatarSource: "ai" })
@@ -621,7 +632,7 @@ export const authorProfilesRouter = router({
   /**
    * Returns a lightweight map of authorName -> best avatar URL for all profiles
    * that have an avatar stored in S3. Used by the frontend as a DB-first fallback
-   * over the static AUTHOR_AVATARS map, so AI-generated portraits appear on cards.
+   * over the static AUTHOR_AVATARS map, so AI-generated avatars appear on cards.
    */
   getAvatarMap: publicProcedure.query(async () => {
     const db = await getDb();

@@ -3,7 +3,7 @@
  *
  * tRPC procedures for on-demand web scraping via Apify:
  * - scrapeBook: fetch real book cover + Amazon URL from Amazon.com
- * - scrapeAuthorPhoto: fetch real author headshot from Wikipedia
+ * - scrapeAuthorAvatar: fetch real author headshot from Wikipedia
  * - scrapeUrl: generic scrape any URL with a custom page function
  * - batchScrapeCovers: scrape Amazon covers for all books missing coverImageUrl,
  *   then mirror all pending covers (with coverImageUrl but no s3CoverUrl) to S3
@@ -18,7 +18,7 @@ import { publicProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 import { bookProfiles, authorProfiles } from "../../drizzle/schema";
 import { eq, isNull, or } from "drizzle-orm";
-import { scrapeAmazonBook, scrapeAuthorPhoto, scrapeUrl } from "../apify";
+import { scrapeAmazonBook, scrapeAuthorAvatar, scrapeUrl } from "../apify";
 import { mirrorBatchToS3 } from "../mirrorToS3";
 
 export const apifyRouter = router({
@@ -259,14 +259,14 @@ export const apifyRouter = router({
    * Scrape Wikipedia for a real author headshot.
    * Persists avatarUrl to the author_profiles table.
    */
-  scrapeAuthorPhoto: publicProcedure
+  scrapeAuthorAvatar: publicProcedure
     .input(
       z.object({
         authorName: z.string().min(1),
       })
     )
     .mutation(async ({ input }) => {
-      const result = await scrapeAuthorPhoto(input.authorName);
+      const result = await scrapeAuthorAvatar(input.authorName);
       if (!result) {
         return { success: false as const, message: "No avatar found on Wikipedia" };
       }

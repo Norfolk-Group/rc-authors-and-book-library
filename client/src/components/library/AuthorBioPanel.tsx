@@ -54,13 +54,13 @@ export function AuthorBioPanel({ author, onClose }: AuthorBioPanelProps) {
   });
 
   const [generatedPhotoUrl, setGeneratedPhotoUrl] = useState<string | null>(null);
-  const generatePortraitMutation = trpc.authorProfiles.generatePortrait.useMutation({
+  const generateAvatarMutation = trpc.authorProfiles.generateAvatar.useMutation({
     onSuccess: (data) => {
       setGeneratedPhotoUrl(data.url);
-      toast.success("AI portrait generated and saved!");
-      fireConfetti("portrait");
+      toast.success("AI avatar generated and saved!");
+      fireConfetti("avatar");
     },
-    onError: (e) => toast.error("Portrait generation failed: " + e.message),
+    onError: (e) => toast.error("Avatar generation failed: " + e.message),
   });
 
   const hasTriggered = useRef(false);
@@ -77,7 +77,7 @@ export function AuthorBioPanel({ author, onClose }: AuthorBioPanelProps) {
     }
   }, [jsonBio, isLoading, profile]);
 
-  const effectivePhotoUrl = generatedPhotoUrl ?? avatarUrl;
+  const effectiveAvatarUrl = generatedPhotoUrl ?? avatarUrl;
 
   return (
     <div className="flex flex-col gap-5 pt-2">
@@ -85,7 +85,7 @@ export function AuthorBioPanel({ author, onClose }: AuthorBioPanelProps) {
       <DialogHeader>
         <div className="flex items-center gap-4 mb-1">
           <div className="relative group/avatar">
-            <AvatarUpload authorName={displayName} currentPhotoUrl={effectivePhotoUrl} size={80}>
+            <AvatarUpload authorName={displayName} currentAvatarUrl={effectiveAvatarUrl} size={80}>
               {(url) =>
                 url ? (
                   <img
@@ -104,19 +104,21 @@ export function AuthorBioPanel({ author, onClose }: AuthorBioPanelProps) {
                 )
               }
             </AvatarUpload>
-            {!effectivePhotoUrl && (
+            {!effectiveAvatarUrl && (
               <button
-                onClick={() => generatePortraitMutation.mutate({
+                onClick={() => generateAvatarMutation.mutate({
                   authorName: displayName,
                   bgColor: settings.avatarBgColor,
                   avatarGenVendor: settings.avatarGenVendor,
                   avatarGenModel: settings.avatarGenModel,
+                  avatarResearchVendor: settings.avatarResearchVendor,
+                  avatarResearchModel: settings.avatarResearchModel,
                 })}
-                disabled={generatePortraitMutation.isPending}
-                title="Generate AI portrait"
+                disabled={generateAvatarMutation.isPending}
+                title="Generate AI avatar"
                 className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center shadow-md border border-border bg-background hover:bg-muted transition-colors disabled:opacity-50"
               >
-                {generatePortraitMutation.isPending
+                {generateAvatarMutation.isPending
                   ? <RefreshCw className="w-3 h-3 animate-spin" />
                   : <Sparkles className="w-3 h-3 sparkle-spin" style={{ color }} />}
               </button>

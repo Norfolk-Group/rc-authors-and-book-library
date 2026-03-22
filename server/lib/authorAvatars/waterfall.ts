@@ -6,18 +6,19 @@
  *   Tier 2: Tavily Image Search ($0.001/search, ~1-2s)
  *   Tier 3: Apify Cheerio Scraper ($0.001/run, ~30-60s) - uses existing server/apify.ts
  *   Tier 4: Gemini Vision validation gate (runs after each tier)
- *   Tier 5: Replicate AI Portrait Generation ($0.003/image, ~5-10s)
+ *   Tier 5: Replicate AI Avatar Generation ($0.003/image, ~5-10s)
  *
  * Expected success rate: ~95%+ across all 109 authors
  * Estimated total cost: $1.50-$3.00
  */
 import { fetchWikipediaPhoto } from "./wikipedia";
 import { fetchTavilyAuthorPhoto } from "./tavily";
-import { scrapeAuthorPhoto } from "../../apify";
+import { scrapeAuthorAvatar } from "../../apify";
 import { validateHeadshotWithGemini } from "./geminiValidation";
-import { generateAIPortrait } from "./replicateGeneration";
+import { generateAIAvatar } from "./replicateGeneration";
 import { generateGoogleImagenPortrait, NANO_BANANA_MODELS, DEFAULT_NANO_BANANA_MODEL } from "./googleImagenGeneration";
 import { storagePut } from "../../storage";
+import { runMeticulousPipeline } from "./meticulousPipeline";
 
 // -- Multi-author mapping ------------------------------------------------------
 const MULTI_AUTHOR_MAP: Record<string, string> = {
@@ -74,6 +75,14 @@ export interface AuthorAvatarWaterfallResult {
   tier: number;
   processingTimeMs: number;
   error?: string;
+  /** Pipeline metadata from meticulous Tier 5 — persisted to DB */
+  __pipelineResult?: {
+    authorDescription?: object;
+    imagePrompt?: string;
+    driveFileId?: string;
+    vendor?: string;
+    model?: string;
+  };
 }
 
 /** @deprecated Use AuthorAvatarWaterfallResult */
@@ -92,10 +101,14 @@ export interface WaterfallOptions {
   existingS3AvatarUrl?: string | null;
   /** Per-tier timeout overrides in ms */
   tierTimeouts?: Partial<Record<1 | 2 | 3 | 5, number>>;
-  /** Avatar generation model vendor (e.g. 'google', 'replicate'). Default: 'google' */
+  /** Avatar generation — Graphics LLM vendor (e.g. 'google', 'replicate'). Default: 'google' */
   avatarGenVendor?: string;
-  /** Avatar generation model ID (e.g. 'nano-banana', 'gemini-2.5-flash-image'). Default: nano-banana */
+  /** Avatar generation — Graphics LLM model ID (e.g. 'nano-banana'). Default: nano-banana */
   avatarGenModel?: string;
+  /** Avatar generation — Research LLM vendor for meticulous pipeline. Default: 'google' */
+  avatarResearchVendor?: string;
+  /** Avatar generation — Research LLM model ID for meticulous pipeline. Default: 'gemini-2.5-flash' */
+  avatarResearchModel?: string;
   /** Avatar background color hex or sentinel key (e.g. 'bokeh-gold') */
   avatarBgColor?: string;
 }
@@ -162,6 +175,8 @@ export async function processAuthorAvatarWaterfall(
     tierTimeouts = {},
     avatarGenVendor = "google",
     avatarGenModel = "nano-banana",
+    avatarResearchVendor = "google",
+    avatarResearchModel = "gemini-2.5-flash",
     avatarBgColor,
   } = options;
 
@@ -206,6 +221,7 @@ export async function processAuthorAvatarWaterfall(
   let source: AuthorAvatarWaterfallResult["source"] = "failed";
   let isAiGenerated = false;
   let tier = 0;
+  let pipelineMetadata: AuthorAvatarWaterfallResult["__pipelineResult"] | undefined;
 
   // -- TIER 1: Wikipedia ------------------------------------------------------
   if (!avatarUrl && maxTier >= 1) {
@@ -258,7 +274,7 @@ export async function processAuthorAvatarWaterfall(
     console.log(`[Avatar T3] Apify -> ${primaryName}`);
     try {
       const result = await Promise.race([
-        scrapeAuthorPhoto(primaryName),
+        scrapeAuthorAvatar(primaryName),
         new Promise<null>((_, reject) =>
           setTimeout(() => reject(new Error(`T3 timeout after ${timeouts[3]}ms`)), timeouts[3])
         ),
@@ -273,51 +289,61 @@ export async function processAuthorAvatarWaterfall(
     }
   }
 
-  // -- TIER 5: AI Portrait Generation (Google Imagen primary, Replicate fallback) ------
+  // -- TIER 5: Meticulous AI Avatar Generation (research + prompt + vendor-switchable graphics LLM) ------
   if (!avatarUrl && maxTier >= 5) {
     tier = 5;
     const t5Start = Date.now();
-    const useGoogle = avatarGenVendor === "google" || avatarGenVendor === "gemini";
-    console.log(`[Avatar T5] AI Portrait (${useGoogle ? "Google Imagen" : "Replicate"}) -> ${primaryName}`);
+    console.log(`[Avatar T5] Meticulous Pipeline (${avatarGenVendor}/${avatarGenModel}) -> ${primaryName}`);
     try {
-      if (useGoogle) {
-        // Resolve model ID: accept either the friendly key (nano-banana) or a raw model ID
-        const resolvedModel = NANO_BANANA_MODELS[avatarGenModel] ?? avatarGenModel ?? DEFAULT_NANO_BANANA_MODEL;
-        const generated = await Promise.race([
-          generateGoogleImagenPortrait(primaryName, avatarBgColor, resolvedModel),
-          new Promise<null>((_, reject) =>
-            setTimeout(() => reject(new Error(`T5 timeout after ${timeouts[5]}ms`)), timeouts[5])
-          ),
-        ]);
-        if (generated && !dryRun) {
-          // Upload buffer directly to S3
-          const ext = generated.mimeType.includes("png") ? "png" : "jpg";
-          const sanitized = primaryName.toLowerCase().replace(/[^a-z0-9]/g, "-");
-          const key = `author-avatars/ai-${sanitized}-${Date.now()}.${ext}`;
-          const { url } = await (await import("../../storage")).storagePut(key, generated.buffer, generated.mimeType);
-          avatarUrl = url;
-          source = "ai-generated";
-          isAiGenerated = true;
-          console.log(`[Avatar T5] Google Imagen portrait generated for ${primaryName} (${Date.now() - t5Start}ms)`);
-        } else if (generated && dryRun) {
-          // In dry-run mode, use a placeholder URL
-          avatarUrl = `data:${generated.mimeType};base64,${generated.buffer.toString("base64").slice(0, 20)}...`;
-          source = "ai-generated";
-          isAiGenerated = true;
-        }
+      const pipelineResult = await Promise.race([
+        runMeticulousPipeline(primaryName, {
+          bgColor: avatarBgColor,
+          vendor: avatarGenVendor,
+          model: avatarGenModel,
+          researchVendor: avatarResearchVendor,
+          researchModel: avatarResearchModel,
+          useCache: true,
+        }),
+        new Promise<null>((_, reject) =>
+          setTimeout(() => reject(new Error(`T5 timeout after ${timeouts[5]}ms`)), timeouts[5])
+        ),
+      ]);
+      if (pipelineResult && pipelineResult.success && pipelineResult.s3AvatarUrl) {
+        avatarUrl = pipelineResult.s3AvatarUrl;
+        source = "ai-generated";
+        isAiGenerated = true;
+        // Store pipeline metadata for DB persistence (accessed in router)
+        pipelineMetadata = {
+          authorDescription: pipelineResult.authorDescription,
+          imagePrompt: pipelineResult.imagePrompt,
+          driveFileId: pipelineResult.driveFileId,
+          vendor: pipelineResult.vendor,
+          model: pipelineResult.model,
+        };
+        console.log(`[Avatar T5] Meticulous pipeline complete for ${primaryName} in ${Date.now() - t5Start}ms`);
       } else {
-        // Replicate fallback
-        const generated = await Promise.race([
-          generateAIPortrait(primaryName),
-          new Promise<null>((_, reject) =>
-            setTimeout(() => reject(new Error(`T5 timeout after ${timeouts[5]}ms`)), timeouts[5])
-          ),
-        ]);
-        if (generated) {
-          avatarUrl = generated.url;
-          source = "ai-generated";
-          isAiGenerated = true;
-          console.log(`[Avatar T5] Replicate portrait generated for ${primaryName} (${Date.now() - t5Start}ms)`);
+        // Pipeline failed — fall back to legacy direct generation
+        console.warn(`[Avatar T5] Meticulous pipeline failed for ${primaryName}, falling back to legacy generation`);
+        const useGoogle = avatarGenVendor === "google" || avatarGenVendor === "gemini";
+        if (useGoogle) {
+          const resolvedModel = NANO_BANANA_MODELS[avatarGenModel] ?? avatarGenModel ?? DEFAULT_NANO_BANANA_MODEL;
+          const generated = await generateGoogleImagenPortrait(primaryName, avatarBgColor, resolvedModel);
+          if (generated && !dryRun) {
+            const ext = generated.mimeType.includes("png") ? "png" : "jpg";
+            const sanitized = primaryName.toLowerCase().replace(/[^a-z0-9]/g, "-");
+            const key = `author-avatars/ai-${sanitized}-${Date.now()}.${ext}`;
+            const { url } = await storagePut(key, generated.buffer, generated.mimeType);
+            avatarUrl = url;
+            source = "ai-generated";
+            isAiGenerated = true;
+          }
+        } else {
+          const generated = await generateAIAvatar(primaryName);
+          if (generated) {
+            avatarUrl = generated.url;
+            source = "ai-generated";
+            isAiGenerated = true;
+          }
         }
       }
     } catch (e) {
@@ -340,5 +366,6 @@ export async function processAuthorAvatarWaterfall(
     isAiGenerated,
     tier,
     processingTimeMs: Date.now() - start,
+    ...(pipelineMetadata ? { __pipelineResult: pipelineMetadata } : {}),
   };
 }

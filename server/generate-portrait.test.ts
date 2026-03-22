@@ -1,14 +1,14 @@
 /**
- * Tests for the generatePortrait tRPC procedure.
- * The procedure: calls generateAIPortrait → downloads from Replicate → uploads to S3 → persists to DB.
+ * Tests for the generateAvatar tRPC procedure.
+ * The procedure: calls generateAIAvatar → downloads from Replicate → uploads to S3 → persists to DB.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // -- Mocks ----------------------------------------------------------------------
 
-const mockGenerateAIPortrait = vi.fn();
+const mockGenerateAIAvatar = vi.fn();
 vi.mock("../server/lib/authorAvatars/replicateGeneration", () => ({
-  generateAIPortrait: mockGenerateAIPortrait,
+  generateAIAvatar: mockGenerateAIAvatar,
 }));
 
 const mockStoragePut = vi.fn();
@@ -40,7 +40,7 @@ function makeFetchMock(ok: boolean, buffer: ArrayBuffer = new ArrayBuffer(8)) {
 
 // -- Tests ----------------------------------------------------------------------
 
-describe("generatePortrait procedure logic", () => {
+describe("generateAvatar procedure logic", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Chain mocks: db.update().set().where()
@@ -50,7 +50,7 @@ describe("generatePortrait procedure logic", () => {
   });
 
   it("returns url and isAiGenerated=true on success", async () => {
-    mockGenerateAIPortrait.mockResolvedValue({ url: "https://replicate.delivery/portrait.webp" });
+    mockGenerateAIAvatar.mockResolvedValue({ url: "https://replicate.delivery/portrait.webp" });
     mockStoragePut.mockResolvedValue({ url: "https://cdn.manus.space/author-photos/ai-test.webp", key: "author-photos/ai-test.webp" });
 
     const globalFetch = makeFetchMock(true);
@@ -59,7 +59,7 @@ describe("generatePortrait procedure logic", () => {
 
     // Simulate the procedure logic directly (without full tRPC context)
     const authorName = "Test Author";
-    const generated = await mockGenerateAIPortrait(authorName);
+    const generated = await mockGenerateAIAvatar(authorName);
     expect(generated).not.toBeNull();
 
     const res = await globalFetch(generated.url);
@@ -74,22 +74,22 @@ describe("generatePortrait procedure logic", () => {
     expect(mockStoragePut).toHaveBeenCalledWith(key, expect.any(Buffer), "image/webp");
   });
 
-  it("throws when generateAIPortrait returns null", async () => {
-    mockGenerateAIPortrait.mockResolvedValue(null);
+  it("throws when generateAIAvatar returns null", async () => {
+    mockGenerateAIAvatar.mockResolvedValue(null);
 
-    const generated = await mockGenerateAIPortrait("Unknown Author");
+    const generated = await mockGenerateAIAvatar("Unknown Author");
     expect(generated).toBeNull();
     // Procedure would throw "Portrait generation failed"
     expect(mockStoragePut).not.toHaveBeenCalled();
   });
 
   it("throws when Replicate download fails (non-ok response)", async () => {
-    mockGenerateAIPortrait.mockResolvedValue({ url: "https://replicate.delivery/portrait.webp" });
+    mockGenerateAIAvatar.mockResolvedValue({ url: "https://replicate.delivery/portrait.webp" });
     const globalFetch = makeFetchMock(false);
     vi.stubGlobal("fetch", globalFetch);
     vi.stubGlobal("AbortSignal", { timeout: vi.fn().mockReturnValue({}) });
 
-    const generated = await mockGenerateAIPortrait("Test Author");
+    const generated = await mockGenerateAIAvatar("Test Author");
     expect(generated).not.toBeNull();
 
     const res = await globalFetch(generated.url);
@@ -111,13 +111,13 @@ describe("generatePortrait procedure logic", () => {
   });
 
   it("calls storagePut with image/webp content type", async () => {
-    mockGenerateAIPortrait.mockResolvedValue({ url: "https://replicate.delivery/portrait.webp" });
+    mockGenerateAIAvatar.mockResolvedValue({ url: "https://replicate.delivery/portrait.webp" });
     mockStoragePut.mockResolvedValue({ url: "https://cdn.manus.space/ai.webp", key: "author-photos/ai-test.webp" });
     const globalFetch = makeFetchMock(true);
     vi.stubGlobal("fetch", globalFetch);
     vi.stubGlobal("AbortSignal", { timeout: vi.fn().mockReturnValue({}) });
 
-    const generated = await mockGenerateAIPortrait("Test Author");
+    const generated = await mockGenerateAIAvatar("Test Author");
     const res = await globalFetch(generated.url);
     const buffer = Buffer.from(await res.arrayBuffer());
     await mockStoragePut("author-photos/ai-test-author-12345.webp", buffer, "image/webp");

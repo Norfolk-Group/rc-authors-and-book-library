@@ -447,7 +447,7 @@ export default function Home() {
               <div className="flex flex-col gap-1">
                 <a href="https://drive.google.com/drive/folders/1_sTZD5m4dfP4byryghw9XgeDyPnYWNiH" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1 px-2 rounded hover:bg-muted/60">
                   <Users className="w-3.5 h-3.5 flex-shrink-0" />
-                  Author Pictures
+                  Author Avatars
                   <ExternalLink className="w-3 h-3 ml-auto opacity-50" />
                 </a>
                 <a href="https://drive.google.com/drive/folders/1qzmgRdCQr98fxVs6Bvnqi3J-tS574GY1" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1 px-2 rounded hover:bg-muted/60">

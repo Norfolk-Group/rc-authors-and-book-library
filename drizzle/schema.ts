@@ -42,14 +42,36 @@ export const authorProfiles = mysqlTable("author_profiles", {
   s3AvatarUrl: varchar("s3AvatarUrl", { length: 1024 }),
   /** S3 key for the mirrored avatar (used for deduplication/cleanup) */
   s3AvatarKey: varchar("s3AvatarKey", { length: 512 }),
-  /**
-   * Which tier of the enrichment waterfall provided the avatar:
+  /** Which tier of the enrichment waterfall provided the avatar:
    * - wikipedia: Wikipedia REST API (Tier 1)
    * - tavily: Tavily image search (Tier 2)
    * - apify: Apify web scrape (Tier 3)
-   * - ai: Replicate AI-generated portrait (Tier 5 fallback)
+   * - ai: Replicate AI-generated avatar (Tier 5 fallback)
+   * - google-imagen: Google Imagen / Nano Banana AI-generated
+   * - drive: Manually uploaded via Google Drive reseed
    */
-  avatarSource: mysqlEnum("avatarSource", ["wikipedia", "tavily", "apify", "ai", "google-imagen"]),
+  avatarSource: mysqlEnum("avatarSource", ["wikipedia", "tavily", "apify", "ai", "google-imagen", "drive"]),
+  /**
+   * Cached structured JSON from the Research LLM stage.
+   * Stores AuthorDescription — physical appearance, style, personality.
+   * Avoids re-research on avatar regeneration.
+   */
+  authorDescriptionJson: text("authorDescriptionJson"),
+  /** When the authorDescriptionJson was last generated */
+  authorDescriptionCachedAt: timestamp("authorDescriptionCachedAt"),
+  /**
+   * The exact image generation prompt used to create the current avatar.
+   * Stored for debugging, auditing, and prompt-only regeneration.
+   */
+  lastAvatarPrompt: text("lastAvatarPrompt"),
+  /** When the lastAvatarPrompt was built */
+  lastAvatarPromptBuiltAt: timestamp("lastAvatarPromptBuiltAt"),
+  /** Google Drive file ID for the generated/uploaded avatar */
+  driveAvatarFileId: varchar("driveAvatarFileId", { length: 255 }),
+  /** Which vendor generated the current AI avatar (google, replicate, openai, stability) */
+  avatarGenVendor: varchar("avatarGenVendor", { length: 50 }),
+  /** Which model generated the current AI avatar (e.g. nano-banana, flux-schnell) */
+  avatarGenModel: varchar("avatarGenModel", { length: 100 }),
   enrichedAt: timestamp("enrichedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

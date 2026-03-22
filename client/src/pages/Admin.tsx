@@ -3,7 +3,7 @@
  *
  * Tabs:
  *   1. Data Pipeline - Regenerate DB, Enrich Bios, Enrich Books
- *   2. Media - Generate Portraits, Scrape Covers, Mirror to S3
+ *   2. Media - Generate Avatars, Scrape Covers, Mirror to S3
  *   3. Research Cascade - Live DB enrichment stats
  *   4. Settings - Theme, Icon Set, AI Model
  *   5. About - App info
@@ -277,10 +277,10 @@ export default function Admin() {
   const regenerateMutation = trpc.library.regenerate.useMutation();
   const enrichBiosMutation = trpc.authorProfiles.enrichBatch.useMutation();
   const enrichBooksMutation = trpc.bookProfiles.enrichBatch.useMutation();
-  const generatePortraitMutation = trpc.authorProfiles.generatePortrait.useMutation();
+  const generateAvatarMutation = trpc.authorProfiles.generateAvatar.useMutation();
   const scrapeNextMutation = trpc.apify.scrapeNextMissingCover.useMutation();
   const mirrorCoversMutation = trpc.bookProfiles.mirrorCovers.useMutation();
-  const mirrorPhotosMutation = trpc.authorProfiles.mirrorPhotos.useMutation();
+  const mirrorAvatarsMutation = trpc.authorProfiles.mirrorAvatars.useMutation();
 
   // -- Action states --
   const [regenerateState, setRegenerateState] = useState<ActionState>(INITIAL_STATE);
@@ -496,7 +496,7 @@ export default function Admin() {
     }
   }, [enrichBooksState.status, enrichBooksMutation, settings.geminiModel, utils, recordAction]);
 
-  // -- 4. Generate All Portraits --
+  // -- 4. Generate All Avatars --
   const handleGeneratePortraits = useCallback(async () => {
     if (portraitState.status === "running") return;
     const allNames = Array.from(
@@ -525,7 +525,7 @@ export default function Admin() {
     setPortraitState({
       status: "running",
       progress: 0,
-      message: `0/${total} portraits`,
+      message: `0/ avatars`,
       done: 0,
       total,
       failed: 0,
@@ -537,7 +537,7 @@ export default function Admin() {
       for (let i = 0; i < missing.length; i++) {
         const authorName = missing[i];
         try {
-          await generatePortraitMutation.mutateAsync({
+          await generateAvatarMutation.mutateAsync({
             authorName,
             bgColor: settings.avatarBgColor,
             avatarGenVendor: settings.avatarGenVendor,
@@ -562,16 +562,16 @@ export default function Admin() {
         progress: 100,
         message: `${done} generated, ${failed} failed`,
       }));
-      toast.success(`Generated ${done} portraits${failed > 0 ? ` (${failed} failed)` : ""}.`);
+      toast.success(`Generated  avatars${failed > 0 ? ` (${failed} failed)` : ""}.`);
       void utils.authorProfiles.getAvatarMap.invalidate();
-      await recordAction("generate-portraits", "Generate Portraits", start, "success", done);
+      await recordAction("generate-avatars", "Generate Avatars", start, "success", done);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       setPortraitState((s) => ({ ...s, status: "error", message: msg }));
-      toast.error("Portrait generation failed: " + msg);
-      await recordAction("generate-portraits", "Generate Portraits", start, `error: ${msg}`, done);
+      toast.error("Avatar generation failed: " + msg);
+      await recordAction("generate-avatars", "Generate Avatars", start, `error: ${msg}`, done);
     }
-  }, [portraitState.status, generatePortraitMutation, utils, recordAction]);
+  }, [portraitState.status, generateAvatarMutation, utils, recordAction]);
 
   // -- 5. Scrape All Covers --
   const handleScrapeCovers = useCallback(async () => {
@@ -667,7 +667,7 @@ export default function Admin() {
     let totalMirrored = 0;
     try {
       for (let round = 0; round < 20; round++) {
-        const result = await mirrorPhotosMutation.mutateAsync({ batchSize: 10 });
+        const result = await mirrorAvatarsMutation.mutateAsync({ batchSize: 10 });
         totalMirrored += result.mirrored;
         setMirrorAvatarsState((s) => ({
           ...s,
@@ -692,7 +692,7 @@ export default function Admin() {
       toast.error("Mirror avatars failed: " + msg);
       await recordAction("mirror-avatars", "Mirror Avatars to S3", start, `error: ${msg}`, totalMirrored);
     }
-  }, [mirrorAvatarsState.status, mirrorPhotosMutation, recordAction]);
+  }, [mirrorAvatarsState.status, mirrorAvatarsMutation, recordAction]);
 
   // -- Stats for Research Cascade --
   const aStats = authorStats.data;
@@ -801,15 +801,15 @@ export default function Admin() {
           {/* -- Tab 2: Media -- */}
           <TabsContent value="media" className="space-y-3">
             <ActionCard
-              title="Generate Missing Portraits"
+              title="Generate Missing Avatars"
               description="Use AI (Replicate Flux) to generate headshots for authors who don't have an avatar."
               icon={Camera}
-              actionKey="generate-portraits"
+              actionKey="generate-avatars"
               state={portraitState}
-              lastRun={getLastRun("generate-portraits")}
+              lastRun={getLastRun("generate-avatars")}
               destructive
-              confirmTitle="Generate AI portraits?"
-              confirmDescription="This will generate AI portraits for all authors missing an avatar. Each portrait takes 5-15 seconds. This may take a while for many authors."
+              confirmTitle="Generate AI avatars?"
+              confirmDescription="This will generate AI avatars for all authors missing an avatar. Each avatar takes 5-15 seconds. This may take a while for many authors."
               onRun={handleGeneratePortraits}
               buttonLabel="Generate"
               disabled={anyRunning}

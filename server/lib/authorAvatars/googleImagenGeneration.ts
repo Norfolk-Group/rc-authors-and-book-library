@@ -1,5 +1,5 @@
 /**
- * Google Imagen / Nano Banana portrait generation helper.
+ * Google Imagen / Nano Banana avatar generation helper.
  *
  * Supported models (nano-banana family):
  *   - gemini-2.5-flash-image          → "Nano Banana" (fast, efficient)
@@ -55,7 +55,7 @@ function describeColor(hex: string): string {
 const SPECIAL_BACKGROUNDS: Record<string, string> = {
   "bokeh-gold":
     "warm golden bokeh background with soft amber and cream circular light orbs, " +
-    "professional studio portrait photography with warm backlighting, " +
+    "professional studio avatar photography with warm backlighting, " +
     "shallow depth of field, elegant and inviting atmosphere",
 };
 
@@ -71,11 +71,11 @@ function buildPrompt(authorName: string, bgColor?: string): string {
     ? specialBg + " background"
     : `solid ${bgColor ? describeColor(bgColor) : "neutral gray"} background`;
   return (
-    `Professional corporate headshot photograph of a professional ${gender} business author and thought leader. ` +
+    `Professional corporate headshot avatar of a professional ${gender} business author and thought leader. ` +
     `Warm approachable expression with a slight confident smile. Smart business attire suitable for a book author avatar. ` +
-    `Clean studio lighting, soft shadows, ${bgPhrase}. High-end corporate portrait photography. ` +
+    `Clean studio lighting, soft shadows, ${bgPhrase}. High-end corporate avatar photography. ` +
     `Sharp focus on face, shallow depth of field. 85mm portrait lens, f/2.8, professional studio lighting, photorealistic. ` +
-    `The portrait looks like it could appear on the back cover of a bestselling business book. No text, watermarks, or logos.`
+    `The avatar looks like it could appear on the back cover of a bestselling business book. No text, watermarks, or logos.`
   );
 }
 
@@ -86,7 +86,7 @@ export interface GoogleImagenPortrait {
 }
 
 /**
- * Generate a professional author portrait using Google Imagen / Nano Banana.
+ * Generate a professional author avatar using Google Imagen / Nano Banana.
  *
  * @param authorName  Display name of the author
  * @param bgColor     Optional hex color or sentinel key (e.g. "bokeh-gold")
@@ -135,7 +135,7 @@ export async function generateGoogleImagenPortrait(
     console.error(`[GoogleImagen] No image part found in response for ${authorName}`);
     return null;
   } catch (err) {
-    console.error(`[GoogleImagen] Portrait generation error for ${authorName}:`, err);
+    console.error(`[GoogleImagen] Avatar generation error for ${authorName}:`, err);
     return null;
   }
 }

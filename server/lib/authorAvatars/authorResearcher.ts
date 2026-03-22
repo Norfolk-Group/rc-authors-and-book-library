@@ -1,0 +1,397 @@
+/**
+ * Author Researcher — Stage 1 of the Meticulous Avatar Pipeline
+ *
+ * Runs three research sources in parallel, then feeds all gathered data
+ * (text bio + reference photo URLs) to Gemini Vision to produce a structured
+ * AuthorDescription JSON.  The result is cached in DB to avoid re-research
+ * on subsequent regenerations.
+ *
+ * Sources (run in parallel via Promise.allSettled):
+ *   1. Wikipedia REST API  — bio text + infobox photo
+ *   2. Tavily Image Search — up to 5 ranked photo URLs
+ *   3. Apify Amazon scrape — author page photo
+ */
+
+import { GoogleGenAI } from "@google/genai";
+import { AuthorDescription, AuthorResearchData } from "./types.js";
+import { scrapeAuthorAvatar } from "../../apify.js";
+
+// ── Wikipedia bio helper ───────────────────────────────────────────────────────
+// We extend wikipedia.ts with a bio-text fetch (not just the photo URL)
+
+async function fetchWikipediaBioAndPhoto(authorName: string): Promise<{
+  bio: string | null;
+  photoUrl: string | null;
+}> {
+  const slug = authorName.replace(/\s+/g, "_");
+  const variants = [
+    slug,
+    `${slug}_(author)`,
+    `${slug}_(writer)`,
+    authorName.replace(/\s[A-Z]\.\s/g, " ").replace(/\s+/g, "_"),
+  ];
+
+  for (const variant of variants) {
+    try {
+      const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(variant)}`;
+      const res = await fetch(url, {
+        headers: { "User-Agent": "NCGLibrary/1.0 (ncglibrary@norfolkgroup.io)" },
+      });
+      if (!res.ok) continue;
+      const data = await res.json();
+      const bio: string | null = data.extract ?? null;
+      const photoUrl: string | null =
+        data.originalimage?.source ??
+        (data.thumbnail?.source
+          ? data.thumbnail.source.replace(/\/\d+px-/, "/400px-")
+          : null);
+      if (bio || photoUrl) return { bio, photoUrl };
+    } catch {
+      // try next variant
+    }
+  }
+  return { bio: null, photoUrl: null };
+}
+
+// ── Tavily multi-photo fetch ───────────────────────────────────────────────────
+// We extend tavily.ts to return multiple URLs (not just the top one)
+
+async function fetchTavilyPhotos(authorName: string): Promise<string[]> {
+  const apiKey = process.env.TAVILY_API_KEY;
+  if (!apiKey) return [];
+  const query = `"${authorName}" author headshot avatar professional photo`;
+  try {
+    const res = await fetch("https://api.tavily.com/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        api_key: apiKey,
+        query,
+        search_depth: "basic",
+        include_images: true,
+        include_image_descriptions: false,
+        max_results: 5,
+      }),
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    const images: string[] = data.images ?? [];
+    // Prioritize trusted sources
+    const nameParts = authorName.toLowerCase().split(" ");
+    const scored = images.map((url) => {
+      const lower = url.toLowerCase();
+      let score = 0;
+      if (lower.includes("linkedin")) score += 10;
+      if (lower.includes("wikipedia") || lower.includes("wikimedia")) score += 9;
+      if (lower.includes("ted.com")) score += 8;
+      if (lower.includes("penguin") || lower.includes("harpercollins")) score += 7;
+      if (lower.includes("author") || lower.includes("headshot")) score += 5;
+      if (nameParts.some((p) => p.length > 3 && lower.includes(p))) score += 3;
+      if (lower.includes("book") || lower.includes("cover")) score -= 5;
+      if (lower.includes("amazon") && lower.includes("images")) score -= 2;
+      return { url, score };
+    });
+    return scored
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 4)
+      .map((x) => x.url);
+  } catch {
+    return [];
+  }
+}
+
+// ── Apify photo fetch ──────────────────────────────────────────────────────────
+
+async function fetchApifyPhoto(authorName: string): Promise<string | null> {
+  try {
+    const result = await scrapeAuthorAvatar(authorName);
+    return result?.avatarUrl ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// ── Research aggregation ───────────────────────────────────────────────────────
+
+export async function researchAuthor(
+  authorName: string
+): Promise<AuthorResearchData> {
+  const [wikiResult, tavilyResult, apifyResult] = await Promise.allSettled([
+    fetchWikipediaBioAndPhoto(authorName),
+    fetchTavilyPhotos(authorName),
+    fetchApifyPhoto(authorName),
+  ]);
+
+  const wiki =
+    wikiResult.status === "fulfilled" ? wikiResult.value : { bio: null, photoUrl: null };
+  const tavilyPhotos =
+    tavilyResult.status === "fulfilled" ? tavilyResult.value : [];
+  const apifyPhoto =
+    apifyResult.status === "fulfilled" ? apifyResult.value : null;
+
+  // Deduplicate and collect all photo URLs
+  const allPhotoUrls = Array.from(
+    new Set(
+      [wiki.photoUrl, ...tavilyPhotos, apifyPhoto].filter(
+        (u): u is string => !!u && u.startsWith("http")
+      )
+    )
+  ).slice(0, 5); // Cap at 5 for Gemini Vision
+
+  const sources: string[] = [];
+  if (wiki.bio || wiki.photoUrl) sources.push("Wikipedia");
+  if (tavilyPhotos.length > 0) sources.push("Tavily");
+  if (apifyPhoto) sources.push("Apify");
+
+  return {
+    authorName,
+    wikiBio: wiki.bio ?? undefined,
+    tavilyPhotoUrls: tavilyPhotos,
+    apifyPhotoUrls: apifyPhoto ? [apifyPhoto] : [],
+    allPhotoUrls,
+    sources,
+  };
+}
+
+// ── Gemini Vision analysis ─────────────────────────────────────────────────────
+
+const RESEARCH_SYSTEM_PROMPT = `You are an expert at analyzing public figures for professional avatar generation.
+Given biographical text and reference photo URLs for an author, extract a precise physical description optimized for AI image generation.
+
+CRITICAL RULES:
+1. Only describe what you can observe from the reference materials or reliably infer from biographical data
+2. For uncertain features, use ranges (e.g., "late 40s to mid 50s")
+3. Flag low-confidence fields in sourceConfidence.uncertainties
+4. Never invent features not supported by evidence
+5. Focus on stable features (hair color may vary; face shape doesn't)
+6. Be specific and concrete — vague descriptions produce generic avatars
+7. Output ONLY valid JSON matching the AuthorDescription schema — no markdown, no explanation`;
+
+const AUTHOR_DESCRIPTION_SCHEMA = {
+  type: "object",
+  properties: {
+    authorName: { type: "string" },
+    demographics: {
+      type: "object",
+      properties: {
+        apparentAgeRange: { type: "string" },
+        genderPresentation: { type: "string", enum: ["male", "female", "non-binary"] },
+        ethnicAppearance: { type: "string" },
+      },
+      required: ["apparentAgeRange", "genderPresentation", "ethnicAppearance"],
+      additionalProperties: false,
+    },
+    physicalFeatures: {
+      type: "object",
+      properties: {
+        hair: {
+          type: "object",
+          properties: {
+            color: { type: "string" },
+            style: { type: "string" },
+            length: { type: "string" },
+          },
+          required: ["color", "style", "length"],
+          additionalProperties: false,
+        },
+        facialHair: {
+          type: "object",
+          properties: {
+            type: { type: "string" },
+            color: { type: "string" },
+            style: { type: "string" },
+          },
+          required: ["type"],
+          additionalProperties: false,
+        },
+        faceShape: { type: "string" },
+        distinctiveFeatures: { type: "array", items: { type: "string" } },
+        eyes: {
+          type: "object",
+          properties: {
+            color: { type: "string" },
+            shape: { type: "string" },
+            notable: { type: "string" },
+          },
+          required: ["color"],
+          additionalProperties: false,
+        },
+        skinTone: { type: "string" },
+        build: { type: "string" },
+        glasses: {
+          type: "object",
+          properties: {
+            wears: { type: "boolean" },
+            style: { type: "string" },
+          },
+          required: ["wears"],
+          additionalProperties: false,
+        },
+      },
+      required: ["hair", "facialHair", "faceShape", "distinctiveFeatures", "eyes", "skinTone", "build", "glasses"],
+      additionalProperties: false,
+    },
+    stylePresentation: {
+      type: "object",
+      properties: {
+        typicalAttire: {
+          type: "object",
+          properties: {
+            formality: { type: "string" },
+            description: { type: "string" },
+            colors: { type: "array", items: { type: "string" } },
+          },
+          required: ["formality", "description", "colors"],
+          additionalProperties: false,
+        },
+        aesthetic: { type: "array", items: { type: "string" } },
+      },
+      required: ["typicalAttire", "aesthetic"],
+      additionalProperties: false,
+    },
+    personalityExpression: {
+      type: "object",
+      properties: {
+        dominantTraits: { type: "array", items: { type: "string" } },
+        typicalExpression: { type: "string" },
+        energy: { type: "string" },
+      },
+      required: ["dominantTraits", "typicalExpression", "energy"],
+      additionalProperties: false,
+    },
+    professionalContext: {
+      type: "object",
+      properties: {
+        primaryField: { type: "string" },
+        roleType: { type: "string" },
+        institutions: { type: "array", items: { type: "string" } },
+      },
+      required: ["primaryField", "roleType", "institutions"],
+      additionalProperties: false,
+    },
+    sourceConfidence: {
+      type: "object",
+      properties: {
+        photoSourceCount: { type: "number" },
+        photoConsistency: { type: "string", enum: ["high", "medium", "low"] },
+        overallConfidence: { type: "string", enum: ["high", "medium", "low"] },
+        uncertainties: { type: "array", items: { type: "string" } },
+      },
+      required: ["photoSourceCount", "photoConsistency", "overallConfidence", "uncertainties"],
+      additionalProperties: false,
+    },
+    references: {
+      type: "object",
+      properties: {
+        photoUrls: { type: "array", items: { type: "string" } },
+        textSources: { type: "array", items: { type: "string" } },
+      },
+      required: ["photoUrls", "textSources"],
+      additionalProperties: false,
+    },
+  },
+  required: [
+    "authorName", "demographics", "physicalFeatures", "stylePresentation",
+    "personalityExpression", "professionalContext", "sourceConfidence", "references"
+  ],
+  additionalProperties: false,
+};
+
+/**
+ * Analyze research data with Gemini Vision to produce a structured AuthorDescription.
+ * Feeds up to 4 reference photo URLs directly to the vision model.
+ */
+export async function buildAuthorDescription(
+  research: AuthorResearchData,
+  researchModel = "gemini-2.5-flash",
+  researchVendor = "google"
+): Promise<AuthorDescription | null> {
+  // Currently all vendors route through Gemini for structured JSON output
+  // Future: add Anthropic/OpenAI routing based on researchVendor
+  const effectiveVendor = researchVendor; // reserved for future multi-vendor support
+  void effectiveVendor; // suppress unused warning until multi-vendor routing is added
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    console.error("[authorResearcher] GEMINI_API_KEY not set");
+    return null;
+  }
+
+  // Build the user message with text bio + photo URLs
+  const textParts: string[] = [];
+  if (research.wikiBio) {
+    textParts.push(`## Wikipedia Bio\n${research.wikiBio}`);
+  }
+  if (research.allPhotoUrls.length > 0) {
+    textParts.push(
+      `## Reference Photo URLs (analyze these for physical appearance)\n` +
+      research.allPhotoUrls.map((u, i) => `${i + 1}. ${u}`).join("\n")
+    );
+  }
+  textParts.push(
+    `## Task\nAnalyze the above information for "${research.authorName}" and produce a structured AuthorDescription JSON.`
+  );
+
+  const userMessage = textParts.join("\n\n");
+
+  try {
+    const ai = new GoogleGenAI({ apiKey });
+    const response = await ai.models.generateContent({
+      model: researchModel,
+      contents: [
+        {
+          role: "user",
+          parts: [
+            { text: RESEARCH_SYSTEM_PROMPT },
+            { text: userMessage },
+          ],
+        },
+      ],
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: AUTHOR_DESCRIPTION_SCHEMA,
+        temperature: 0.2, // Low temperature for factual extraction
+      },
+    });
+
+    const text = response.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) {
+      console.error(`[authorResearcher] No text in Gemini response for ${research.authorName}`);
+      return null;
+    }
+
+    const parsed = JSON.parse(text) as AuthorDescription;
+    // Ensure references are populated
+    parsed.references = {
+      photoUrls: research.allPhotoUrls,
+      textSources: research.sources,
+    };
+    return parsed;
+  } catch (err) {
+    console.error(`[authorResearcher] Gemini analysis error for ${research.authorName}:`, err);
+    return null;
+  }
+}
+
+/**
+ * Full research pipeline: gather data in parallel, then analyze with Gemini Vision.
+ * Returns null if research fails completely.
+ */
+export async function researchAndDescribeAuthor(
+  authorName: string,
+  researchModel?: string,
+  researchVendor?: string
+): Promise<AuthorDescription | null> {
+  console.log(`[authorResearcher] Starting research for: ${authorName} (vendor: ${researchVendor ?? "google"}, model: ${researchModel ?? "default"})`);
+  const research = await researchAuthor(authorName);
+  console.log(
+    `[authorResearcher] Research complete for ${authorName}: ` +
+    `${research.sources.join(", ")} | ${research.allPhotoUrls.length} photos`
+  );
+
+  if (!research.wikiBio && research.allPhotoUrls.length === 0) {
+    console.warn(`[authorResearcher] No data found for ${authorName} — skipping LLM analysis`);
+    return null;
+  }
+
+  return buildAuthorDescription(research, researchModel, researchVendor);
+}

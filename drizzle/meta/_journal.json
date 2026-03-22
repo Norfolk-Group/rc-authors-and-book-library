@@ -78,6 +78,13 @@
       "when": 1774142725977,
       "tag": "0010_plain_king_cobra",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "5",
+      "when": 1774147241480,
+      "tag": "0011_perfect_sabretooth",
+      "breakpoints": true
     }
   ]
 }

@@ -54,14 +54,18 @@ export interface AppSettings {
   secondaryModel: string;
   /** Authors view mode: card grid or accordion list */
   viewMode: "cards" | "accordion";
-  /** Background color injected into AI portrait generation prompt (hex string, e.g. "#0091ae") */
+  /** Background color injected into AI avatar generation prompt (hex string, e.g. "#0091ae") */
   avatarBgColor: string;
 
   // ── Per-purpose AI model settings ──────────────────────────────────────────
-  /** Avatar Generation: vendor ID (default: google) */
+  /** Avatar Generation — Graphics LLM: vendor ID (default: google) */
   avatarGenVendor: string;
-  /** Avatar Generation: model ID (default: nano-banana) */
+  /** Avatar Generation — Graphics LLM: model ID (default: nano-banana) */
   avatarGenModel: string;
+  /** Avatar Generation — Research LLM: vendor ID for deep author description research */
+  avatarResearchVendor: string;
+  /** Avatar Generation — Research LLM: model ID for deep author description research */
+  avatarResearchModel: string;
   /** Author Research: primary vendor ID */
   authorResearchVendor: string;
   /** Author Research: primary model ID */
@@ -119,6 +123,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   // Per-purpose AI model defaults
   avatarGenVendor: "google",
   avatarGenModel: "nano-banana",
+  avatarResearchVendor: "google",
+  avatarResearchModel: "gemini-2.5-flash",
   authorResearchVendor: "google",
   authorResearchModel: "gemini-2.5-flash",
   authorResearchSecondaryEnabled: false,

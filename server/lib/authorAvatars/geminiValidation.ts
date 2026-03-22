@@ -19,7 +19,7 @@ export async function validateHeadshotWithGemini(
   authorName: string
 ): Promise<ValidationResult> {
   try {
-    const prompt = `Analyze this image and determine if it is a professional headshot or portrait photo of a person (specifically the author "${authorName}").
+    const prompt = `Analyze this image and determine if it is a professional avatar headshot or avatar of a person (specifically the author "${authorName}").
 
 Return ONLY valid JSON with this exact structure:
 {
@@ -34,7 +34,7 @@ Return ONLY valid JSON with this exact structure:
 Criteria:
 - isHeadshot: true if the image shows a person's face/upper body as the primary subject
 - showsOneFace: true if exactly one person is clearly visible
-- isProfessional: true if it looks like an author photo, headshot, or professional portrait
+- isProfessional: true if it looks like an author avatar, headshot, or professional avatar
 - isBookCover: true if it appears to be a book cover, product image, or illustration
 - confidence: your confidence in this assessment (0.0 = uncertain, 1.0 = certain)`;
 
@@ -64,7 +64,7 @@ Criteria:
     if (!jsonMatch) return { isValidHeadshot: false, confidence: 0.5, reason: "Could not parse response" };
 
     const analysis = JSON.parse(jsonMatch[0]);
-    // Enforce one-author-per-card rule: reject group photos
+    // Enforce one-author-per-card rule: reject group shots (one-author-per-card rule)
     const isValid =
       analysis.isHeadshot &&
       analysis.showsOneFace === true &&  // must show exactly one person

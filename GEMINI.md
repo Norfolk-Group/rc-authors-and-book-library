@@ -37,9 +37,9 @@ Google Drive folder hierarchy. Each author card shows:
 
 The frontend (`client/src/`) is a React 19 + Tailwind 4 + Flowbite React SPA.
 Static author/book data lives in `client/src/lib/libraryData.ts` (generated from
-Google Drive scans). Enrichment data (bios, photos, summaries, covers, ratings)
+Google Drive scans). Enrichment data (bios, avatars, summaries, covers, ratings)
 lives in a MySQL database accessed via tRPC procedures in `server/routers/`.
-File assets (portraits, book covers) are stored on Manus S3 CDN via
+File assets (avatars, book covers) are stored on Manus S3 CDN via
 `server/storage.ts`. Authentication uses Manus OAuth; enrichment mutations are
 `publicProcedure` (no auth required for internal tools).
 
@@ -52,7 +52,7 @@ client/src/pages/Home.tsx              ← Main view; builds all data maps passe
 client/src/components/FlowbiteAuthorCard.tsx ← Author card with cover strip + tooltips
 client/src/lib/authorAliases.ts        ← canonicalName() — ALWAYS use for name lookups
 drizzle/schema.ts                      ← DB schema (4 tables)
-server/routers/authorProfiles.router.ts ← Bio/photo enrichment, getAllBios
+server/routers/authorProfiles.router.ts ← Bio/avatar enrichment, getAllBios
 server/routers/bookProfiles.router.ts   ← Summary/cover/rating enrichment
 server/routers/apify.router.ts          ← Amazon scrape + S3 mirror
 ```
@@ -109,7 +109,7 @@ Standard Manus OAuth user table with `role` field (`admin|user`).
 Author enrichment:  Wikipedia API → Perplexity Sonar → LLM fallback
 Book enrichment:    Google Books API → LLM fallback
 Cover scraping:     Apify cheerio-scraper → Amazon search → S3 mirror
-Portrait gen:       Replicate flux-schnell → S3 upload
+Avatar gen:       Replicate flux-schnell → S3 upload
 Image search:       Tavily API → score/rank → S3 mirror
 ```
 
@@ -135,7 +135,7 @@ pnpm test -- --reporter=verbose  # verbose output
 
 Tests are in `server/*.test.ts`. There are no frontend tests. Key files:
 `library.test.ts`, `author-aliases.test.ts`, `batch-enrich.test.ts`,
-`sort-and-profiles.test.ts`, `apify.test.ts`, `generate-portrait.test.ts`.
+`sort-and-profiles.test.ts`, `apify.test.ts`, `generate-avatar.test.ts`.
 
 ---
 

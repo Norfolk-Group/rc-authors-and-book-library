@@ -11,7 +11,7 @@
  *   → canvas blob → base64 → uploadAvatar mutation → S3 CDN URL
  *
  * Usage:
- *   <AvatarUpload authorName="Adam Grant" currentPhotoUrl={photoUrl} size={64}>
+ *   <AvatarUpload authorName="Adam Grant" currentAvatarUrl={photoUrl} size={64}>
  *     {(url) => <img src={url} className="w-16 h-16 rounded-full" />}
  *   </AvatarUpload>
  */
@@ -24,7 +24,7 @@ import { AvatarCropModal } from "./AvatarCropModal";
 
 interface AvatarUploadProps {
   authorName: string;
-  currentPhotoUrl?: string | null;
+  currentAvatarUrl?: string | null;
   /** Rendered size in pixels - used to size the overlay ring */
   size?: number;
   /** Render prop: receives the current (possibly optimistically updated) URL */
@@ -39,7 +39,7 @@ const MAX_BYTES = 10 * 1024 * 1024; // 10 MB raw - crop output will be ≤ 5 MB
 
 export function AvatarUpload({
   authorName,
-  currentPhotoUrl,
+  currentAvatarUrl,
   size = 64,
   children,
   className,
@@ -55,7 +55,7 @@ export function AvatarUpload({
   const uploadMutation = trpc.authorProfiles.uploadAvatar.useMutation();
   const utils = trpc.useUtils();
 
-  const displayUrl = optimisticUrl ?? currentPhotoUrl;
+  const displayUrl = optimisticUrl ?? currentAvatarUrl;
 
   // -- Step 1: File selected → open crop modal ------------------------------
   const handleFileChange = useCallback(

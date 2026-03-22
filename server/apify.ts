@@ -40,7 +40,7 @@ export interface AmazonBookResult {
   price: string;
 }
 
-export interface AuthorPhotoResult {
+export interface AuthorAvatarResult {
   avatarUrl: string;
   sourceUrl: string;
   sourceName: string;
@@ -190,9 +190,9 @@ async function pageFunction(context) {
  * Search for a real author headshot from Wikipedia and publisher pages.
  * Returns the best avatar URL found.
  */
-export async function scrapeAuthorPhoto(
+export async function scrapeAuthorAvatar(
   authorName: string
-): Promise<AuthorPhotoResult | null> {
+): Promise<AuthorAvatarResult | null> {
   const slug = authorName.replace(/ /g, "_");
   const wikiUrl = `https://en.wikipedia.org/wiki/${encodeURIComponent(slug)}`;
 
@@ -211,7 +211,7 @@ async function pageFunction(context) {
     }
   }
 
-  // Fallback: any portrait-style image in the article
+  // Fallback: any avatar-style image in the article
   if (results.length === 0) {
     $('figure img, .thumb img').each((i, el) => {
       const src = $(el).attr('src');
@@ -229,7 +229,7 @@ async function pageFunction(context) {
 }
 `;
 
-  const result = await runActorWithRetry<AuthorPhotoResult>(
+  const result = await runActorWithRetry<AuthorAvatarResult>(
     [{ url: wikiUrl }],
     pageFunction,
     { label: `Wikipedia avatar: ${authorName}` }

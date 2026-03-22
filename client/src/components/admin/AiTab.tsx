@@ -67,13 +67,23 @@ const PURPOSES: PurposeConfig[] = [
   {
     label: "Avatar Generation",
     description:
-      "AI model used to generate author portrait images. Nano Banana is the recommended default for high-quality headshots.",
+      "Graphics LLM used to generate author avatar images from a meticulous prompt. Nano Banana (Google Imagen) is the recommended default for photorealistic headshots. The pipeline first researches the author deeply, builds a detailed visual description, then passes it to this model.",
     icon: ImageIcon,
     vendorKey: "avatarGenVendor",
     modelKey: "avatarGenModel",
     imageGenOnly: true,
     defaultVendor: "google",
     defaultModel: "nano-banana",
+  },
+  {
+    label: "Avatar Research",
+    description:
+      "Research LLM used in the meticulous avatar pipeline to deeply analyze the author, synthesize information from Amazon, Wikipedia, and Apify scraping, and build a precise visual description that drives the image generation prompt.",
+    icon: Users,
+    vendorKey: "avatarResearchVendor",
+    modelKey: "avatarResearchModel",
+    defaultVendor: "google",
+    defaultModel: "gemini-2.5-flash",
   },
   {
     label: "Author Research",
@@ -128,7 +138,7 @@ function ModelSelector({ purpose, settings, updateSettings }: ModelSelectorProps
   const vendorsQuery = trpc.llm.listVendors.useQuery();
   const refreshVendorsMutation = trpc.llm.refreshVendors.useMutation();
   const testModelMutation = trpc.llm.testModel.useMutation();
-  const generatePortraitMutation = trpc.authorProfiles.generatePortrait.useMutation();
+  const generateAvatarMutation = trpc.authorProfiles.generateAvatar.useMutation();
   const [testingModel, setTestingModel] = useState<string | null>(null);
   const [testPortraitUrl, setTestPortraitUrl] = useState<string | null>(null);
   const [testPortraitError, setTestPortraitError] = useState<string | null>(null);
@@ -521,7 +531,7 @@ function ModelSelector({ purpose, settings, updateSettings }: ModelSelectorProps
           </div>
         )}
 
-        {/* Test Portrait button — Avatar Generation only */}
+        {/* Test Avatar button — Avatar Generation only */}
         {purpose.imageGenOnly && (
           <div className="space-y-2">
             <Button
@@ -531,33 +541,35 @@ function ModelSelector({ purpose, settings, updateSettings }: ModelSelectorProps
               onClick={() => {
                 setTestPortraitUrl(null);
                 setTestPortraitError(null);
-                generatePortraitMutation.mutate(
+                generateAvatarMutation.mutate(
                   {
                     authorName: "Adam Grant",
                     bgColor: settings.avatarBgColor,
                     avatarGenVendor: settings.avatarGenVendor,
                     avatarGenModel: settings.avatarGenModel,
+                    avatarResearchVendor: settings.avatarResearchVendor,
+                    avatarResearchModel: settings.avatarResearchModel,
                   },
                   {
                     onSuccess: (data) => {
                       setTestPortraitUrl(data.url);
-                      toast.success("Test portrait generated successfully!");
+                      toast.success("Test avatar generated successfully!");
                     },
                     onError: (err) => {
                       setTestPortraitError(err.message);
-                      toast.error(`Portrait test failed: ${err.message}`);
+                      toast.error(`Avatar test failed: ${err.message}`);
                     },
                   }
                 );
               }}
-              disabled={generatePortraitMutation.isPending}
+              disabled={generateAvatarMutation.isPending}
             >
-              {generatePortraitMutation.isPending ? (
+              {generateAvatarMutation.isPending ? (
                 <Loader2 className="w-3 h-3 animate-spin" />
               ) : (
                 <ImageIcon className="w-3 h-3" />
               )}
-              {generatePortraitMutation.isPending ? "Generating…" : "Test Portrait"}
+              {generateAvatarMutation.isPending ? "Generating…" : "Test Avatar"}
             </Button>
 
             {/* Inline test result */}
@@ -565,7 +577,7 @@ function ModelSelector({ purpose, settings, updateSettings }: ModelSelectorProps
               <div className="rounded-lg border border-border overflow-hidden">
                 <img
                   src={testPortraitUrl}
-                  alt="Test portrait"
+                  alt="Test avatar"
                   className="w-full object-cover max-h-48"
                 />
                 <div className="px-2 py-1.5 bg-muted/50 flex items-center justify-between">
@@ -614,7 +626,7 @@ export function AiTab({ settings, updateSettings }: AiTabProps) {
   return (
     <div className="space-y-4">
       <Tabs defaultValue="avatar-generation" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 h-auto">
+        <TabsList className="grid w-full grid-cols-5 h-auto">
           {PURPOSES.map((p) => {
             const tabValue = p.label.toLowerCase().replace(/\s+/g, "-");
             const Icon = p.icon;

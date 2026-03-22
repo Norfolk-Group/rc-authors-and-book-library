@@ -93,7 +93,7 @@ export function AuthorModal({ author, avatarUrl: photoOverride, onClose }: Autho
   }, [open, jsonBio, isLoading, profile, displayName]);
 
   // Find Real Avatar - Apify Wikipedia scrape
-  const scrapePhotoMutation = trpc.apify.scrapeAuthorPhoto.useMutation({
+  const scrapePhotoMutation = trpc.apify.scrapeAuthorAvatar.useMutation({
     onSuccess: (data) => {
       if (data.success && data.avatarUrl) {
         setScrapedPhotoUrl(data.avatarUrl);

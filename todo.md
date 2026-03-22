@@ -1017,3 +1017,20 @@
 - [x] Update author_profiles DB rows with new s3AvatarUrl values (89 rows updated/inserted; 128/176 total authors now have s3AvatarUrl)
 - [x] Update authorAvatars.ts with new CDN URLs (98-line file with 89 entries, all pointing to CloudFront CDN)
 - [x] Run tests, save checkpoint (139/139 passing)
+
+## Session March 22, 2026 — Avatar Terminology Standardization
+
+- [ ] Audit all photo/picture/portrait references in code, UI strings, comments, and docs
+- [ ] Rename UI labels, sidebar items, variable names, and comments to use "avatar" terminology
+- [ ] Update CLAUDE.md, memory.md, and any docs that use old terminology
+- [ ] Create skill: author-avatar-terminology enforcing "avatar" as the canonical term
+- [ ] Run tests, save checkpoint
+
+## Session March 22, 2026 — Avatar Terminology Standardization
+
+- [x] Audit all photo/picture/portrait references in code, UI strings, comments, and docs
+- [x] Rename UI labels, sidebar items, variable names, and comments to use "avatar" terminology (Admin.tsx, AuthorBioPanel.tsx, AuthorModal.tsx, AiTab.tsx, SettingsTab.tsx, AvatarUpload.tsx, useConfetti.ts, authorAvatars.ts, authorAliases.ts, all server routers, apify.ts, mirrorToS3.ts, waterfall.ts, geminiValidation.ts, replicateGeneration.ts, googleImagenGeneration.ts, tavily.ts, drizzle/schema.ts, AppSettingsContext.tsx, Home.tsx)
+- [x] Update CLAUDE.md and GEMINI.md with avatar terminology
+- [x] Update all test files (apify.test.ts, batch-portraits.test.ts, generate-portrait.test.ts) with avatar terminology
+- [x] Create skill: author-avatar-terminology enforcing "avatar" as the canonical term
+- [x] Run tests: 139/139 passing, save checkpoint
