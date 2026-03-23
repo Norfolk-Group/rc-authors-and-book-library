@@ -221,6 +221,15 @@ export default function Home() {
     return map;
   }, [bookCoversQuery.data]);
 
+  const wikipediaUrlMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const p of bookCoversQuery.data ?? []) {
+      if ((p as { wikipediaUrl?: string | null }).wikipediaUrl)
+        map.set(p.bookTitle, (p as { wikipediaUrl?: string | null }).wikipediaUrl!);
+    }
+    return map;
+  }, [bookCoversQuery.data]);
+
   const bookInfoMap = useMemo(() => {
     const map = new Map<string, { summary?: string; rating?: string; ratingCount?: number; publishedDate?: string; keyThemes?: string }>();
     for (const p of bookCoversQuery.data ?? []) {
@@ -894,6 +903,7 @@ export default function Home() {
                             isEnriched={enrichedTitlesSet.has(titleKey)}
                             amazonUrl={amazonUrlMap.get(titleKey)}
                             goodreadsUrl={goodreadsUrlMap.get(titleKey)}
+                            wikipediaUrl={wikipediaUrlMap.get(titleKey)}
                             onCoverClick={(url, title, color) => setLightboxCover({ url, title, color })}
                             onAuthorClick={navigateToAuthor}
                             isHighlighted={highlightedBookTitle === tk}
@@ -993,6 +1003,7 @@ export default function Home() {
                                     isEnriched={enrichedTitlesSet.has(titleKey)}
                                     amazonUrl={amazonUrlMap.get(titleKey)}
                                     goodreadsUrl={goodreadsUrlMap.get(titleKey)}
+                                    wikipediaUrl={wikipediaUrlMap.get(titleKey)}
                                     onCoverClick={(url, title, color) => setLightboxCover({ url, title, color })}
                                     onAuthorClick={navigateToAuthor}
                                     isHighlighted={false}

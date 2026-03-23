@@ -17,6 +17,7 @@ export interface BookSummaryResult {
   isbn?: string;
   amazonUrl?: string;
   goodreadsUrl?: string;
+  wikipediaUrl?: string;
   publisherUrl?: string;
   source: "perplexity" | "gemini" | "fallback";
 }
@@ -44,7 +45,8 @@ export async function enrichBookSummary(
 7. ISBN-13 if available
 8. Amazon product page URL
 9. Goodreads book page URL
-10. Publisher's official page for this book (if available)
+10. Wikipedia article URL for this book (if it has a Wikipedia page)
+11. Publisher's official page for this book (if available)
 
 Return ONLY a JSON object:
 {
@@ -57,6 +59,7 @@ Return ONLY a JSON object:
   "isbn": "..." or null,
   "amazonUrl": "https://amazon.com/..." or null,
   "goodreadsUrl": "https://goodreads.com/..." or null,
+  "wikipediaUrl": "https://en.wikipedia.org/wiki/..." or null,
   "publisherUrl": "https://..." or null
 }`;
 
@@ -94,6 +97,7 @@ Return ONLY a JSON object:
               isbn: { type: ["string", "null"] },
               amazonUrl: { type: ["string", "null"] },
               goodreadsUrl: { type: ["string", "null"] },
+              wikipediaUrl: { type: ["string", "null"] },
               publisherUrl: { type: ["string", "null"] },
             },
             required: [
@@ -106,6 +110,7 @@ Return ONLY a JSON object:
               "isbn",
               "amazonUrl",
               "goodreadsUrl",
+              "wikipediaUrl",
               "publisherUrl",
             ],
             additionalProperties: false,
@@ -128,6 +133,7 @@ Return ONLY a JSON object:
       isbn: parsed.isbn ?? undefined,
       amazonUrl: parsed.amazonUrl ?? undefined,
       goodreadsUrl: parsed.goodreadsUrl ?? undefined,
+      wikipediaUrl: parsed.wikipediaUrl ?? undefined,
       publisherUrl: parsed.publisherUrl ?? undefined,
       source: "gemini",
     };
@@ -192,12 +198,13 @@ async function callPerplexityBookSummary(
       publishedDate: parsed.publishedDate ?? undefined,
       publisher: parsed.publisher ?? undefined,
       isbn: parsed.isbn ?? undefined,
-      amazonUrl: parsed.amazonUrl ?? undefined,
+       amazonUrl: parsed.amazonUrl ?? undefined,
       goodreadsUrl: parsed.goodreadsUrl ?? undefined,
+      wikipediaUrl: parsed.wikipediaUrl ?? undefined,
       publisherUrl: parsed.publisherUrl ?? undefined,
     };
   } catch (err) {
-    console.warn(`[bookSummary] Perplexity call failed for "${bookTitle}":`, err);
+    console.warn(`[bookSummary] Perplexity call failed for "${bookTitle}"`, err);
     return null;
   }
 }

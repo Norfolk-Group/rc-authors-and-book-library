@@ -169,6 +169,13 @@
       "when": 1774266627607,
       "tag": "0023_sparkling_madame_masque",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "5",
+      "when": 1774269664436,
+      "tag": "0024_lethal_microbe",
+      "breakpoints": true
     }
   ]
 }

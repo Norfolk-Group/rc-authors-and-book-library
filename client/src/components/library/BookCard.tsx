@@ -51,6 +51,8 @@ interface BookCardProps {
   amazonUrl?: string;
   /** Goodreads URL for the book */
   goodreadsUrl?: string;
+  /** Wikipedia article URL for the book */
+  wikipediaUrl?: string;
   onCoverClick?: (url: string, title: string, color: string) => void;
   /** Called when user clicks the author name — navigates to author in Authors tab */
   onAuthorClick?: (authorName: string) => void;
@@ -78,6 +80,7 @@ export function BookCard({
   isEnriched,
   amazonUrl,
   goodreadsUrl,
+  wikipediaUrl,
   onCoverClick,
   onAuthorClick,
   isHighlighted,
@@ -310,9 +313,9 @@ export function BookCard({
             </div>
           )}
 
-          {/* Resource pills — Amazon & Goodreads */}
-          {(amazonUrl || goodreadsUrl) && (
-            <div className="flex items-center justify-center gap-1.5 mt-1" onClick={(e) => e.stopPropagation()}>
+          {/* Resource pills — Amazon, Goodreads, Wikipedia */}
+          {(amazonUrl || goodreadsUrl || wikipediaUrl) && (
+            <div className="flex items-center justify-center flex-wrap gap-1.5 mt-1" onClick={(e) => e.stopPropagation()}>
               {amazonUrl && (
                 <a
                   href={amazonUrl}
@@ -341,6 +344,21 @@ export function BookCard({
                     <path d="M11.43 23.995c-3.608-.208-6.274-2.077-6.448-5.078.695.007 1.375-.013 2.07-.006.224 1.342 1.065 2.43 2.683 3.026 1.583.496 3.737.46 5.082-.174 1.351-.636 2.145-1.822 2.503-3.577.212-1.042.236-1.734.231-2.92l-.005-1.631h-.059c-1.245 2.564-3.315 3.53-5.59 3.475-5.74-.054-7.68-4.534-7.681-8.684-.001-4.906 2.763-8.958 7.925-8.948 2.216.033 4.1 1.04 5.24 3.022h.058V.736h2.055c.016 1.32.04 2.665.04 3.985v12.76c-.004 6.768-3.995 6.767-8.104 6.514zm.166-9.084c3.698-.04 5.576-2.903 5.553-6.27-.022-3.272-1.747-6.218-5.457-6.272-3.735-.054-5.634 2.95-5.634 6.271 0 3.272 1.673 6.313 5.538 6.271z"/>
                   </svg>
                   Goodreads
+                </a>
+              )}
+              {wikipediaUrl && (
+                <a
+                  href={wikipediaUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                  title="View on Wikipedia"
+                >
+                  {/* Wikipedia W icon */}
+                  <svg viewBox="0 0 24 24" className="w-2.5 h-2.5 fill-current" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12.09 13.119c-.936 1.932-2.217 4.548-2.853 5.728-.616 1.074-1.127.931-1.532.029-1.406-3.321-4.293-9.144-5.651-12.409-.251-.601-.441-.987-.619-1.139-.181-.15-.554-.24-1.122-.271C.103 5.033 0 4.982 0 4.898v-.455l.052-.045c.924-.005 5.401 0 5.401 0l.051.045v.434c0 .084-.103.135-.2.157-.74.108-.835.361-.492 1.005 1.225 2.405 2.501 4.771 3.852 7.12l.828-1.569-2.947-5.542c-.238-.465-.557-.74-.927-.826-.127-.031-.198-.077-.198-.149v-.468l.055-.045h4.78l.05.045v.437c0 .084-.1.133-.198.157-.644.116-.834.361-.492 1.005l1.829 3.432 1.723-3.457c.353-.676.153-.93-.487-1.005-.1-.024-.199-.073-.199-.157v-.437l.05-.045h3.481l.05.045v.437c0 .084-.103.133-.199.157-.644.116-.834.361-.492 1.005l1.829 3.432 1.723-3.457c.353-.676.153-.93-.487-1.005-.1-.024-.199-.073-.199-.157v-.437l.05-.045h3.481l.05.045v.437c0 .084-.103.133-.199.157-.644.116-.834.361-.492 1.005l-4.147 8.334c-.617 1.074-1.127.931-1.532.029l-2.854-5.728z"/>
+                  </svg>
+                  Wikipedia
                 </a>
               )}
             </div>

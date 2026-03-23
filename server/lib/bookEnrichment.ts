@@ -17,6 +17,7 @@ interface BookEnrichmentData {
   ratingCount: number;
   amazonUrl: string;
   goodreadsUrl: string;
+  wikipediaUrl: string;
   resourceUrl: string;
   resourceLabel: string;
   coverImageUrl: string;
@@ -135,6 +136,7 @@ export async function enrichBookViaGoogleBooks(
     ratingCount: 0,
     amazonUrl: "",
     goodreadsUrl: "",
+    wikipediaUrl: "",
     resourceUrl: "",
     resourceLabel: "",
     coverImageUrl: "",
@@ -228,6 +230,10 @@ export async function enrichBookViaGoogleBooks(
     // Goodreads search URL
     const goodreadsQuery = encodeURIComponent(`${bookTitle} ${authorName}`);
     result.goodreadsUrl = `https://www.goodreads.com/search?q=${goodreadsQuery}`;
+
+    // Wikipedia search URL for the book
+    const wikiQuery = encodeURIComponent(`${bookTitle} book`);
+    result.wikipediaUrl = `https://en.wikipedia.org/wiki/Special:Search?search=${wikiQuery}&ns0=1`;
 
     // Google Books info link as resource
     if (info.infoLink) {

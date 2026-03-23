@@ -1597,3 +1597,10 @@ Live URL: https://authlib-ehsrgokn.manus.space
 - [x] Add goodreadsUrl prop to BookCard and wire goodreadsUrlMap in Home.tsx
 - [x] Pass goodreadsUrl to all BookCard call sites (main Books tab + Favorites tab)
 - [x] All 197 tests passing after changes
+
+## Session March 23, 2026 — Enrichment Pipeline Runs + Wikipedia Pill
+
+- [x] Add Wikipedia resource pill to book cards (wire wikipediaUrl from book_profiles)
+- [ ] Run Enrich Rich Author Bios pipeline (batch all 176 authors, double-pass LLM)
+- [ ] Run Enrich Rich Book Summaries pipeline (batch all 140 books, double-pass LLM)
+- [ ] Re-run Discover Author Platforms pipeline (updated multi-website prompt, all 176 authors)

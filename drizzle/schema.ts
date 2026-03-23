@@ -197,6 +197,8 @@ export const bookProfiles = mysqlTable("book_profiles", {
   amazonUrl: varchar("amazonUrl", { length: 512 }),
   /** Goodreads book page URL */
   goodreadsUrl: varchar("goodreadsUrl", { length: 512 }),
+  /** Wikipedia article URL for this book */
+  wikipediaUrl: varchar("wikipediaUrl", { length: 512 }),
   /** Additional resource URL (author's site, podcast, summary, etc.) */
   resourceUrl: varchar("resourceUrl", { length: 512 }),
   /** Label for the resource URL */

@@ -1,0 +1,1 @@
+ALTER TABLE `book_profiles` ADD `wikipediaUrl` varchar(512);
