@@ -7,13 +7,28 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import Home from "./pages/Home";
 
 const Admin = lazy(() => import("./pages/Admin"));
+const AuthorDetail = lazy(() => import("./pages/AuthorDetail"));
+
+const PageLoader = () => (
+  <div className="flex items-center justify-center h-screen text-muted-foreground">
+    <div className="flex flex-col items-center gap-3">
+      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      <span className="text-sm">Loading…</span>
+    </div>
+  </div>
+);
 
 function Router() {
   return (
     <Switch>
       <Route path={"/"} component={Home} />
+      <Route path={"/author/:slug"}>
+        <Suspense fallback={<PageLoader />}>
+          <AuthorDetail />
+        </Suspense>
+      </Route>
       <Route path={"/admin"}>
-        <Suspense fallback={<div className="flex items-center justify-center h-screen text-muted-foreground">Loading Admin…</div>}>
+        <Suspense fallback={<PageLoader />}>
           <Admin />
         </Suspense>
       </Route>

@@ -806,13 +806,14 @@ export const authorProfilesRouter = router({
         speakingUrl: authorProfiles.speakingUrl,
         podcastUrl: authorProfiles.podcastUrl,
         blogUrl: authorProfiles.blogUrl,
+        socialStatsJson: authorProfiles.socialStatsJson,
       })
       .from(authorProfiles);
     return rows.filter((r) =>
       r.websiteUrl || r.twitterUrl || r.linkedinUrl || r.substackUrl ||
       r.youtubeUrl || r.facebookUrl || r.instagramUrl || r.tiktokUrl ||
       r.githubUrl || r.businessWebsiteUrl || r.newsletterUrl ||
-      r.speakingUrl || r.podcastUrl || r.blogUrl
+      r.speakingUrl || r.podcastUrl || r.blogUrl || r.socialStatsJson
     );
   }),
 

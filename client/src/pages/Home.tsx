@@ -83,7 +83,7 @@ import {
 } from "lucide-react";
 
 type TabType = "authors" | "books" | "audio" | "favorites";
-type AuthorSort = "name-asc" | "name-desc" | "books-desc" | "category" | "quality-desc" | "favorites-first";
+type AuthorSort = "name-asc" | "name-desc" | "books-desc" | "category" | "quality-desc" | "favorites-first" | "most-popular";
 type BookSort = "name-asc" | "name-desc" | "author" | "content-desc" | "enrich-desc" | "favorites-first";
 
 /**
@@ -373,10 +373,28 @@ export default function Home() {
           const bFav = (authorFavoritesQuery.data ?? {})[canonicalName(b.name).toLowerCase()] ? 0 : 1;
           return aFav !== bFav ? aFav - bFav : a.name.localeCompare(b.name);
         }
+        case "most-popular": {
+          // Score = Wikipedia avg monthly views + (Substack post count * 100) + (GitHub followers * 10)
+          const getPopScore = (author: typeof a): number => {
+            const row = platformLinksMap.get(canonicalName(author.name).toLowerCase());
+            if (!row?.socialStatsJson) return 0;
+            try {
+              const stats = JSON.parse(row.socialStatsJson) as {
+                wikipedia?: { avgMonthlyViews?: number };
+                substack?: { postCount?: number };
+                github?: { followers?: number };
+              };
+              return (stats.wikipedia?.avgMonthlyViews ?? 0)
+                + (stats.substack?.postCount ?? 0) * 100
+                + (stats.github?.followers ?? 0) * 10;
+            } catch { return 0; }
+          };
+          return getPopScore(b) - getPopScore(a);
+        }
         default: return a.name.localeCompare(b.name);
       }
     });
-  }, [query, selectedCategories, authorSort, researchQualityMap, authorFavoritesQuery.data]);
+  }, [query, selectedCategories, authorSort, researchQualityMap, authorFavoritesQuery.data, platformLinksMap]);
 
   const filteredBooks = useMemo(() => {
     const q = query.toLowerCase();
@@ -742,6 +760,7 @@ export default function Home() {
                         <SelectItem value="books-desc">Most Books</SelectItem>
                         <SelectItem value="category">Category</SelectItem>
                         <SelectItem value="quality-desc">Research Quality</SelectItem>
+                        <SelectItem value="most-popular">Most Popular</SelectItem>
                         {isAuthenticated && <SelectItem value="favorites-first">Favorites First</SelectItem>}
                       </SelectContent>
                     </Select>

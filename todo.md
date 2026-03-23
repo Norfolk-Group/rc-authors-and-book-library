@@ -1524,3 +1524,21 @@ Live URL: https://authlib-ehsrgokn.manus.space
 - [x] Wikipedia thumbnail + description + extract + monthly views in modal
 - [x] Social stats badges (GitHub followers, Substack posts, Wikipedia views, LinkedIn followers)
 - [x] PlatformPills with size="md" in modal (all platforms, max 20 visible)
+
+## Execute All Suggestions Round 2 (March 23, 2026)
+- [ ] Request RAPIDAPI_KEY and trigger Phase B re-enrichment for all authors
+- [ ] Build /author/:name dedicated page route with full author detail (deep-linking)
+- [ ] Add Most Popular sort option (by Wikipedia monthly views + Substack post count)
+
+## Execute All Suggestions Round 2 (Mar 23, 2026)
+- [x] /author/:slug dedicated page route (AuthorDetail.tsx)
+- [x] PageHeader breadcrumb on AuthorDetail page
+- [x] Wikipedia summary card on AuthorDetail page
+- [x] Bio section on AuthorDetail page
+- [x] Social stats badges (GitHub, Substack, Wikipedia, LinkedIn) on AuthorDetail page
+- [x] PlatformPills on AuthorDetail page
+- [x] Books grid with covers, ratings, summaries on AuthorDetail page
+- [x] "View full profile" deep-link on FlowbiteAuthorCard
+- [x] Most Popular sort option (Wikipedia views + Substack posts + GitHub followers)
+- [x] socialStatsJson added to getAllPlatformLinks return for sort scoring
+- [ ] Phase B RapidAPI enrichment (pending user subscribing to Yahoo Finance/CNBC/LinkedIn/Seeking Alpha)
