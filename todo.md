@@ -1542,3 +1542,11 @@ Live URL: https://authlib-ehsrgokn.manus.space
 - [x] Most Popular sort option (Wikipedia views + Substack posts + GitHub followers)
 - [x] socialStatsJson added to getAllPlatformLinks return for sort scoring
 - [ ] Phase B RapidAPI enrichment (pending user subscribing to Yahoo Finance/CNBC/LinkedIn/Seeking Alpha)
+
+## Execute All Suggestions Round 3 (Mar 23, 2026)
+- [x] Phase B RapidAPI subscriptions requested (user action required)
+- [x] /compare route: AuthorCompare page with 2-4 author side-by-side comparison table
+- [x] /leaderboard route: Leaderboard page with top-20 rankings and progress bars
+- [x] Sidebar navigation links for Leaderboard and Compare Authors
+- [x] Google Drive reorganization: PARA-based structure with 5 top-level folders
+- [x] DB schema: driveFolderId added to author_profiles and book_profiles

@@ -8,6 +8,8 @@ import Home from "./pages/Home";
 
 const Admin = lazy(() => import("./pages/Admin"));
 const AuthorDetail = lazy(() => import("./pages/AuthorDetail"));
+const AuthorCompare = lazy(() => import("./pages/AuthorCompare"));
+const Leaderboard = lazy(() => import("./pages/Leaderboard"));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center h-screen text-muted-foreground">
@@ -25,6 +27,16 @@ function Router() {
       <Route path={"/author/:slug"}>
         <Suspense fallback={<PageLoader />}>
           <AuthorDetail />
+        </Suspense>
+      </Route>
+      <Route path={"/compare"}>
+        <Suspense fallback={<PageLoader />}>
+          <AuthorCompare />
+        </Suspense>
+      </Route>
+      <Route path={"/leaderboard"}>
+        <Suspense fallback={<PageLoader />}>
+          <Leaderboard />
         </Suspense>
       </Route>
       <Route path={"/admin"}>

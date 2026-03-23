@@ -147,6 +147,8 @@ export const authorProfiles = mysqlTable("author_profiles", {
   /** Confidence level for research quality: high | medium | low */
   researchQuality: mysqlEnum("researchQuality", ["high", "medium", "low"]),
   enrichedAt: timestamp("enrichedAt"),
+  /** Google Drive folder ID for this author's folder in 02 — Knowledge Library / 01 — Authors */
+  driveFolderId: varchar("driveFolderId", { length: 128 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, (table) => ({
@@ -205,6 +207,8 @@ export const bookProfiles = mysqlTable("book_profiles", {
   /** Where the cover image came from ('amazon', 'google_books', 'manual') */
   coverImageSource: varchar("coverImageSource", { length: 50 }),
   enrichedAt: timestamp("enrichedAt"),
+  /** Google Drive folder ID for this book's folder in 02 — Knowledge Library / 02 — Books by Category */
+  driveFolderId: varchar("driveFolderId", { length: 128 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, (table) => ({

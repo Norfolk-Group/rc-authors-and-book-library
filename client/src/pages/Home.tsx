@@ -79,6 +79,8 @@ import {
   ArrowUpDown,
   ShieldCheck,
   Heart,
+  Trophy,
+  BarChart,
   type LucideIcon,
 } from "lucide-react";
 
@@ -614,6 +616,16 @@ export default function Home() {
               );
             })()}
             <div className="mt-3 pt-3 border-t border-border/50">
+              <a href="/leaderboard" className="w-full flex items-center gap-2 text-xs px-2 py-1.5 rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/60">
+                <Trophy className="w-3.5 h-3.5 flex-shrink-0" />
+                Leaderboard
+                <ChevronRight className="w-3 h-3 ml-auto opacity-50" />
+              </a>
+              <a href="/compare" className="w-full flex items-center gap-2 text-xs px-2 py-1.5 rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/60">
+                <BarChart className="w-3.5 h-3.5 flex-shrink-0" />
+                Compare Authors
+                <ChevronRight className="w-3 h-3 ml-auto opacity-50" />
+              </a>
               <a href="/admin" className="w-full flex items-center gap-2 text-xs px-2 py-1.5 rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/60">
                 <ShieldCheck className="w-3.5 h-3.5 flex-shrink-0" />
                 Admin Console
