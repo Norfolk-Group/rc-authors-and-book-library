@@ -96,6 +96,8 @@ export interface FlowbiteAuthorCardProps {
   researchQualityMap?: Map<string, "high" | "medium" | "low">;
   /** Whether this author is currently favorited by the logged-in user */
   isFavorite?: boolean;
+  /** When true, renders a teal "Rich Bio" badge indicating double-pass LLM bio is available */
+  hasRichBio?: boolean;
   /** Platform presence links for this author (from getAllPlatformLinks query) */
   platformLinks?: {
     websiteUrl?: string | null;
@@ -131,6 +133,7 @@ export function FlowbiteAuthorCard({
   researchQualityMap,
   isFavorite,
   platformLinks,
+  hasRichBio,
 }: FlowbiteAuthorCardProps) {
   const iconName = CATEGORY_ICONS[author.category] ?? "briefcase";
   const Icon = (ICON_MAP[iconName] ?? Briefcase) as LucideIcon;
@@ -383,6 +386,12 @@ export function FlowbiteAuthorCard({
                         <UserCheck className="w-3 h-3" />
                         <span className="font-medium">Bio ready</span>
                         <span className="opacity-60">· click to view</span>
+                        {hasRichBio && (
+                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wider bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300 ml-0.5">
+                            <span className="w-1 h-1 rounded-full bg-teal-500 flex-shrink-0" />
+                            Rich Bio
+                          </span>
+                        )}
                       </span>
                     </TooltipTrigger>
                     <TooltipContent
@@ -400,6 +409,12 @@ export function FlowbiteAuthorCard({
                     <UserCheck className="w-3 h-3" />
                     <span className="font-medium">Bio ready</span>
                     <span className="opacity-60">· click to view</span>
+                    {hasRichBio && (
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wider bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300 ml-0.5">
+                        <span className="w-1 h-1 rounded-full bg-teal-500 flex-shrink-0" />
+                        Rich Bio
+                      </span>
+                    )}
                   </span>
                 )
               ) : (

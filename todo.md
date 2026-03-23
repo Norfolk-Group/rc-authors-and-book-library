@@ -1616,3 +1616,8 @@ Live URL: https://authlib-ehsrgokn.manus.space
 - [x] Backfill Wikipedia URLs for books missing them — 105/147 matched (42 niche books have no Wikipedia article)
 - [x] Add Rich Summary section to Book Detail Dialog (executiveSummary, collapsible fullSummary, rich keyThemes with descriptions, keyQuotes)
 - [x] Add Similar Books recommendation strip to Book Detail Dialog (from richSummaryJson.similarBooks)
+
+## Session March 23, 2026 — Rich Bio Indicator on Author Cards
+
+- [x] Add "Rich Bio ready" teal indicator badge to FlowbiteAuthorCard (hasRichBio prop)
+- [x] Build richBioSet in Home.tsx from new getAllRichBioNames tRPC query and pass hasRichBio to all author card call sites

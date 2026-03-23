@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { eq, ne, isNull, or, sql, inArray } from "drizzle-orm";
+import { eq, ne, isNull, isNotNull, or, sql, inArray } from "drizzle-orm";
 import { readFileSync, existsSync } from "fs";
 import { spawn } from "child_process";
 import { join } from "path";
@@ -101,6 +101,20 @@ export const authorProfilesRouter = router({
       .select({ authorName: authorProfiles.authorName })
       .from(authorProfiles)
       .where(ne(authorProfiles.bio, ""));
+    return rows.map((r) => r.authorName);
+  }),
+
+  /**
+   * Return the list of author names that have a richBioJson (double-pass LLM bio).
+   * Used to show the "Rich Bio" teal indicator on author cards.
+   */
+  getAllRichBioNames: publicProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) return [];
+    const rows = await db
+      .select({ authorName: authorProfiles.authorName })
+      .from(authorProfiles)
+      .where(isNotNull(authorProfiles.richBioJson));
     return rows.map((r) => r.authorName);
   }),
 

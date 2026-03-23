@@ -239,6 +239,13 @@ export default function Home() {
     return set;
   }, [bookCoversQuery.data]);
 
+  // Set of lowercase author names that have a double-pass LLM rich bio
+  const richBioNamesQuery = trpc.authorProfiles.getAllRichBioNames.useQuery(undefined, { staleTime: 5 * 60_000 });
+  const richBioSet = useMemo(
+    () => new Set((richBioNamesQuery.data ?? []).map((n) => n.toLowerCase())),
+    [richBioNamesQuery.data]
+  );
+
   const bookInfoMap = useMemo(() => {
     const map = new Map<string, { summary?: string; rating?: string; ratingCount?: number; publishedDate?: string; keyThemes?: string }>();
     for (const p of bookCoversQuery.data ?? []) {
@@ -876,6 +883,7 @@ export default function Home() {
                           onNavigateToBook={navigateToBook}
                           isHighlighted={highlightedAuthorName === canonicalName(a.name).toLowerCase()}
                           isFavorite={(authorFavoritesQuery.data ?? {})[canonicalName(a.name).toLowerCase()] ?? false}
+                          hasRichBio={richBioSet.has(canonicalName(a.name).toLowerCase())}
                           platformLinks={platformLinksMap.get(canonicalName(a.name).toLowerCase()) ?? null}
                           cardRef={(el) => {
                             const key = canonicalName(a.name).toLowerCase();
@@ -978,10 +986,11 @@ export default function Home() {
                                   onNavigateToBook={navigateToBook}
                                   isHighlighted={false}
                                   isFavorite={true}
+                                  hasRichBio={richBioSet.has(canonicalName(a.name).toLowerCase())}
                                   platformLinks={platformLinksMap.get(canonicalName(a.name).toLowerCase()) ?? null}
                                 />
                               </div>
-                            ))}
+                            ))}  
                           </div>
                         </div>
                       ) : null;
