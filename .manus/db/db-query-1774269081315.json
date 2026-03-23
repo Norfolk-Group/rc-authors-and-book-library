@@ -1,0 +1,40 @@
+{
+  "query": "SELECT bookTitle, amazonUrl, goodreadsUrl, resourceLinksJson FROM book_profiles WHERE goodreadsUrl IS NOT NULL LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 46FBtXPMNF6LwZ8.root --database ehSrGoKN2NYhXg8UYLtWGw --execute SELECT bookTitle, amazonUrl, goodreadsUrl, resourceLinksJson FROM book_profiles WHERE goodreadsUrl IS NOT NULL LIMIT 5;",
+  "rows": [
+    {
+      "bookTitle": "Atomic Habits",
+      "amazonUrl": "https://www.amazon.com/s?k=Atomic%20Habits%20James%20Clear&i=stripbooks",
+      "goodreadsUrl": "https://www.goodreads.com/search?q=Atomic%20Habits%20James%20Clear",
+      "resourceLinksJson": "NULL"
+    },
+    {
+      "bookTitle": "The Psychology of Money",
+      "amazonUrl": "https://www.amazon.com/dp/0857197681",
+      "goodreadsUrl": "https://www.goodreads.com/search?q=The%20Psychology%20of%20Money%20Morgan%20Housel",
+      "resourceLinksJson": "NULL"
+    },
+    {
+      "bookTitle": "From Impossible to Inevitable",
+      "amazonUrl": "https://www.amazon.com/dp/B07YX9J67M",
+      "goodreadsUrl": "https://www.goodreads.com/search?q=From%20Impossible%20to%20Inevitable%20Aaron%20Ross%20and%20Jason%20Lemkin",
+      "resourceLinksJson": "NULL"
+    },
+    {
+      "bookTitle": "Predictable Revenue",
+      "amazonUrl": "https://www.amazon.com/dp/1119166713",
+      "goodreadsUrl": "https://www.goodreads.com/search?q=Predictable%20Revenue%20Aaron%20Ross%20and%20Jason%20Lemkin",
+      "resourceLinksJson": "NULL"
+    },
+    {
+      "bookTitle": "Hidden Potential",
+      "amazonUrl": "https://www.amazon.com/dp/B0C5Y6DM2D",
+      "goodreadsUrl": "https://www.goodreads.com/search?q=Hidden%20Potential%20Adam%20Grant",
+      "resourceLinksJson": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "bookTitle\tamazonUrl\tgoodreadsUrl\tresourceLinksJson\nAtomic Habits\thttps://www.amazon.com/s?k=Atomic%20Habits%20James%20Clear&i=stripbooks\thttps://www.goodreads.com/search?q=Atomic%20Habits%20James%20Clear\tNULL\nThe Psychology of Money\thttps://www.amazon.com/dp/0857197681\thttps://www.goodreads.com/search?q=The%20Psychology%20of%20Money%20Morgan%20Housel\tNULL\nFrom Impossible to Inevitable\thttps://www.amazon.com/dp/B07YX9J67M\thttps://www.goodreads.com/search?q=From%20Impossible%20to%20Inevitable%20Aaron%20Ross%20and%20Jason%20Lemkin\tNULL\nPredictable Revenue\thttps://www.amazon.com/dp/1119166713\thttps://www.goodreads.com/search?q=Predictable%20Revenue%20Aaron%20Ross%20and%20Jason%20Lemkin\tNULL\nHidden Potential\thttps://www.amazon.com/dp/B0C5Y6DM2D\thttps://www.goodreads.com/search?q=Hidden%20Potential%20Adam%20Grant\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 107
+}

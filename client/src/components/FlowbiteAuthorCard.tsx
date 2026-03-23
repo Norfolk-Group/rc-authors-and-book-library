@@ -419,25 +419,13 @@ export function FlowbiteAuthorCard({
                 <PlatformPills links={platformLinks} maxVisible={8} size="sm" />
               </div>
             )}
-            {/* 3D CTA button — View Full Profile */}
+            {/* Discreet link — View Full Profile */}
             <div className="flex justify-center mt-1" onClick={(e) => e.stopPropagation()}>
               <Link
                 href={`/author/${encodeURIComponent(displayName)}`}
-                className="
-                  group/cta inline-flex items-center gap-1.5
-                  px-3 py-1.5 rounded-lg
-                  text-[11px] font-semibold
-                  bg-gradient-to-b from-primary/90 to-primary
-                  text-primary-foreground
-                  shadow-[0_2px_0_0_hsl(var(--primary)/0.5),0_4px_8px_rgba(0,0,0,0.15)]
-                  hover:shadow-[0_1px_0_0_hsl(var(--primary)/0.5),0_2px_4px_rgba(0,0,0,0.15)]
-                  hover:translate-y-[1px]
-                  active:shadow-none active:translate-y-[2px]
-                  transition-all duration-150
-                  no-underline
-                "
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors duration-150 no-underline"
               >
-                <svg className="w-3 h-3 transition-transform duration-150 group-hover/cta:translate-x-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                 View Full Profile
               </Link>
             </div>

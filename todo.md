@@ -1586,3 +1586,14 @@ Live URL: https://authlib-ehsrgokn.manus.space
 - [x] Rich Book Detail page (/book/:slug): full summary, key themes, quotes, similar books, resource links
 - [x] Admin Console: Enrich Rich Author Bios ActionCard (double-pass LLM)
 - [x] Admin Console: Enrich Rich Book Summaries ActionCard (double-pass LLM)
+
+## Session March 23, 2026 — Discreet Buttons & Resource Pills
+
+- [x] Commit and push all changes to GitHub (main branch, commit ad49a6c)
+- [x] Replace 3D gradient CTA on FlowbiteAuthorCard with discreet ghost link (muted text, hover bg-muted/60)
+- [x] Replace gradient CTA on BookCard with discreet ghost link (same style as author card)
+- [x] Remove prominent Amazon badge (absolute bottom-right) from BookCard
+- [x] Add inline resource pills (Amazon, Goodreads) to BookCard below key themes
+- [x] Add goodreadsUrl prop to BookCard and wire goodreadsUrlMap in Home.tsx
+- [x] Pass goodreadsUrl to all BookCard call sites (main Books tab + Favorites tab)
+- [x] All 197 tests passing after changes

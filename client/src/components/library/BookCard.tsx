@@ -49,6 +49,8 @@ interface BookCardProps {
   coverImageUrl?: string;
   isEnriched?: boolean;
   amazonUrl?: string;
+  /** Goodreads URL for the book */
+  goodreadsUrl?: string;
   onCoverClick?: (url: string, title: string, color: string) => void;
   /** Called when user clicks the author name — navigates to author in Authors tab */
   onAuthorClick?: (authorName: string) => void;
@@ -75,6 +77,7 @@ export function BookCard({
   coverImageUrl,
   isEnriched,
   amazonUrl,
+  goodreadsUrl,
   onCoverClick,
   onAuthorClick,
   isHighlighted,
@@ -306,6 +309,42 @@ export function BookCard({
               )}
             </div>
           )}
+
+          {/* Resource pills — Amazon & Goodreads */}
+          {(amazonUrl || goodreadsUrl) && (
+            <div className="flex items-center justify-center gap-1.5 mt-1" onClick={(e) => e.stopPropagation()}>
+              {amazonUrl && (
+                <a
+                  href={amazonUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                  title="View on Amazon"
+                >
+                  {/* Amazon smile icon */}
+                  <svg viewBox="0 0 24 24" className="w-2.5 h-2.5 fill-current" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M13.958 10.09c0 1.232.029 2.256-.591 3.351-.502.891-1.301 1.438-2.186 1.438-1.214 0-1.922-.924-1.922-2.292 0-2.692 2.415-3.182 4.699-3.182v.685zm3.186 7.705c-.209.189-.512.201-.745.074-1.047-.872-1.234-1.276-1.814-2.106-1.734 1.767-2.962 2.297-5.209 2.297-2.66 0-4.731-1.641-4.731-4.925 0-2.565 1.391-4.309 3.37-5.164 1.715-.754 4.11-.891 5.942-1.099v-.41c0-.753.06-1.642-.384-2.294-.385-.579-1.124-.82-1.775-.82-1.205 0-2.277.618-2.54 1.897-.054.285-.261.567-.549.582l-3.061-.333c-.259-.056-.548-.266-.472-.66C6.265 1.862 9.316.5 12.073.5c1.407 0 3.245.374 4.354 1.44 1.407 1.312 1.273 3.063 1.273 4.969v4.5c0 1.353.561 1.948 1.089 2.678.186.261.226.574-.009.769l-1.636 1.939z"/>
+                  </svg>
+                  Amazon
+                </a>
+              )}
+              {goodreadsUrl && (
+                <a
+                  href={goodreadsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                  title="View on Goodreads"
+                >
+                  {/* Goodreads G icon */}
+                  <svg viewBox="0 0 24 24" className="w-2.5 h-2.5 fill-current" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M11.43 23.995c-3.608-.208-6.274-2.077-6.448-5.078.695.007 1.375-.013 2.07-.006.224 1.342 1.065 2.43 2.683 3.026 1.583.496 3.737.46 5.082-.174 1.351-.636 2.145-1.822 2.503-3.577.212-1.042.236-1.734.231-2.92l-.005-1.631h-.059c-1.245 2.564-3.315 3.53-5.59 3.475-5.74-.054-7.68-4.534-7.681-8.684-.001-4.906 2.763-8.958 7.925-8.948 2.216.033 4.1 1.04 5.24 3.022h.058V.736h2.055c.016 1.32.04 2.665.04 3.985v12.76c-.004 6.768-3.995 6.767-8.104 6.514zm.166-9.084c3.698-.04 5.576-2.903 5.553-6.27-.022-3.272-1.747-6.218-5.457-6.272-3.735-.054-5.634 2.95-5.634 6.271 0 3.272 1.673 6.313 5.538 6.271z"/>
+                  </svg>
+                  Goodreads
+                </a>
+              )}
+            </div>
+          )}
         </div>
 
         {/* ── Divider ─────────────────────────────────────────────────────── */}
@@ -325,39 +364,16 @@ export function BookCard({
           </div>
         )}
 
-        {/* View full book page button */}
+        {/* Discreet link — View Full Book Profile */}
         <div className="px-4 pb-3 pt-1 relative z-10" onClick={(e) => e.stopPropagation()}>
           <Link
             href={`/book/${slugifyBook(book.name)}`}
-            className="flex items-center justify-center gap-2 w-full py-2 px-3 rounded-lg text-xs font-semibold transition-all duration-200 shadow-sm hover:shadow-md active:scale-95"
-            style={{
-              background: `linear-gradient(135deg, ${color}22, ${color}11)`,
-              border: `1px solid ${color}44`,
-              color,
-            }}
+            className="flex items-center justify-center gap-1 w-full py-1.5 px-3 rounded text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors duration-150 no-underline"
           >
-            <BookOpen size={12} />
+            <BookOpen size={11} />
             View Full Book Profile
-            <ExternalLink size={10} className="opacity-60" />
           </Link>
         </div>
-        {/* Amazon badge */}
-        {amazonUrl && (
-          <a
-            href={amazonUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="amazon-badge absolute bottom-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wide text-white"
-            style={{ backgroundColor: "#FF9900" }}
-            title="View on Amazon"
-          >
-            <svg viewBox="0 0 24 24" className="w-2.5 h-2.5 fill-white" xmlns="http://www.w3.org/2000/svg">
-              <path d="M13.958 10.09c0 1.232.029 2.256-.591 3.351-.502.891-1.301 1.438-2.186 1.438-1.214 0-1.922-.924-1.922-2.292 0-2.692 2.415-3.182 4.699-3.182v.685zm3.186 7.705c-.209.189-.512.201-.745.074-1.047-.872-1.234-1.276-1.814-2.106-1.734 1.767-2.962 2.297-5.209 2.297-2.66 0-4.731-1.641-4.731-4.925 0-2.565 1.391-4.309 3.37-5.164 1.715-.754 4.11-.891 5.942-1.099v-.41c0-.753.06-1.642-.384-2.294-.385-.579-1.124-.82-1.775-.82-1.205 0-2.277.618-2.54 1.897-.054.285-.261.567-.549.582l-3.061-.333c-.259-.056-.548-.266-.472-.66C6.265 1.862 9.316.5 12.073.5c1.407 0 3.245.374 4.354 1.44 1.407 1.312 1.273 3.063 1.273 4.969v4.5c0 1.353.561 1.948 1.089 2.678.186.261.226.574-.009.769l-1.636 1.939z"/>
-            </svg>
-            Amazon
-          </a>
-        )}
       </div>
     </motion.div>
   );
