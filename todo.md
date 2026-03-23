@@ -1376,3 +1376,42 @@ Live URL: https://authlib-ehsrgokn.manus.space
 - [x] Add "Sort by Enrichment Level" to Books tab sort dropdown (Fully Enriched first)
 - [x] Add active-filters strip to Books tab showing enrichment chip with ✕ clear button alongside category badges
 - [x] Schedule daily Enrich All Books pipeline run via cron (triggered manually; pipeline skips already-enriched books within 30 days)
+
+## Session March 22, 2026 — Filter Persistence & UX Polish
+
+- [x] Persist bookSort, enrichFilter, authorSort, selectedCategories to localStorage (survive page refresh)
+- [x] Add "Show best only" quick-filter toggle button in Books tab header (one-click Fully Enriched filter)
+- [ ] Add enrichment stats bar chart to Admin Console Books tab (count per enrichment level)
+
+## Master Replan — Session 1 (Schema Foundation + Pending Tasks)
+
+- [x] Wire useLocalStorage to bookSort, enrichFilter, authorSort, selectedCategories in Home.tsx
+- [x] Add "Show best only" toggle button in Books tab header
+- [ ] Add enrichment stats bar chart to Admin Console (count per enrichment level)
+- [ ] Add platformEnrichmentStatus JSON column to author_profiles (migration 0017)
+- [ ] Normalize rating column from VARCHAR to DECIMAL(3,1) on book_profiles (migration 0018)
+- [ ] Add enrichmentType VARCHAR(64) to syncStatus table (migration 0019)
+- [ ] Delete BookModal.tsx shim and update AuthorAccordionRow call site
+
+## Master Replan — Session 2 (Freshness Infrastructure + YouTube)
+
+- [ ] Create favorites table (migration 0020)
+- [ ] Create enrichmentSchedules table (migration 0021)
+- [ ] Create enrichmentJobs table (migration 0022)
+- [ ] Create server/lib/staleness.ts (calculateStalenessScore, getStalenessIndicator)
+- [ ] Create client/src/components/ui/FreshnessDot.tsx
+- [ ] Wire FreshnessDot into FlowbiteAuthorCard and BookCard
+- [ ] Create server/enrichment/youtube.ts (YouTube Data API v3)
+- [ ] Add YouTube ActionCard to Admin Console Data Pipeline tab
+- [ ] Create tRPC procedures: enrichment.getTimestamps, favorites.add/remove/list
+- [ ] Create client/src/components/ui/FavoriteToggle.tsx
+- [ ] Wire FavoriteToggle into FlowbiteAuthorCard and BookCard
+
+## Master Replan — Session 3 (TED + Substack + Scheduling/Favorites Tabs)
+
+- [ ] Create server/enrichment/ted.ts (Cheerio scrape of ted.com)
+- [ ] Create server/enrichment/substack.ts (URL probe + metadata)
+- [ ] Wire platform pills on FlowbiteAuthorCard to real YouTube/TED/Substack data
+- [ ] Create client/src/components/admin/SchedulingTab.tsx
+- [ ] Create client/src/components/admin/FavoritesTab.tsx
+- [ ] Add Scheduling and Favorites tabs to Admin Console

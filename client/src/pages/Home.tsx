@@ -10,6 +10,7 @@
  */
 
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { trpc } from "@/lib/trpc";
 import { CoverLightbox } from "@/components/CoverLightbox";
 import { BackToTop } from "@/components/BackToTop";
@@ -101,10 +102,20 @@ export default function Home() {
   const { settings: { colorMode: appTheme } } = useAppSettings();
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<TabType>("authors");
-  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
-  const [authorSort, setAuthorSort] = useState<AuthorSort>("name-asc");
-  const [bookSort, setBookSort] = useState<BookSort>("name-asc");
-  const [enrichFilter, setEnrichFilter] = useState<BookEnrichmentLevel | "all">("all");
+  // selectedCategories is persisted as an array in localStorage and converted to/from Set
+  const [_savedCategories, _setSavedCategories] = useLocalStorage<string[]>("lib:selectedCategories", []);
+  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(() => new Set(_savedCategories));
+  // Sync selectedCategories changes back to localStorage
+  const _setSelectedCategoriesAndPersist = useCallback((updater: Set<string> | ((prev: Set<string>) => Set<string>)) => {
+    setSelectedCategories((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      _setSavedCategories(Array.from(next));
+      return next;
+    });
+  }, [_setSavedCategories]);
+  const [authorSort, setAuthorSort] = useLocalStorage<AuthorSort>("lib:authorSort", "name-asc");
+  const [bookSort, setBookSort] = useLocalStorage<BookSort>("lib:bookSort", "name-asc");
+  const [enrichFilter, setEnrichFilter] = useLocalStorage<BookEnrichmentLevel | "all">("lib:enrichFilter", "all");
   // Modal state
   const [selectedAuthor, setSelectedAuthor] = useState<AuthorEntry | null>(null);
   const [bioSheetOpen, setBioSheetOpen] = useState(false);
@@ -135,7 +146,7 @@ export default function Home() {
   // Navigate from author card → book card in Books tab
   const navigateToBook = useCallback((titleKey: string) => {
     setActiveTab("books");
-    setSelectedCategories(new Set());
+    _setSelectedCategoriesAndPersist(new Set());
     const tk = titleKey.trim().toLowerCase();
     setHighlightedBookTitle(tk);
     // Scroll after tab renders
@@ -148,7 +159,7 @@ export default function Home() {
   // Navigate from book card → author card in Authors tab
   const navigateToAuthor = useCallback((authorName: string) => {
     setActiveTab("authors");
-    setSelectedCategories(new Set());
+    _setSelectedCategoriesAndPersist(new Set());
     const key = authorName.trim().toLowerCase();
     setHighlightedAuthorName(key);
     setTimeout(() => {
@@ -248,19 +259,19 @@ export default function Home() {
 
   // --- Callbacks ---
   const toggleCategory = useCallback((cat: string) => {
-    setSelectedCategories((prev) => {
+    _setSelectedCategoriesAndPersist((prev) => {
       const next = new Set(prev);
       if (next.has(cat)) next.delete(cat);
       else next.add(cat);
       return next;
     });
-  }, []);
+  }, [_setSelectedCategoriesAndPersist]);
 
   const clearFilters = useCallback(() => {
-    setSelectedCategories(new Set());
+    _setSelectedCategoriesAndPersist(new Set());
     setQuery("");
     setEnrichFilter("all");
-  }, []);
+  }, [_setSelectedCategoriesAndPersist, setEnrichFilter]);
 
   // --- Filtered + sorted data ---
   const filteredAuthors = useMemo(() => {
@@ -441,21 +452,21 @@ export default function Home() {
               <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
-                    <SidebarMenuButton isActive={activeTab === "authors"} onClick={() => { setActiveTab("authors"); setSelectedCategories(new Set()); }} tooltip="Authors">
+                    <SidebarMenuButton isActive={activeTab === "authors"} onClick={() => { setActiveTab("authors"); _setSelectedCategoriesAndPersist(new Set()); }} tooltip="Authors">
                       <Users className="w-4 h-4" />
                       <span>Authors</span>
                       <span className="ml-auto text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">{filteredAuthors.length}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
-                    <SidebarMenuButton isActive={activeTab === "books"} onClick={() => { setActiveTab("books"); setSelectedCategories(new Set()); }} tooltip="Books">
+                    <SidebarMenuButton isActive={activeTab === "books"} onClick={() => { setActiveTab("books"); _setSelectedCategoriesAndPersist(new Set()); }} tooltip="Books">
                       <BookOpen className="w-4 h-4" />
                       <span>Books</span>
                       <span className="ml-auto text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">{filteredBooks.length}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
-                    <SidebarMenuButton isActive={activeTab === "audio"} onClick={() => { setActiveTab("audio"); setSelectedCategories(new Set()); }} tooltip="Books Audio">
+                    <SidebarMenuButton isActive={activeTab === "audio"} onClick={() => { setActiveTab("audio"); _setSelectedCategoriesAndPersist(new Set()); }} tooltip="Books Audio">
                       <Headphones className="w-4 h-4" />
                       <span>Books Audio</span>
                       <span className="ml-auto text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">{filteredAudio.length}</span>
@@ -656,7 +667,21 @@ export default function Home() {
                 </span>
               </div>
               {activeTab !== "audio" && (
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-2">
+                  {activeTab === "books" && (
+                    <button
+                      onClick={() => setEnrichFilter(enrichFilter === "complete" ? "all" : "complete")}
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border transition-all ${
+                        enrichFilter === "complete"
+                          ? "bg-amber-50 text-amber-700 border-amber-400"
+                          : "bg-transparent text-muted-foreground border-border hover:border-amber-400 hover:text-amber-700"
+                      }`}
+                      title="Show only Fully Enriched books"
+                    >
+                      <span>⭐</span>
+                      {enrichFilter === "complete" ? "Best only" : "Show best"}
+                    </button>
+                  )}
                   <ArrowUpDown className="w-3.5 h-3.5 text-muted-foreground" />
                   {activeTab === "authors" ? (
                     <Select value={authorSort} onValueChange={(v) => setAuthorSort(v as AuthorSort)}>
