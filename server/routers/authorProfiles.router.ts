@@ -1006,4 +1006,190 @@ export const authorProfilesRouter = router({
       child.unref();
       return { started: true, pid: child.pid };
     }),
+
+  // ── Social Stats Enrichment ─────────────────────────────────────────────────
+
+  /**
+   * Get social stats for all authors (or a single author).
+   * Returns the parsed socialStatsJson for each author.
+   */
+  getSocialStats: publicProcedure
+    .input(z.object({ authorName: z.string().optional() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const rows = await db
+        .select({
+          authorName: authorProfiles.authorName,
+          socialStatsJson: authorProfiles.socialStatsJson,
+          socialStatsEnrichedAt: authorProfiles.socialStatsEnrichedAt,
+          githubUrl: authorProfiles.githubUrl,
+          substackUrl: authorProfiles.substackUrl,
+          linkedinUrl: authorProfiles.linkedinUrl,
+          wikipediaUrl: authorProfiles.wikipediaUrl,
+          stockTicker: authorProfiles.stockTicker,
+        })
+        .from(authorProfiles)
+        .where(
+          input.authorName
+            ? eq(authorProfiles.authorName, input.authorName)
+            : sql`1=1`
+        );
+      return rows.map((r) => ({
+        ...r,
+        socialStats: r.socialStatsJson ? JSON.parse(r.socialStatsJson) : null,
+      }));
+    }),
+
+  /**
+   * Enrich social stats for a single author across all configured platforms.
+   */
+  enrichSocialStats: adminProcedure
+    .input(
+      z.object({
+        authorName: z.string(),
+        phases: z.array(z.enum(["A", "B"])).optional().default(["A", "B"]),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const { enrichAuthorSocialStats } = await import("../enrichment/socialStats");
+      const { ENV } = await import("../_core/env");
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+
+      // Fetch the author's current profile data
+      const rows = await db
+        .select()
+        .from(authorProfiles)
+        .where(eq(authorProfiles.authorName, input.authorName))
+        .limit(1);
+      if (!rows.length) throw new Error(`Author not found: ${input.authorName}`);
+      const author = rows[0];
+
+      const stats = await enrichAuthorSocialStats(
+        {
+          authorName: author.authorName,
+          githubUrl: author.githubUrl,
+          substackUrl: author.substackUrl,
+          linkedinUrl: author.linkedinUrl,
+          wikipediaUrl: author.wikipediaUrl,
+          stockTicker: author.stockTicker,
+        },
+        {
+          youtubeApiKey: ENV.youtubeApiKey,
+          apifyApiToken: ENV.apifyApiToken,
+          rapidApiKey: ENV.rapidApiKey,
+          phases: input.phases as ("A" | "B")[],
+        }
+      );
+
+      // Persist to DB
+      await db
+        .update(authorProfiles)
+        .set({
+          socialStatsJson: JSON.stringify(stats),
+          socialStatsEnrichedAt: new Date(),
+        })
+        .where(eq(authorProfiles.authorName, input.authorName));
+
+      return {
+        authorName: input.authorName,
+        platformsAttempted: stats.platformsAttempted,
+        platformsSucceeded: stats.platformsSucceeded,
+        enrichedAt: stats.enrichedAt,
+      };
+    }),
+
+  /**
+   * Batch enrich social stats for all authors (or a filtered subset).
+   * Processes authors sequentially with a delay to avoid rate limits.
+   */
+  enrichSocialStatsBatch: adminProcedure
+    .input(
+      z.object({
+        phases: z.array(z.enum(["A", "B"])).optional().default(["A", "B"]),
+        limit: z.number().optional().default(50),
+        onlyMissing: z.boolean().optional().default(true),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const { enrichAuthorSocialStats } = await import("../enrichment/socialStats");
+      const { ENV } = await import("../_core/env");
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+
+      // Fetch authors to process
+      const rows = await db
+        .select({
+          authorName: authorProfiles.authorName,
+          githubUrl: authorProfiles.githubUrl,
+          substackUrl: authorProfiles.substackUrl,
+          linkedinUrl: authorProfiles.linkedinUrl,
+          wikipediaUrl: authorProfiles.wikipediaUrl,
+          stockTicker: authorProfiles.stockTicker,
+          socialStatsEnrichedAt: authorProfiles.socialStatsEnrichedAt,
+        })
+        .from(authorProfiles)
+        .where(
+          input.onlyMissing
+            ? isNull(authorProfiles.socialStatsEnrichedAt)
+            : sql`1=1`
+        )
+        .limit(input.limit);
+
+      const results: Array<{
+        authorName: string;
+        platformsSucceeded: string[];
+        error?: string;
+      }> = [];
+
+      for (const author of rows) {
+        try {
+          const stats = await enrichAuthorSocialStats(
+            {
+              authorName: author.authorName,
+              githubUrl: author.githubUrl,
+              substackUrl: author.substackUrl,
+              linkedinUrl: author.linkedinUrl,
+              wikipediaUrl: author.wikipediaUrl,
+              stockTicker: author.stockTicker,
+            },
+            {
+              youtubeApiKey: ENV.youtubeApiKey,
+              apifyApiToken: ENV.apifyApiToken,
+              rapidApiKey: ENV.rapidApiKey,
+              phases: input.phases as ("A" | "B")[],
+            }
+          );
+
+          await db
+            .update(authorProfiles)
+            .set({
+              socialStatsJson: JSON.stringify(stats),
+              socialStatsEnrichedAt: new Date(),
+            })
+            .where(eq(authorProfiles.authorName, author.authorName));
+
+          results.push({
+            authorName: author.authorName,
+            platformsSucceeded: stats.platformsSucceeded,
+          });
+        } catch (err) {
+          results.push({
+            authorName: author.authorName,
+            platformsSucceeded: [],
+            error: String(err),
+          });
+        }
+        // Throttle to avoid rate limits
+        await new Promise((r) => setTimeout(r, 800));
+      }
+
+      return {
+        processed: results.length,
+        succeeded: results.filter((r) => !r.error).length,
+        failed: results.filter((r) => !!r.error).length,
+        results,
+      };
+    }),
 });

@@ -57,6 +57,7 @@ import {
   FileText,
   Zap,
   Globe,
+  BarChart2,
   type LucideIcon,
 } from "lucide-react";
 import { AUTHORS, BOOKS } from "@/lib/libraryData";
@@ -295,6 +296,7 @@ export default function Admin() {
   const auditAvatarBackgroundsMutation = trpc.authorProfiles.auditAvatarBackgrounds.useMutation();
   const normalizeAvatarBackgroundsMutation = trpc.authorProfiles.normalizeAvatarBackgrounds.useMutation();
   const discoverPlatformsMutation = trpc.authorProfiles.discoverPlatformsBatch.useMutation();
+  const enrichSocialStatsMutation = trpc.authorProfiles.enrichSocialStatsBatch.useMutation();
 
   // -- Action states --
   const [regenerateState, setRegenerateState] = useState<ActionState>(INITIAL_STATE);
@@ -311,6 +313,7 @@ export default function Admin() {
   const [bgMismatchList, setBgMismatchList] = useState<string[]>([]);
   const [rebuildCoversState, setRebuildCoversState] = useState<ActionState>(INITIAL_STATE);
   const [discoverPlatformsState, setDiscoverPlatformsState] = useState<ActionState>(INITIAL_STATE);
+  const [enrichSocialStatsState, setEnrichSocialStatsState] = useState<ActionState>(INITIAL_STATE);
 
   // -- Research Cascade stats --
   const authorStats = trpc.cascade.authorStats.useQuery(undefined, { staleTime: 60_000 });
@@ -333,6 +336,7 @@ export default function Admin() {
     auditBgState,
     normalizeBgState,
     discoverPlatformsState,
+    enrichSocialStatsState,
   ].some((s) => s.status === "running");
 
   const recordAction = useCallback(
@@ -882,6 +886,35 @@ export default function Admin() {
     }
   }, [discoverPlatformsState.status, discoverPlatformsMutation, recordAction]);
 
+  // -- Enrich Social Stats --
+  const handleEnrichSocialStats = useCallback(async () => {
+    if (enrichSocialStatsState.status === "running") return;
+    setEnrichSocialStatsState({ ...INITIAL_STATE, status: "running", message: "Fetching social stats from GitHub, Wikipedia, Substack, YouTube, CNN, Y Combinator..." });
+    const start = Date.now();
+    try {
+      const result = await enrichSocialStatsMutation.mutateAsync({
+        phases: ["A", "B"],
+        limit: 30,
+        onlyMissing: true,
+      });
+      setEnrichSocialStatsState({
+        status: "done",
+        progress: 100,
+        message: `${result.succeeded} authors enriched, ${result.failed} failed`,
+        done: result.succeeded,
+        total: result.processed,
+        failed: result.failed,
+      });
+      toast.success(`Social stats enriched for ${result.succeeded} authors.`);
+      await recordAction("enrich-social-stats", "Enrich Social Stats", start, "success", result.succeeded);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setEnrichSocialStatsState((s) => ({ ...s, status: "error", message: msg }));
+      toast.error("Social stats enrichment failed: " + msg);
+      await recordAction("enrich-social-stats", "Enrich Social Stats", start, `error: ${msg}`);
+    }
+  }, [enrichSocialStatsState.status, enrichSocialStatsMutation, recordAction]);
+
   // -- Stats for Research Cascade --
   const aStats = authorStats.data;
   const bStats = bookStats.data;
@@ -1179,6 +1212,19 @@ export default function Admin() {
               confirmDescription="This will query Perplexity for each author's official social media profiles. Authors enriched within the last 7 days will be skipped. Processes 20 authors per run."
               onRun={handleDiscoverPlatforms}
               buttonLabel="Discover Platforms"
+              disabled={anyRunning}
+            />
+            <ActionCard
+              title="Enrich Social Stats"
+              description="Fetch live stats from GitHub (followers/stars), Wikipedia (page views), Substack (post count), YouTube (subscribers), CNN, Y Combinator, and — with a RapidAPI key — LinkedIn, CNBC, Yahoo Finance, and Seeking Alpha."
+              icon={BarChart2}
+              actionKey="enrich-social-stats"
+              state={enrichSocialStatsState}
+              lastRun={getLastRun("enrich-social-stats")}
+              confirmTitle="Enrich social stats for all authors?"
+              confirmDescription="This will call up to 10 external APIs per author. Authors already enriched will be skipped. Processes 30 authors per run. May take several minutes."
+              onRun={handleEnrichSocialStats}
+              buttonLabel="Enrich Social Stats"
               disabled={anyRunning}
             />
           </TabsContent>

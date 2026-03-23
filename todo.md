@@ -1453,3 +1453,59 @@ Live URL: https://authlib-ehsrgokn.manus.space
 - [x] Admin Console Pipeline tab — "Discover Author Platforms" ActionCard with Globe icon
 - [x] Favorites sidebar tab — shows favorited authors and books in separate sections
 - [x] Sort by Favorites First option in Authors and Books sort dropdowns (authenticated only)
+
+## Session March 22, 2026 — Full Social Stats Enrichment Pipeline
+
+- [ ] Schema: add socialStatsJson column (stores all platform stats as JSON) + socialStatsEnrichedAt
+- [ ] GitHub helper: fetch followers, public repos, stars via public REST API (no key needed)
+- [ ] Substack helper: fetch post count via archive endpoint + subscriber range via official LinkedIn search API
+- [ ] YouTube helper: fetch subscriber count, video count, view count via Data API v3 (YOUTUBE_API_KEY)
+- [ ] Twitter/X helper: fetch follower count via v2 API (requires TWITTER_BEARER_TOKEN)
+- [ ] LinkedIn helper: company page follower count via Marketing API (requires LINKEDIN_ACCESS_TOKEN)
+- [ ] Instagram helper: follower count via Graph API (requires INSTAGRAM_ACCESS_TOKEN)
+- [ ] TikTok helper: follower/like count via Research API (requires TIKTOK_CLIENT_KEY)
+- [ ] Facebook helper: page fan count via Graph API (requires FACEBOOK_ACCESS_TOKEN)
+- [ ] tRPC enrichSocialStats (single author) + enrichSocialStatsBatch (batch) procedures
+- [ ] tRPC getSocialStats public query returning all authors' stats
+- [ ] PlatformPills: show stat badge (e.g. "1.2M subs") next to each platform pill
+- [ ] Admin Console: Social Stats ActionCard with per-platform status indicators
+- [ ] Secrets: YOUTUBE_API_KEY (already set), TWITTER_BEARER_TOKEN, LINKEDIN_ACCESS_TOKEN, INSTAGRAM_ACCESS_TOKEN, TIKTOK_CLIENT_KEY, FACEBOOK_ACCESS_TOKEN
+
+## Session March 22, 2026 — Extended Social & Media Presence Pipeline (15 sources)
+
+- [ ] Research: Crunchbase API (person profiles, funding, company data)
+- [ ] Research: Yahoo Finance API (stock ticker, market cap for author-linked companies)
+- [ ] Research: CNBC search/mentions API or scraping approach
+- [ ] Research: Wikipedia API (page views, article existence, summary)
+- [ ] Research: Y Combinator API (batch, company, founder lookup)
+- [ ] Research: Bloomberg API (author mentions, terminal access vs public)
+- [ ] Research: CNN search/mentions API or scraping approach
+- [ ] Schema: mediaPresenceJson column (CNBC, Bloomberg, CNN, Wikipedia mentions/articles)
+- [ ] Schema: businessProfileJson column (Crunchbase, Yahoo Finance, YC data)
+- [ ] Enrichment helpers for all 15 sources
+- [ ] tRPC enrichSocialStats + enrichMediaPresence + enrichBusinessProfile procedures
+- [ ] PlatformPills: media outlet badges (Bloomberg, CNBC, CNN, Wikipedia) with article count/link
+- [ ] PlatformPills: business badges (Crunchbase, Yahoo Finance, YC) with funding/ticker data
+- [ ] Admin Console: Media Presence ActionCard + Business Profile ActionCard
+- [ ] Secrets: CRUNCHBASE_API_KEY, BLOOMBERG_API_KEY (if available)
+
+## Social Stats Enrichment Pipeline (March 22, 2026)
+- [x] Schema migration: socialStatsJson + socialStatsEnrichedAt + stockTicker + wikipediaUrl columns
+- [x] Server helper: GitHub (followers, stars, repos — free, no key)
+- [x] Server helper: Wikipedia (page summary, monthly views — free, no key)
+- [x] Server helper: Substack (post count, subscriber range — unofficial endpoint, no key)
+- [x] Server helper: Y Combinator (founder lookup via public API — no key)
+- [x] Server helper: CNN (article mentions via Apify — APIFY_API_TOKEN)
+- [x] Server helper: Yahoo Finance (stock data — RAPIDAPI_KEY)
+- [x] Server helper: CNBC (article mentions — RAPIDAPI_KEY)
+- [x] Server helper: LinkedIn (follower count — RAPIDAPI_KEY)
+- [x] Server helper: Seeking Alpha/Bloomberg (article mentions — RAPIDAPI_KEY)
+- [x] socialStats.ts orchestrator coordinating all 10 helpers
+- [x] ENV: youtubeApiKey + rapidApiKey added to env.ts
+- [x] tRPC: getSocialStats query (public)
+- [x] tRPC: enrichSocialStats single author mutation (admin)
+- [x] tRPC: enrichSocialStatsBatch batch mutation (admin)
+- [x] PlatformPills: stat badges (followers, post count, page views, YC batch, stock price)
+- [x] PlatformPills: new icons for Wikipedia, YC, CNBC, CNN, Bloomberg, Yahoo Finance
+- [x] Admin Console: Enrich Social Stats ActionCard in pipeline tab
+- [x] Vitest: 15 tests for GitHub/Substack parsing + Wikipedia/YC/orchestrator live calls (all passing)

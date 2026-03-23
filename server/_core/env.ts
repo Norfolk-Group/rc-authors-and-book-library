@@ -14,6 +14,8 @@ export const ENV = {
   tavilyApiKey: process.env.TAVILY_API_KEY ?? "",
   perplexityApiKey: process.env.PERPLEXITY_API_KEY ?? "",
   anthropicApiKey: process.env.ANTHROPIC_API_KEY ?? "",
+  youtubeApiKey: process.env.YOUTUBE_API_KEY ?? "",
+  rapidApiKey: process.env.RAPIDAPI_KEY ?? "",
   // Google Drive folder IDs (NCG Library structure)
   // Set via environment variables to avoid hardcoding in source
   driveAuthorsFolderId: process.env.DRIVE_AUTHORS_FOLDER_ID ?? "119tuydLrpyvavFEouf3SCq38LAD4_ln5",

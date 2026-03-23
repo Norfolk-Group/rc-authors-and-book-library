@@ -88,6 +88,28 @@ export const authorProfiles = mysqlTable("author_profiles", {
   blogUrl: varchar("blogUrl", { length: 512 }),
   /** Author's Substack newsletter URL */
   substackUrl: varchar("substackUrl", { length: 512 }),
+  /** Number of posts published on Substack (from public /api/v1/publication endpoint) */
+  substackPostCount: int("substackPostCount"),
+  /** Subscriber range label from Substack (e.g. '10K-50K', '50K-100K') */
+  substackSubscriberRange: varchar("substackSubscriberRange", { length: 50 }),
+  /** ISO timestamp of last Substack stats fetch */
+  substackStatsEnrichedAt: timestamp("substackStatsEnrichedAt"),
+  /**
+   * JSON object storing social stats per platform.
+   * Shape: {
+   *   github?: { followers, publicRepos, totalStars, fetchedAt },
+   *   substack?: { postCount, subscriberRange, fetchedAt },
+   *   youtube?: { subscriberCount, videoCount, viewCount, channelId, fetchedAt },
+   *   twitter?: { followerCount, fetchedAt },
+   *   linkedin?: { followerCount, fetchedAt },
+   *   instagram?: { followerCount, fetchedAt },
+   *   tiktok?: { followerCount, likeCount, fetchedAt },
+   *   facebook?: { fanCount, fetchedAt },
+   * }
+   */
+  socialStatsJson: text("socialStatsJson"),
+  /** When social stats were last fetched across all platforms */
+  socialStatsEnrichedAt: timestamp("socialStatsEnrichedAt"),
   /** Author's YouTube channel URL */
   youtubeUrl: varchar("youtubeUrl", { length: 512 }),
   /** Author's Facebook page URL */
@@ -104,6 +126,10 @@ export const authorProfiles = mysqlTable("author_profiles", {
   newsletterUrl: varchar("newsletterUrl", { length: 512 }),
   /** Author's speaking bureau or booking page URL */
   speakingUrl: varchar("speakingUrl", { length: 512 }),
+  /** Stock ticker symbol for author-linked public company (e.g. 'AAPL' for Tim Cook) */
+  stockTicker: varchar("stockTicker", { length: 20 }),
+  /** Wikipedia article URL for this author */
+  wikipediaUrl: varchar("wikipediaUrl", { length: 512 }),
   /** JSON array of newspaper/online article links: [{title, url, date, publication}] */
   newspaperArticlesJson: text("newspaperArticlesJson"),
   /** JSON array of other links: [{label, url, type}] */
