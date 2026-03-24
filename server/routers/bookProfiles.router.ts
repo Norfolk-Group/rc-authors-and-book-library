@@ -14,6 +14,7 @@ import { mirrorBatchToS3 } from "../mirrorToS3";
 import { enrichBookViaGoogleBooks } from "../lib/bookEnrichment";
 import { enrichRichSummary } from "../enrichment/richSummary";
 import { parallelBatch } from "../lib/parallelBatch";
+import { logger } from "../lib/logger";
 
 // -- Router -----------------------------------------------------------------
 
@@ -268,7 +269,7 @@ export const bookProfilesRouter = router({
                     .where(eq(bookProfiles.id, r.id));
                 }
               }
-              console.log(`[auto-mirror] Mirrored ${mirrorResults.filter((r) => r.url).length} book covers to S3`);
+              logger.info(`[auto-mirror] Mirrored ${mirrorResults.filter((r) => r.url).length} book covers to S3`);
             }
           } catch (err) {
             console.error("[auto-mirror] Book cover mirror failed:", err);
@@ -500,7 +501,7 @@ export const bookProfilesRouter = router({
         }
       }
       await Promise.all(upgradeUpdates);
-      console.log(`[rebuild-covers] Upgraded ${upgraded} low-res Amazon URLs to _SX600_`);
+      logger.info(`[rebuild-covers] Upgraded ${upgraded} low-res Amazon URLs to _SX600_`);
 
       // ── Step 2: Re-scrape books with failed/missing covers ─────────────────
       const needsScrape = await db
@@ -532,7 +533,7 @@ export const bookProfilesRouter = router({
             title === author ||
             /open.graph/i.test(title);
           if (isSkippable) {
-            console.log(`[rebuild-covers] Skipping bad title: "${title}"`);
+            logger.info(`[rebuild-covers] Skipping bad title: "${title}"`);
             return { bookTitle: title, status: 'skipped' as const };
           }
           const result = await scrapeAmazonBook(title, author);
@@ -558,7 +559,7 @@ export const bookProfilesRouter = router({
 
       const scraped = scrapeResult.results.filter((r) => r.result?.status === 'scraped').length;
       const notFound = scrapeResult.results.filter((r) => r.result?.status === 'not-found').length;
-      console.log(`[rebuild-covers] Re-scraped ${scraped} covers, ${notFound} not found`);
+      logger.info(`[rebuild-covers] Re-scraped ${scraped} covers, ${notFound} not found`);
 
       // ── Step 3: Re-mirror all covers that lost their S3 URL ────────────────
       const toMirror = await db
@@ -589,7 +590,7 @@ export const bookProfilesRouter = router({
           }
         }
       }
-      console.log(`[rebuild-covers] Mirrored ${mirrored} covers to S3, ${mirrorFailed} failed`);
+      logger.info(`[rebuild-covers] Mirrored ${mirrored} covers to S3, ${mirrorFailed} failed`);
 
       return {
         total: allBooks.length,

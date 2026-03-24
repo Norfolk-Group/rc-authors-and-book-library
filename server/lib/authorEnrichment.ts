@@ -7,6 +7,7 @@
  *   - Any future enrichment jobs or scripts
  */
 import { invokeLLM } from "../_core/llm";
+import { logger } from "../lib/logger";
 
 // -- Types ---------------------------------------------------------------------
 
@@ -68,7 +69,7 @@ export async function generateBioWithLLM(
         const secondaryContent = typeof secondaryRaw === "string" ? secondaryRaw : "";
         const refined = secondaryContent.trim().slice(0, 400);
         if (refined) {
-          console.log(`[authorEnrich] Secondary LLM (${secondaryModel}) refined bio for "${authorName}"`);
+          logger.debug(`[authorEnrich] Secondary LLM (${secondaryModel}) refined bio for "${authorName}"`);
           return refined;
         }
       } catch (err) {
@@ -191,7 +192,7 @@ export async function enrichAuthorViaWikipedia(
 
   // 4. LLM fallback if Wikipedia returned no bio (with optional secondary LLM refinement)
   if (!result.bio) {
-    console.log(
+    logger.debug(
       `[authorEnrich] No Wikipedia bio for "${authorName}", using LLM fallback (primary: ${model ?? "default"}, secondary: ${secondaryModel ?? "none"})`
     );
     result.bio = await generateBioWithLLM(authorName, model, secondaryModel);

@@ -4,6 +4,7 @@
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { publicProcedure, adminProcedure, router } from "../_core/trpc";
+import { ENV } from "../_core/env";
 import { getDb } from "../db";
 import { adminActionLog } from "../../drizzle/schema";
 
@@ -18,13 +19,13 @@ export const adminRouter = router({
   /** Get the status of configured external tools/APIs */
   getToolStatus: publicProcedure.query(() => {
     return {
-      apify: !!(process.env.APIFY_API_TOKEN),
-      replicate: !!(process.env.REPLICATE_API_TOKEN),
-      perplexity: !!(process.env.PERPLEXITY_API_KEY),
-      googleBooks: !!(process.env.GOOGLE_BOOKS_API_KEY),
-      tavily: !!(process.env.TAVILY_API_KEY),
-      youtube: !!(process.env.YOUTUBE_API_KEY),
-      twitter: !!(process.env.TWITTER_BEARER_TOKEN),
+      apify: !!ENV.apifyApiToken,
+      replicate: !!ENV.replicateApiToken,
+      perplexity: !!ENV.perplexityApiKey,
+      googleBooks: !!ENV.googleBooksApiKey,
+      tavily: !!ENV.tavilyApiKey,
+      youtube: !!ENV.youtubeApiKey,
+      twitter: !!ENV.twitterBearerToken,
     };
   }),
 

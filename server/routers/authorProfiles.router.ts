@@ -17,6 +17,7 @@ import { discoverAuthorPlatforms } from "../enrichment/platforms";
 import { enrichRichBio } from "../enrichment/richBio";
 import { enrichRichSummary } from "../enrichment/richSummary";
 import { bookProfiles } from "../../drizzle/schema";
+import { logger } from "../lib/logger";
 
 // -- Router --------------------------------------------------------------------
 export const authorProfilesRouter = router({
@@ -323,7 +324,7 @@ export const authorProfilesRouter = router({
                     .where(eq(authorProfiles.id, r.id));
                 }
               }
-              console.log(`[auto-mirror] Mirrored ${mirrorResults.filter((r) => r.url).length} author avatars to S3`);
+              logger.info(`[auto-mirror] Mirrored ${mirrorResults.filter((r) => r.url).length} author avatars to S3`);
             }
           } catch (err) {
             console.error("[auto-mirror] Author avatar mirror failed:", err);
@@ -1004,49 +1005,41 @@ export const authorProfilesRouter = router({
         })
         .slice(0, input.limit);
 
-      const results: Array<{ authorName: string; platformCount: number; error?: string }> = [];
-
-      for (const author of toProcess) {
-        try {
-          const result = await discoverAuthorPlatforms(author.authorName, perplexityKey);
-          const { links } = result;
-
-          const updatePayload: Record<string, string> = {};
-          if (links.websiteUrl) updatePayload.websiteUrl = links.websiteUrl;
-          if (links.twitterUrl) updatePayload.twitterUrl = links.twitterUrl;
-          if (links.linkedinUrl) updatePayload.linkedinUrl = links.linkedinUrl;
-          if (links.substackUrl) updatePayload.substackUrl = links.substackUrl;
-          if (links.youtubeUrl) updatePayload.youtubeUrl = links.youtubeUrl;
-          if (links.facebookUrl) updatePayload.facebookUrl = links.facebookUrl;
-          if (links.instagramUrl) updatePayload.instagramUrl = links.instagramUrl;
-          if (links.tiktokUrl) updatePayload.tiktokUrl = links.tiktokUrl;
-          if (links.githubUrl) updatePayload.githubUrl = links.githubUrl;
-          if (links.businessWebsiteUrl) updatePayload.businessWebsiteUrl = links.businessWebsiteUrl;
-          if (links.newsletterUrl) updatePayload.newsletterUrl = links.newsletterUrl;
-          if (links.speakingUrl) updatePayload.speakingUrl = links.speakingUrl;
-          if (links.podcastUrl) updatePayload.podcastUrl = links.podcastUrl;
-          if (links.blogUrl) updatePayload.blogUrl = links.blogUrl;
-          if (links.websites && links.websites.length > 0) updatePayload.websitesJson = JSON.stringify(links.websites);
-
-          const platformStatus = {
-            enrichedAt: result.enrichedAt,
-            source: result.source,
-            platformCount: Object.keys(links).length,
-            platforms: Object.keys(links),
-          };
-          updatePayload.platformEnrichmentStatus = JSON.stringify(platformStatus);
-
-          if (Object.keys(updatePayload).length > 0) {
-            await db.update(authorProfiles).set(updatePayload).where(eq(authorProfiles.authorName, author.authorName));
-          }
-
-          results.push({ authorName: author.authorName, platformCount: Object.keys(links).length });
-          await new Promise((r) => setTimeout(r, 600));
-        } catch (err) {
-          results.push({ authorName: author.authorName, platformCount: 0, error: String(err) });
+      // Run in parallel (concurrency=3 to respect Perplexity rate limits)
+      const batchResult = await parallelBatch(toProcess, 3, async (author) => {
+        const result = await discoverAuthorPlatforms(author.authorName, perplexityKey);
+        const { links } = result;
+        const updatePayload: Record<string, string> = {};
+        if (links.websiteUrl) updatePayload.websiteUrl = links.websiteUrl;
+        if (links.twitterUrl) updatePayload.twitterUrl = links.twitterUrl;
+        if (links.linkedinUrl) updatePayload.linkedinUrl = links.linkedinUrl;
+        if (links.substackUrl) updatePayload.substackUrl = links.substackUrl;
+        if (links.youtubeUrl) updatePayload.youtubeUrl = links.youtubeUrl;
+        if (links.facebookUrl) updatePayload.facebookUrl = links.facebookUrl;
+        if (links.instagramUrl) updatePayload.instagramUrl = links.instagramUrl;
+        if (links.tiktokUrl) updatePayload.tiktokUrl = links.tiktokUrl;
+        if (links.githubUrl) updatePayload.githubUrl = links.githubUrl;
+        if (links.businessWebsiteUrl) updatePayload.businessWebsiteUrl = links.businessWebsiteUrl;
+        if (links.newsletterUrl) updatePayload.newsletterUrl = links.newsletterUrl;
+        if (links.speakingUrl) updatePayload.speakingUrl = links.speakingUrl;
+        if (links.podcastUrl) updatePayload.podcastUrl = links.podcastUrl;
+        if (links.blogUrl) updatePayload.blogUrl = links.blogUrl;
+        if (links.websites && links.websites.length > 0) updatePayload.websitesJson = JSON.stringify(links.websites);
+        const platformStatus = {
+          enrichedAt: result.enrichedAt,
+          source: result.source,
+          platformCount: Object.keys(links).length,
+          platforms: Object.keys(links),
+        };
+        updatePayload.platformEnrichmentStatus = JSON.stringify(platformStatus);
+        if (Object.keys(updatePayload).length > 0) {
+          await db.update(authorProfiles).set(updatePayload).where(eq(authorProfiles.authorName, author.authorName));
         }
-      }
-
+        return { authorName: author.authorName, platformCount: Object.keys(links).length, error: undefined as string | undefined };
+      });
+      const results = batchResult.results.map((r) =>
+        r.result ?? { authorName: r.input.authorName, platformCount: 0, error: r.error as string | undefined }
+      );
       return {
         processed: results.length,
         succeeded: results.filter((r) => !r.error).length,
@@ -1326,32 +1319,28 @@ export const authorProfilesRouter = router({
         : allAuthors.filter((a) => !a.richBioJson);
 
       const batch = input.limit ? toProcess.slice(0, input.limit) : toProcess;
-      const results: { authorName: string; success: boolean; error?: string }[] = [];
-
-      for (const author of batch) {
-        try {
-          const result = await enrichRichBio(
-            author.authorName,
-            author.bio ?? undefined,
-            undefined
-          );
-          if (result) {
-            await db
-              .update(authorProfiles)
-              .set({
-                richBioJson: JSON.stringify(result),
-                professionalEntriesJson: JSON.stringify(result.professionalEntries),
-              })
-              .where(eq(authorProfiles.authorName, author.authorName));
-            results.push({ authorName: author.authorName, success: true });
-          } else {
-            results.push({ authorName: author.authorName, success: false, error: "No data returned" });
-          }
-        } catch (err) {
-          results.push({ authorName: author.authorName, success: false, error: String(err) });
+      // Run in parallel (concurrency=2 to respect LLM rate limits)
+      const richBatch = await parallelBatch(batch, 2, async (author) => {
+        const result = await enrichRichBio(
+          author.authorName,
+          author.bio ?? undefined,
+          undefined
+        );
+        if (result) {
+          await db
+            .update(authorProfiles)
+            .set({
+              richBioJson: JSON.stringify(result),
+              professionalEntriesJson: JSON.stringify(result.professionalEntries),
+            })
+            .where(eq(authorProfiles.authorName, author.authorName));
+          return { authorName: author.authorName, success: true };
         }
-        await new Promise((r) => setTimeout(r, 1200));
-      }
+        return { authorName: author.authorName, success: false, error: "No data returned" };
+      });
+      const results = richBatch.results.map((r) =>
+        r.result ?? { authorName: r.input.authorName, success: false, error: r.error }
+      );
 
       return {
         processed: results.length,

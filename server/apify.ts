@@ -10,6 +10,7 @@
  */
 
 import { ApifyClient } from "apify-client";
+import { logger } from "./lib/logger";
 
 const APIFY_TOKEN = process.env.APIFY_API_TOKEN ?? "";
 const ACTOR_ID = "apify/cheerio-scraper";
@@ -105,7 +106,7 @@ async function runActorWithRetry<T>(
       }
 
       const { items } = await client.dataset(run.defaultDatasetId).listItems();
-      console.log(`[Apify] ✓ ${items?.length ?? 0} items from "${label}" (attempt ${attempt})`);
+      logger.debug(`[Apify] ✓ ${items?.length ?? 0} items from "${label}" (attempt ${attempt})`);
       return {
         items: (items ?? []) as T[],
         runId: run.id,

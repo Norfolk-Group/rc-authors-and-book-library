@@ -17,6 +17,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { AuthorDescription, AuthorResearchData } from "./types.js";
 import { scrapeAuthorAvatar } from "../../apify.js";
 import { fetchTavilyAuthorPhotos as fetchTavilyPhotos } from "./tavily";
+import { logger } from "../../lib/logger";
 
 // ── Wikipedia bio helper ───────────────────────────────────────────────────────
 // We extend wikipedia.ts with a bio-text fetch (not just the photo URL)
@@ -426,7 +427,7 @@ async function buildAuthorDescriptionWithGemini(
       )
       .map((r) => r.value);
 
-    console.log(
+    logger.debug(
       `[authorResearcher] Gemini multimodal: ${imageParts.length}/${research.allPhotoUrls.length} photos inlined for ${research.authorName}`
     );
 
@@ -500,7 +501,7 @@ async function buildAuthorDescriptionWithClaude(
     const raw = textBlock.text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
     const parsed = JSON.parse(raw) as AuthorDescription;
     parsed.references = { photoUrls: research.allPhotoUrls, textSources: research.sources };
-    console.log(`[authorResearcher] Claude analysis complete for ${research.authorName}`);
+    logger.debug(`[authorResearcher] Claude analysis complete for ${research.authorName}`);
     return parsed;
   } catch (err) {
     console.error(`[authorResearcher] Claude analysis error for ${research.authorName}:`, err);
@@ -517,9 +518,9 @@ export async function researchAndDescribeAuthor(
   researchModel?: string,
   researchVendor?: string
 ): Promise<AuthorDescription | null> {
-  console.log(`[authorResearcher] Starting research for: ${authorName} (vendor: ${researchVendor ?? "google"}, model: ${researchModel ?? "default"})`);
+  logger.debug(`[authorResearcher] Starting research for: ${authorName} (vendor: ${researchVendor ?? "google"}, model: ${researchModel ?? "default"})`);
   const research = await researchAuthor(authorName);
-  console.log(
+  logger.debug(
     `[authorResearcher] Research complete for ${authorName}: ` +
     `${research.sources.join(", ")} | ${research.allPhotoUrls.length} photos`
   );

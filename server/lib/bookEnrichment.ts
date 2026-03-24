@@ -7,6 +7,7 @@
  *   - Any future enrichment jobs or scripts
  */
 import { invokeLLM } from "../_core/llm";
+import { logger } from "../lib/logger";
 
 // -- Types ---------------------------------------------------------------------
 
@@ -103,7 +104,7 @@ async function generateBookSummaryWithLLM(
         const secondaryContent = typeof secondaryRaw === "string" ? secondaryRaw : "";
         const refined = secondaryContent.trim().slice(0, 600);
         if (refined) {
-          console.log(`[bookEnrich] Secondary LLM (${secondaryModel}) refined summary for "${bookTitle}"`);
+          logger.debug(`[bookEnrich] Secondary LLM (${secondaryModel}) refined summary for "${bookTitle}"`);
           return refined;
         }
       } catch (err) {
@@ -246,7 +247,7 @@ export async function enrichBookViaGoogleBooks(
 
   // LLM fallback: if Google Books returned no summary, generate one with the selected model
   if (!result.summary) {
-    console.log(`[bookEnrich] No Google Books summary for "${bookTitle}", using LLM fallback (primary: ${model ?? "default"}, secondary: ${secondaryModel ?? "none"})`);
+    logger.debug(`[bookEnrich] No Google Books summary for "${bookTitle}", using LLM fallback (primary: ${model ?? "default"}, secondary: ${secondaryModel ?? "none"})`);
     result.summary = await generateBookSummaryWithLLM(bookTitle, authorName, model, secondaryModel);
   }
 

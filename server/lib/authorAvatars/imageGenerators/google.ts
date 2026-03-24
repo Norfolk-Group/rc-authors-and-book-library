@@ -25,6 +25,7 @@ import {
   ImageGenerationRequest,
   ImageGenerationResult,
 } from "../types.js";
+import { logger } from "../../../lib/logger";
 
 export const GOOGLE_MODELS: Record<string, string> = {
   "nano-banana": "gemini-2.5-flash-image",
@@ -170,7 +171,7 @@ export class GoogleImagenGenerator implements ImageGenerator {
 
     if (hasReference) {
       // Reference-guided generation: instruction → reference image → generation prompt
-      console.log(`[GoogleImagenGenerator] Reference-guided generation (model: ${this.model})`);
+      logger.debug(`[GoogleImagenGenerator] Reference-guided generation (model: ${this.model})`);
       parts = [
         { text: REFERENCE_INSTRUCTION },
         {
@@ -183,7 +184,7 @@ export class GoogleImagenGenerator implements ImageGenerator {
       ];
     } else {
       // Text-only generation (fallback when no reference photo available)
-      console.log(`[GoogleImagenGenerator] Text-only generation (model: ${this.model})`);
+      logger.debug(`[GoogleImagenGenerator] Text-only generation (model: ${this.model})`);
       // Embed negative prompt as constraint since Gemini doesn't have a separate field
       const fullPrompt = request.negativePrompt
         ? `${request.prompt}\n\nIMPORTANT — AVOID IN THE OUTPUT: ${request.negativePrompt}`

@@ -90,6 +90,16 @@ type TabType = "authors" | "books" | "audio" | "favorites";
 type AuthorSort = "name-asc" | "name-desc" | "books-desc" | "category" | "quality-desc" | "favorites-first" | "most-popular";
 type BookSort = "name-asc" | "name-desc" | "author" | "content-desc" | "enrich-desc" | "favorites-first";
 
+// ── Module-level constants (never recreated on render) ──────────────────────
+const QUALITY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2, undefined: 3 };
+const ENRICH_ORDER: Record<string, number> = { complete: 3, enriched: 2, basic: 1, none: 0 };
+const ENRICH_LABELS: Record<string, { label: string; color: string; bg: string }> = {
+  complete: { label: "Fully Enriched",     color: "#d97706", bg: "#fef3c7" },
+  enriched: { label: "Well Enriched",      color: "#059669", bg: "#d1fae5" },
+  basic:    { label: "Partially Enriched", color: "#0284c7", bg: "#e0f2fe" },
+  none:     { label: "Basic",              color: "#6b7280", bg: "#f3f4f6" },
+};
+
 /**
  * Normalise a raw book name into a stable lookup key.
  * Strips the " - Author" suffix, trims whitespace, removes trailing
@@ -418,7 +428,7 @@ export default function Home() {
       const matchesQ = !q || a.name.toLowerCase().includes(q) || a.category.toLowerCase().includes(q) || a.books.some((b) => b.name.toLowerCase().includes(q));
       return matchesCat && matchesQ;
     }).sort((a, b) => {
-      const qualityOrder: Record<string, number> = { high: 0, medium: 1, low: 2, undefined: 3 };
+      const qualityOrder = QUALITY_ORDER;
       switch (authorSort) {
         case "name-asc": return a.name.localeCompare(b.name);
         case "name-desc": return b.name.localeCompare(a.name);
@@ -492,7 +502,7 @@ export default function Home() {
         }
         case "content-desc": return Object.keys(b.contentTypes).length - Object.keys(a.contentTypes).length;
         case "enrich-desc": {
-          const enrichOrder: Record<string, number> = { complete: 3, enriched: 2, basic: 1, none: 0 };
+          const enrichOrder = ENRICH_ORDER;
           const tkA = normalizeTitleKey(a.name);
           const tkB = normalizeTitleKey(b.name);
           const profA = bookCoversQuery.data?.find((p) => p.bookTitle.replace(/[?!.,;:]+$/, "").toLowerCase() === tkA) ?? null;
@@ -535,13 +545,7 @@ export default function Home() {
 
   const hasFilters = selectedCategories.size > 0 || query.length > 0 || enrichFilter !== "all";
 
-  // Label map for enrichment filter chips in the active-filters strip
-  const ENRICH_LABELS: Record<string, { label: string; color: string; bg: string }> = {
-    complete: { label: "Fully Enriched",    color: "#d97706", bg: "#fef3c7" },
-    enriched: { label: "Well Enriched",     color: "#059669", bg: "#d1fae5" },
-    basic:    { label: "Partially Enriched",color: "#0284c7", bg: "#e0f2fe" },
-    none:     { label: "Basic",             color: "#6b7280", bg: "#f3f4f6" },
-  };
+  // ENRICH_LABELS is a module-level constant (see top of file)
   const showCategoryFilter = activeTab !== "audio";
 
   return (

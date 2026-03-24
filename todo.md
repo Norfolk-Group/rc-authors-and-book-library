@@ -1708,3 +1708,14 @@ Live URL: https://authlib-ehsrgokn.manus.space
 - [x] #44a Add `Research Quality` badge (HIGH/MEDIUM/LOW) to author cards based on `sourceConfidence.overallConfidence`
 - [x] #44b Badge colours: HIGH = green, MEDIUM = amber, LOW = red/muted
 - [x] #44c Only show badge when `sourceConfidence` data is present
+
+## Sprint: Codebase Audit + Optimization (March 24, 2026)
+
+- [x] #26 Wire parallelBatch into all remaining sequential batch procedures (discoverPlatformsBatch, enrichSocialStatsBatch, enrichRichBioBatch)
+- [x] #43 Avatar background consistency — confirmed already fully implemented (normalizeAvatarBackgrounds in Admin Console)
+- [x] #47 Normalize rating column — confirmed already DECIMAL(3,1) in schema
+- [x] Audit: Move ENRICH_LABELS, QUALITY_ORDER, ENRICH_ORDER to module-level constants (libraryConstants.ts)
+- [x] Audit: Replace direct process.env with ENV helper in admin.router.ts
+- [x] Audit: Add structured logger (server/lib/logger.ts) to all server production code
+- [x] Audit: Make parallelBatch generic over TInput (not just string[])
+- [x] Update CLAUDE.md with full current project state (schema, routes, procedures, design system, conventions, pitfalls)

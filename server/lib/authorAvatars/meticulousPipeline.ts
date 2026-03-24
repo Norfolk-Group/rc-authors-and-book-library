@@ -29,6 +29,7 @@ import {
 } from "./imageGenerators/index.js";
 import { storagePut } from "../../storage.js";
 import { ENV } from "../../_core/env.js";
+import { logger } from "../../lib/logger";
 
 // ── Google Drive upload helper ─────────────────────────────────────────────────
 
@@ -121,16 +122,16 @@ export async function runMeticulousPipeline(
     // Skip research entirely — use cached prompt directly
     stages.research = "skipped";
     stages.promptBuild = "skipped";
-    console.log(`[meticulousPipeline] Prompt-only mode for ${authorName}`);
+    logger.debug(`[meticulousPipeline] Prompt-only mode for ${authorName}`);
   } else if (cachedDescription && !options.forceRefresh) {
     // Use cached description from DB
     authorDescription = cachedDescription;
     stages.research = "cached";
     stages.promptBuild = "cached";
-    console.log(`[meticulousPipeline] Using cached description for ${authorName}`);
+    logger.debug(`[meticulousPipeline] Using cached description for ${authorName}`);
   } else {
     // Run full research pipeline
-    console.log(`[meticulousPipeline] Running research for ${authorName}`);
+    logger.debug(`[meticulousPipeline] Running research for ${authorName}`);
     try {
       authorDescription = await researchAndDescribeAuthor(authorName, researchModel, researchVendor);
       stages.research = authorDescription ? "executed" : "failed";
@@ -152,7 +153,7 @@ export async function runMeticulousPipeline(
   if (authorDescription?.bestReferencePhotoUrl) {
     try {
       const refUrl = authorDescription.bestReferencePhotoUrl;
-      console.log(`[meticulousPipeline] Fetching reference photo for ${authorName}: ${refUrl}`);
+      logger.debug(`[meticulousPipeline] Fetching reference photo for ${authorName}: ${refUrl}`);
       const res = await fetch(refUrl, {
         signal: AbortSignal.timeout(10_000),
         headers: { "User-Agent": "NCGLibrary/1.0 (ncglibrary@norfolkgroup.io)" },
@@ -171,7 +172,7 @@ export async function runMeticulousPipeline(
           } else {
             referenceImageBase64 = buffer.toString("base64");
             referenceImageMimeType = contentType.split(";")[0].trim();
-            console.log(
+            logger.debug(
               `[meticulousPipeline] Reference photo fetched for ${authorName} ` +
               `(${sizeKb}KB, ${referenceImageMimeType}) — quality gate passed`
             );
@@ -188,7 +189,7 @@ export async function runMeticulousPipeline(
     const fallbackUrl = authorDescription.references?.photoUrls?.[0];
     if (fallbackUrl) {
       try {
-        console.log(`[meticulousPipeline] No bestReferencePhotoUrl — trying first reference photo for ${authorName}`);
+        logger.debug(`[meticulousPipeline] No bestReferencePhotoUrl — trying first reference photo for ${authorName}`);
         const res = await fetch(fallbackUrl, {
           signal: AbortSignal.timeout(10_000),
           headers: { "User-Agent": "NCGLibrary/1.0 (ncglibrary@norfolkgroup.io)" },
@@ -200,7 +201,7 @@ export async function runMeticulousPipeline(
             if (buffer.length <= 3 * 1024 * 1024) {
               referenceImageBase64 = buffer.toString("base64");
               referenceImageMimeType = contentType.split(";")[0].trim();
-              console.log(`[meticulousPipeline] Fallback reference photo fetched for ${authorName}`);
+              logger.debug(`[meticulousPipeline] Fallback reference photo fetched for ${authorName}`);
             }
           }
         }
@@ -229,7 +230,7 @@ export async function runMeticulousPipeline(
     stages.promptBuild = "executed";
   }
 
-  console.log(
+  logger.debug(
     `[meticulousPipeline] Prompt built for ${authorName} ` +
     `(${promptPackage.prompt.length} chars, reference: ${referenceImageBase64 ? "yes" : "no"})`
   );
@@ -305,7 +306,7 @@ export async function runMeticulousPipeline(
     s3AvatarUrl = url;
     s3AvatarKey = key;
     stages.s3Upload = "executed";
-    console.log(`[meticulousPipeline] S3 upload complete for ${authorName}: ${url}`);
+    logger.debug(`[meticulousPipeline] S3 upload complete for ${authorName}: ${url}`);
   } catch (err) {
     stages.s3Upload = "failed";
     console.error(`[meticulousPipeline] S3 upload failed for ${authorName}:`, err);
@@ -323,7 +324,7 @@ export async function runMeticulousPipeline(
     if (fileId) {
       driveFileId = fileId;
       stages.driveUpload = "executed";
-      console.log(`[meticulousPipeline] Drive upload complete for ${authorName}: ${fileId}`);
+      logger.debug(`[meticulousPipeline] Drive upload complete for ${authorName}: ${fileId}`);
     } else {
       stages.driveUpload = "failed";
     }

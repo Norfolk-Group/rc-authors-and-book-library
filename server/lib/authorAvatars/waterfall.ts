@@ -19,6 +19,7 @@ import { generateAIAvatar } from "./replicateGeneration";
 import { generateGoogleImagenPortrait, NANO_BANANA_MODELS, DEFAULT_NANO_BANANA_MODEL } from "./googleImagenGeneration";
 import { storagePut } from "../../storage";
 import { runMeticulousPipeline } from "./meticulousPipeline";
+import { logger } from "../../lib/logger";
 
 // -- Multi-author mapping ------------------------------------------------------
 const MULTI_AUTHOR_MAP: Record<string, string> = {
@@ -190,7 +191,7 @@ export async function processAuthorAvatarWaterfall(
 
   // Skip if already enriched
   if (skipAlreadyEnriched && existingS3AvatarUrl) {
-    console.log(`[Avatar] Skipping ${originalAuthorName} — already enriched`);
+    logger.debug(`[Avatar] Skipping ${originalAuthorName} — already enriched`);
     return {
       originalName: originalAuthorName,
       primaryName: originalAuthorName,
@@ -233,7 +234,7 @@ export async function processAuthorAvatarWaterfall(
   if (!avatarUrl && maxTier >= 1 && minTier <= 1) {
     tier = 1;
     const t1Start = Date.now();
-    console.log(`[Avatar T1] Wikipedia -> ${primaryName}`);
+    logger.debug(`[Avatar T1] Wikipedia -> ${primaryName}`);
     try {
       const url = await Promise.race([
         fetchWikipediaPhoto(primaryName),
@@ -244,7 +245,7 @@ export async function processAuthorAvatarWaterfall(
       if (url && (await tryValidate(url, primaryName, skipValidation, 0.6))) {
         avatarUrl = url;
         source = "wikipedia";
-        console.log(`[Avatar T1] Wikipedia found for ${primaryName} (${Date.now() - t1Start}ms)`);
+        logger.debug(`[Avatar T1] Wikipedia found for ${primaryName} (${Date.now() - t1Start}ms)`);
       }
     } catch (e) {
       console.warn(`[Avatar T1] Error for ${primaryName}: ${e}`);
@@ -255,7 +256,7 @@ export async function processAuthorAvatarWaterfall(
   if (!avatarUrl && maxTier >= 2 && minTier <= 2) {
     tier = 2;
     const t2Start = Date.now();
-    console.log(`[Avatar T2] Tavily -> ${primaryName}`);
+    logger.debug(`[Avatar T2] Tavily -> ${primaryName}`);
     try {
       const url = await Promise.race([
         fetchTavilyAuthorPhoto(primaryName),
@@ -266,7 +267,7 @@ export async function processAuthorAvatarWaterfall(
       if (url && (await tryValidate(url, primaryName, skipValidation, 0.5))) {
         avatarUrl = url;
         source = "tavily";
-        console.log(`[Avatar T2] Tavily found for ${primaryName} (${Date.now() - t2Start}ms)`);
+        logger.debug(`[Avatar T2] Tavily found for ${primaryName} (${Date.now() - t2Start}ms)`);
       }
     } catch (e) {
       console.warn(`[Avatar T2] Error for ${primaryName}: ${e}`);
@@ -277,7 +278,7 @@ export async function processAuthorAvatarWaterfall(
   if (!avatarUrl && maxTier >= 3 && minTier <= 3) {
     tier = 3;
     const t3Start = Date.now();
-    console.log(`[Avatar T3] Apify -> ${primaryName}`);
+    logger.debug(`[Avatar T3] Apify -> ${primaryName}`);
     try {
       const result = await Promise.race([
         scrapeAuthorAvatar(primaryName),
@@ -288,7 +289,7 @@ export async function processAuthorAvatarWaterfall(
       if (result?.avatarUrl && (await tryValidate(result.avatarUrl, primaryName, skipValidation, 0.4))) {
         avatarUrl = result.avatarUrl;
         source = "apify";
-        console.log(`[Avatar T3] Apify found for ${primaryName} (${Date.now() - t3Start}ms)`);
+        logger.debug(`[Avatar T3] Apify found for ${primaryName} (${Date.now() - t3Start}ms)`);
       }
     } catch (e) {
       console.warn(`[Avatar T3] Error for ${primaryName}: ${e}`);
@@ -299,7 +300,7 @@ export async function processAuthorAvatarWaterfall(
   if (!avatarUrl && maxTier >= 5 && minTier <= 5) {
     tier = 5;
     const t5Start = Date.now();
-    console.log(`[Avatar T5] Meticulous Pipeline (${avatarGenVendor}/${avatarGenModel}) -> ${primaryName}`);
+    logger.debug(`[Avatar T5] Meticulous Pipeline (${avatarGenVendor}/${avatarGenModel}) -> ${primaryName}`);
     try {
       const pipelineResult = await Promise.race([
         runMeticulousPipeline(primaryName, {
@@ -327,7 +328,7 @@ export async function processAuthorAvatarWaterfall(
           vendor: pipelineResult.vendor,
           model: pipelineResult.model,
         };
-        console.log(`[Avatar T5] Meticulous pipeline complete for ${primaryName} in ${Date.now() - t5Start}ms`);
+        logger.debug(`[Avatar T5] Meticulous pipeline complete for ${primaryName} in ${Date.now() - t5Start}ms`);
       } else {
         // Pipeline failed — fall back to legacy direct generation
         console.warn(`[Avatar T5] Meticulous pipeline failed for ${primaryName}, falling back to legacy generation`);

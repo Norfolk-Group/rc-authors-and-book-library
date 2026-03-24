@@ -17,6 +17,7 @@
 
 import { storagePut, storageGet } from "./storage";
 import { fetchBuffer } from "./lib/httpClient";
+import { logger } from "./lib/logger";
 
 /** Supported image MIME types and their file extensions */
 const MIME_TO_EXT: Record<string, string> = {
@@ -85,7 +86,7 @@ export async function mirrorImageToS3(
   if (existingKey && existingKey === key) {
     try {
       const { url } = await storageGet(key);
-      console.log(`[Mirror] Skipping re-upload (key exists): ${key}`);
+      logger.debug(`[Mirror] Skipping re-upload (key exists): ${key}`);
       return { url, key, uploaded: false };
     } catch {
       // storageGet failed (key may not exist yet) — fall through to re-upload
