@@ -59,6 +59,7 @@ import {
   Globe,
   BarChart2,
   type LucideIcon,
+  Heart,
 } from "lucide-react";
 import { AUTHORS, BOOKS } from "@/lib/libraryData";
 import { getAuthorAvatar } from "@/lib/authorAvatars";
@@ -68,6 +69,8 @@ import { SettingsTab } from "@/components/admin/SettingsTab";
 import { AboutTab } from "@/components/admin/AboutTab";
 import { AiTab } from "@/components/admin/AiTab";
 import { InformationToolsTab } from "@/components/admin/InformationToolsTab";
+import { SchedulingTab } from "@/components/admin/SchedulingTab";
+import { FavoritesTab } from "@/components/admin/FavoritesTab";
 
 // -- Types ------------------------------------------------------
 type ActionStatus = "idle" | "running" | "done" | "error";
@@ -1018,6 +1021,15 @@ export default function Admin() {
               <span className="hidden sm:inline">Info Tools</span>
               <span className="sm:hidden">Tools</span>
             </TabsTrigger>
+            <TabsTrigger value="scheduling" className="text-xs py-2 gap-1.5 flex-1 min-w-[80px]">
+              <Clock className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Schedules</span>
+              <span className="sm:hidden">Sched</span>
+            </TabsTrigger>
+            <TabsTrigger value="favorites" className="text-xs py-2 gap-1.5 flex-1 min-w-[80px]">
+              <Heart className="w-3.5 h-3.5" />
+              <span>Favorites</span>
+            </TabsTrigger>
             <TabsTrigger value="about" className="text-xs py-2 gap-1.5 flex-1 min-w-[80px]">
               <Info className="w-3.5 h-3.5" />
               <span>About</span>
@@ -1371,6 +1383,14 @@ export default function Admin() {
             <InformationToolsTab settings={settings} updateSettings={updateSettings} />
           </TabsContent>
 
+          {/* -- Tab: Scheduling -- */}
+          <TabsContent value="scheduling">
+            <SchedulingTab />
+          </TabsContent>
+          {/* -- Tab: Favorites -- */}
+          <TabsContent value="favorites">
+            <FavoritesTab />
+          </TabsContent>
           {/* -- Tab 6: About -- */}
           <TabsContent value="about">
             <AboutTab settings={settings} />

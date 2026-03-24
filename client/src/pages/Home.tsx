@@ -82,6 +82,7 @@ import {
   Heart,
   Trophy,
   BarChart,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 
@@ -300,6 +301,11 @@ export default function Home() {
   }, [researchQualityQuery.data]);
 
   const platformLinksQuery = trpc.authorProfiles.getAllPlatformLinks.useQuery(undefined, { staleTime: 5 * 60_000 });
+  // Recently enriched authors — for the "Featured" section
+  const recentlyEnrichedQuery = trpc.authorProfiles.getRecentlyEnriched.useQuery(
+    { limit: 6 },
+    { staleTime: 5 * 60_000 }
+  );
   const platformLinksMap = useMemo(() => {
     type PlatformRow = typeof platformLinksQuery.data extends (infer T)[] | undefined ? T : never;
     const map = new Map<string, PlatformRow>();
@@ -882,6 +888,56 @@ export default function Home() {
               </div>
             )}
 
+            {/* Featured: Recently Enriched Authors */}
+            {activeTab === "authors" && !query && selectedCategories.size === 0 && (recentlyEnrichedQuery.data?.length ?? 0) > 0 && (
+              <div className="mb-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <Sparkles className="w-4 h-4 text-amber-500" />
+                  <h2 className="text-sm font-semibold">Recently Enriched</h2>
+                  <span className="text-xs text-muted-foreground">Authors with fresh research data</span>
+                </div>
+                <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin">
+                  {recentlyEnrichedQuery.data?.map((author) => {
+                    const avatarUrl = author.s3AvatarUrl || author.avatarUrl || null;
+                    return (
+                      <button
+                        key={author.authorName}
+                        onClick={() => {
+                          const found = AUTHORS.find((a) => canonicalName(a.name).toLowerCase() === author.authorName.toLowerCase());
+                          if (found) { setSelectedAuthor(found); setBioSheetOpen(true); }
+                        }}
+                        className="flex-shrink-0 flex flex-col items-center gap-1.5 p-3 rounded-xl bg-muted/40 hover:bg-muted/70 border border-border/40 hover:border-border/80 transition-all w-[90px] group"
+                      >
+                        <div className="relative">
+                          {avatarUrl ? (
+                            <img
+                              src={avatarUrl}
+                              alt={author.authorName}
+                              className="w-12 h-12 rounded-full object-cover ring-2 ring-amber-400/40 group-hover:ring-amber-400/80 transition-all"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400/20 to-amber-600/20 flex items-center justify-center text-lg font-bold text-amber-600">
+                              {author.authorName.charAt(0)}
+                            </div>
+                          )}
+                          <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-amber-400 rounded-full flex items-center justify-center">
+                            <Sparkles className="w-2.5 h-2.5 text-amber-900" />
+                          </span>
+                        </div>
+                        <span className="text-[10px] font-medium text-center leading-tight line-clamp-2 w-full">
+                          {author.authorName.split(" ").slice(0, 2).join(" ")}
+                        </span>
+                        {author.enrichedAt && (
+                          <span className="text-[9px] text-muted-foreground">
+                            {new Date(author.enrichedAt).toLocaleDateString([], { month: "short", day: "numeric" })}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             {/* Card grid */}
             <div className="relative">
               {activeTab === "authors" ? (

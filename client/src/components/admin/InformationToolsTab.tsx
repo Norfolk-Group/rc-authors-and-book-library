@@ -148,7 +148,18 @@ export function InformationToolsTab({ settings, updateSettings }: InformationToo
     perplexity: false,
     googleBooks: false,
     tavily: false,
+    youtube: false,
   };
+  const enrichSocialStatsMutation = trpc.authorProfiles.enrichSocialStatsBatch.useMutation({
+    onSuccess: (data) => {
+      toast.success(`YouTube/Social enrichment complete`, {
+        description: `Processed ${data.processed} authors — ${data.succeeded} succeeded`,
+      });
+    },
+    onError: (err) => {
+      toast.error(`Enrichment failed`, { description: err.message });
+    },
+  });
 
   const handleTestApify = () => {
     toast.info("Apify connection test", {
@@ -346,6 +357,41 @@ export function InformationToolsTab({ settings, updateSettings }: InformationToo
           <p className="text-[10px] text-muted-foreground">
             Tavily is active. Image search for author headshots and book covers will use it as a supplementary source.
           </p>
+        )}
+      </ToolCard>
+
+      {/* ── YouTube ── */}
+      <ToolCard
+        title="YouTube Data API"
+        description="Fetches channel subscriber counts, video counts, and view stats for authors with YouTube channels. Used in Social Stats enrichment."
+        icon={Zap}
+        configured={toolStatus.youtube ?? false}
+        docsUrl="https://developers.google.com/youtube/v3"
+      >
+        {!(toolStatus.youtube ?? false) && (
+          <p className="text-[10px] text-muted-foreground">
+            Set YOUTUBE_API_KEY in project secrets to enable YouTube channel stats enrichment.
+          </p>
+        )}
+        {(toolStatus.youtube ?? false) && (
+          <div className="space-y-2">
+            <p className="text-[10px] text-muted-foreground">
+              YouTube API is active. Social stats enrichment will fetch channel subscriber counts, video counts, and total views.
+            </p>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs"
+              disabled={enrichSocialStatsMutation.isPending}
+              onClick={() => enrichSocialStatsMutation.mutate({ phases: ["A"], limit: 20, onlyMissing: true })}
+            >
+              {enrichSocialStatsMutation.isPending ? (
+                <><Loader2 className="w-3 h-3 mr-1.5 animate-spin" />Enriching…</>
+              ) : (
+                <><Zap className="w-3 h-3 mr-1.5" />Enrich Missing (up to 20)</>
+              )}
+            </Button>
+          </div>
         )}
       </ToolCard>
     </div>

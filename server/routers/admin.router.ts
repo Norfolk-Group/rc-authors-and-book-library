@@ -23,6 +23,7 @@ export const adminRouter = router({
       perplexity: !!(process.env.PERPLEXITY_API_KEY),
       googleBooks: !!(process.env.GOOGLE_BOOKS_API_KEY),
       tavily: !!(process.env.TAVILY_API_KEY),
+      youtube: !!(process.env.YOUTUBE_API_KEY),
     };
   }),
 

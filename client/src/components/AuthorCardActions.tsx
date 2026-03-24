@@ -11,7 +11,7 @@
  * All mutations use current AppSettings for LLM configuration.
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { MoreHorizontal, Sparkles, RefreshCw, Link2, BookUser, Loader2, Check, X } from "lucide-react";
 import {
   DropdownMenu,
@@ -39,6 +39,8 @@ interface AuthorCardActionsProps {
   onBioUpdated?: () => void;
   /** Called after a successful links update */
   onLinksUpdated?: () => void;
+  /** Called whenever any mutation starts or finishes — use for per-card loading overlay */
+  onMutatingChange?: (isMutating: boolean) => void;
 }
 
 export function AuthorCardActions({
@@ -48,6 +50,7 @@ export function AuthorCardActions({
   onAvatarRegenerating,
   onBioUpdated,
   onLinksUpdated,
+  onMutatingChange,
 }: AuthorCardActionsProps) {
   const { settings } = useAppSettings();
   const utils = trpc.useUtils();
@@ -160,6 +163,11 @@ export function AuthorCardActions({
 
   const isAnyLoading =
     avatarStatus === "loading" || bioStatus === "loading" || linksStatus === "loading";
+
+  // Notify parent whenever loading state changes
+  useEffect(() => {
+    onMutatingChange?.(isAnyLoading);
+  }, [isAnyLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <DropdownMenu>

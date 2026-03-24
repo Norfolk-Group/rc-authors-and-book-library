@@ -151,6 +151,8 @@ export function FlowbiteAuthorCard({
 
   // -- HOTSPOT 1: Author modal --
   const [authorModalOpen, setAuthorModalOpen] = useState(false);
+  // Per-card action loading overlay
+  const [isMutating, setIsMutating] = useState(false);
   const handleAvatarClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     setAuthorModalOpen(true);
@@ -199,6 +201,15 @@ export function FlowbiteAuthorCard({
          */}
         <div
           onClick={() => onBioClick(author)}
+          tabIndex={0}
+          role="button"
+          aria-label={`View bio for ${displayName}`}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onBioClick(author);
+            }
+          }}
           className={`
             h-full overflow-hidden relative p-0
             bg-card text-card-foreground
@@ -207,9 +218,22 @@ export function FlowbiteAuthorCard({
             transition-shadow duration-200
             flex flex-col items-stretch justify-start
             cursor-pointer
+            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2
             ${isHighlighted ? "ring-2 ring-offset-2 ring-primary" : ""}
           `}
         >
+          {/* Per-card action loading overlay */}
+          {isMutating && (
+            <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-background/60 backdrop-blur-[2px]">
+              <div className="flex flex-col items-center gap-1.5">
+                <svg className="w-5 h-5 animate-spin text-primary" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                <span className="text-[9px] font-medium text-muted-foreground">Enriching…</span>
+              </div>
+            </div>
+          )}
           {/* Category watermark - presentational, no pointer events */}
           <div
             className="pointer-events-none absolute bottom-2 right-2 select-none"
@@ -272,6 +296,7 @@ export function FlowbiteAuthorCard({
                   hasAvatar={!!avatarUrl}
                   onBioUpdated={() => void utils.authorProfiles.getAllBios.invalidate()}
                   onLinksUpdated={() => void utils.authorProfiles.get.invalidate({ authorName: displayName })}
+                  onMutatingChange={setIsMutating}
                 />
               </div>
             </div>

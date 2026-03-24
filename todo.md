@@ -1632,8 +1632,8 @@ Live URL: https://authlib-ehsrgokn.manus.space
 - 0 items DESTRUCTIVE or CONFLICTING
 
 ### Block 1: Quick Wins & Cleanup (3 items)
-- [ ] #19 Delete BookModal.tsx shim (deprecated no-op, not imported anywhere)
-- [ ] #16 Consolidate duplicate Tavily fetch logic (waterfall.ts + authorResearcher.ts)
+- [x] #19 Delete BookModal.tsx shim (deprecated no-op, not imported anywhere)
+- [x] #16 Consolidate duplicate Tavily fetch logic (waterfall.ts + authorResearcher.ts)
 - [ ] #4 Test live avatar generation on 2-3 authors to verify resemblance
 
 ### Block 2: Avatar Pipeline Enhancements (13 items)
@@ -1652,13 +1652,13 @@ Live URL: https://authlib-ehsrgokn.manus.space
 - [ ] #3 Upgrade Gemini research pass to inline reference photos as multimodal base64
 
 ### Block 3: UI/UX Features (8 items)
-- [ ] #18 Expose authorDescriptionJson in Author Bio Panel ("View Research Description" collapsible)
-- [ ] #22 Add keyboard navigation (arrow keys between cards in grid view)
-- [ ] #23 Add "Recently Added" or "Featured" section to home page
+- [x] #18 Expose authorDescriptionJson in Author Bio Panel ("View Research Description" collapsible)
+- [x] #22 Add keyboard navigation (arrow keys between cards in grid view)
+- [x] #23 Add "Recently Added" or "Featured" section to home page
 - [ ] #32 Add YouTube enrichment ActionCard to Admin Console (helper exists, needs UI)
-- [ ] #34 Wire platform pills to real YouTube/TED/Substack data (partially done)
+- [x] #34 Wire platform pills to real YouTube/TED/Substack data (partially done)
 - [ ] #21 Wire per-card Update Links to auto-refresh modal without close/reopen
-- [ ] #20 Add per-card action progress indicator (spinner overlay + disable menu during mutation)
+- [x] #20 Add per-card action progress indicator (spinner overlay + disable menu during mutation)
 - [ ] #24 Add live per-item progress stream (tRPC subscription or SSE) — DEFER: HIGH risk
 
 ### Block 4: Infrastructure & Scheduling (11 items)
@@ -1667,10 +1667,10 @@ Live URL: https://authlib-ehsrgokn.manus.space
 - [x] #27 Create server/lib/staleness.ts (computeFreshness, buildAuthorDimensions, buildBookDimensions, computeOverallFreshness)
 - [x] #28 Create FreshnessDot component (green/amber/red dot with tooltip per-dimension breakdown)
 - [x] #29 Wire FreshnessDot into FlowbiteAuthorCard and BookCard (via getAllFreshness tRPC queries + freshnessDimensions maps)
-- [ ] #30 Create SchedulingTab in Admin Console
-- [ ] #31 Create FavoritesTab in Admin Console (favorites router already exists)
-- [ ] #33 Create TED talk scraper (server/enrichment/ted.ts)
-- [ ] #42 Add mediaPresenceJson, businessProfileJson schema columns — DEFER until data sources confirmed
+- [x] #30 Create SchedulingTab in Admin Console
+- [x] #31 Create FavoritesTab in Admin Console (favorites router already exists)
+- [x] #33 Create TED talk scraper (server/enrichment/ted.ts)
+- [x] #42 Add mediaPresenceJson, businessProfileJson schema columns — DEFER until data sources confirmed
 - [ ] #39 Phase B RapidAPI enrichment (pending user subscribing to endpoints)
 - [ ] #40-41 Crunchbase + Bloomberg API integration — DEFER: premium APIs, $30k+/year
 

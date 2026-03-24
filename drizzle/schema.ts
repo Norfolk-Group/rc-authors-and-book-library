@@ -164,6 +164,35 @@ export const authorProfiles = mysqlTable("author_profiles", {
   enrichedAt: timestamp("enrichedAt"),
   /** Google Drive folder ID for this author's folder in 02 — Knowledge Library / 01 — Authors */
   driveFolderId: varchar("driveFolderId", { length: 128 }),
+  /**
+   * JSON object with structured media presence data across platforms.
+   * Shape: {
+   *   youtube?: { channelId, channelUrl, subscriberCount, videoCount, totalViews, fetchedAt },
+   *   ted?: { profileUrl, talkCount, totalViews, latestTalkUrl, latestTalkTitle, fetchedAt },
+   *   substack?: { url, subscriberEstimate, postCount, fetchedAt },
+   *   podcast?: { showUrl, episodeCount, platform, fetchedAt },
+   *   masterclass?: { courseUrl, courseTitle, fetchedAt },
+   *   enrichedAt: string,
+   * }
+   */
+  mediaPresenceJson: text("mediaPresenceJson"),
+  /** When mediaPresenceJson was last enriched */
+  mediaPresenceEnrichedAt: timestamp("mediaPresenceEnrichedAt"),
+  /**
+   * JSON object with business and professional profile data.
+   * Shape: {
+   *   company?: { name, role, url, description },
+   *   speakingTopics?: string[],
+   *   speakingFee?: { range, currency },
+   *   awards?: [{ name, year, org }],
+   *   education?: [{ degree, institution, year }],
+   *   boardMemberships?: [{ org, role, url }],
+   *   enrichedAt: string,
+   * }
+   */
+  businessProfileJson: text("businessProfileJson"),
+  /** When businessProfileJson was last enriched */
+  businessProfileEnrichedAt: timestamp("businessProfileEnrichedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, (table) => ({

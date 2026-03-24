@@ -142,6 +142,15 @@ export function BookCard({
       whileTap={{ scale: 0.97 }}
       transition={{ type: "spring", stiffness: 350, damping: 28 }}
       onClick={() => onDetailClick?.(book)}
+      tabIndex={0}
+      role="button"
+      aria-label={`View details for ${displayTitle}`}
+      onKeyDown={(e: React.KeyboardEvent) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onDetailClick?.(book);
+        }
+      }}
     >
       <div
         className={`

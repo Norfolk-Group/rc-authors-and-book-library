@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { eq, ne, isNull, isNotNull, or, sql, inArray } from "drizzle-orm";
+import { eq, ne, isNull, isNotNull, or, sql, inArray, desc } from "drizzle-orm";
 import { readFileSync, existsSync } from "fs";
 import { spawn } from "child_process";
 import { join } from "path";
@@ -20,6 +20,30 @@ import { bookProfiles } from "../../drizzle/schema";
 
 // -- Router --------------------------------------------------------------------
 export const authorProfilesRouter = router({
+  /**
+   * Get recently enriched authors (by enrichedAt desc).
+   * Used for the "Recently Enriched" section on the home page.
+   */
+  getRecentlyEnriched: publicProcedure
+    .input(z.object({ limit: z.number().min(1).max(30).default(10) }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) return [];
+      return db
+        .select({
+          authorName: authorProfiles.authorName,
+          bio: authorProfiles.bio,
+          avatarUrl: authorProfiles.avatarUrl,
+          s3AvatarUrl: authorProfiles.s3AvatarUrl,
+          enrichedAt: authorProfiles.enrichedAt,
+          createdAt: authorProfiles.createdAt,
+        })
+        .from(authorProfiles)
+        .where(isNotNull(authorProfiles.enrichedAt))
+        .orderBy(desc(authorProfiles.enrichedAt))
+        .limit(input.limit);
+    }),
+
   /** Get a single author profile by base name */
   get: publicProcedure
     .input(z.object({ authorName: z.string() }))
