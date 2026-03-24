@@ -60,6 +60,7 @@ import {
   BarChart2,
   type LucideIcon,
   Heart,
+  Activity,
 } from "lucide-react";
 import { AUTHORS, BOOKS } from "@/lib/libraryData";
 import { getAuthorAvatar } from "@/lib/authorAvatars";
@@ -71,6 +72,7 @@ import { AiTab } from "@/components/admin/AiTab";
 import { InformationToolsTab } from "@/components/admin/InformationToolsTab";
 import { SchedulingTab } from "@/components/admin/SchedulingTab";
 import { FavoritesTab } from "@/components/admin/FavoritesTab";
+import { ToolHealthCheckTab } from "@/components/admin/ToolHealthCheckTab";
 
 // -- Types ------------------------------------------------------
 type ActionStatus = "idle" | "running" | "done" | "error";
@@ -1030,6 +1032,10 @@ export default function Admin() {
               <Heart className="w-3.5 h-3.5" />
               <span>Favorites</span>
             </TabsTrigger>
+            <TabsTrigger value="health" className="text-xs py-2 gap-1.5 flex-1 min-w-[80px]">
+              <Activity className="w-3.5 h-3.5" />
+              <span>Health</span>
+            </TabsTrigger>
             <TabsTrigger value="about" className="text-xs py-2 gap-1.5 flex-1 min-w-[80px]">
               <Info className="w-3.5 h-3.5" />
               <span>About</span>
@@ -1390,6 +1396,10 @@ export default function Admin() {
           {/* -- Tab: Favorites -- */}
           <TabsContent value="favorites">
             <FavoritesTab />
+          </TabsContent>
+          {/* -- Tab: Health -- */}
+          <TabsContent value="health">
+            <ToolHealthCheckTab />
           </TabsContent>
           {/* -- Tab 6: About -- */}
           <TabsContent value="about">

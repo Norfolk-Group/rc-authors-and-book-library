@@ -1719,3 +1719,21 @@ Live URL: https://authlib-ehsrgokn.manus.space
 - [x] Audit: Add structured logger (server/lib/logger.ts) to all server production code
 - [x] Audit: Make parallelBatch generic over TInput (not just string[])
 - [x] Update CLAUDE.md with full current project state (schema, routes, procedures, design system, conventions, pitfalls)
+
+## Feature: Tool Health Check Panel (Admin Console)
+
+- [x] #HC1 Audit all external services used by the app (Apify, Gemini, Replicate, YouTube API, Twitter/X, Tavily, Perplexity, Google Imagen, Anthropic)
+- [x] #HC2 Build server/routers/healthCheck.router.ts — individual ping procedures for each service (latency, credit status, error detail)
+- [x] #HC3 Apify health check — run a minimal actor call and check credit balance
+- [x] #HC4 Gemini health check — send a 1-token prompt and check response
+- [x] #HC5 Anthropic/Claude health check — send a 1-token prompt and check response
+- [x] #HC6 Replicate health check — check account status and credit balance via API
+- [x] #HC7 YouTube Data API health check — fetch quota usage and check key validity
+- [x] #HC8 Twitter/X health check — check Bearer Token validity and credit tier
+- [x] #HC9 Tavily health check — send a minimal search and check response
+- [x] #HC10 Perplexity health check — send a 1-token prompt and check response
+- [x] #HC11 Google Imagen health check — check Vertex AI / Imagen 3 endpoint availability (covered via Gemini endpoint)
+- [x] #HC12 Build ToolHealthCheckTab.tsx UI — service cards with status dot (green/yellow/red), latency badge, last checked timestamp, and error detail on hover
+- [x] #HC13 Add "Run All Checks" button and per-service "Re-check" button
+- [x] #HC14 Wire ToolHealthCheckTab into Admin Console as a new "Health" tab
+- [x] #HC15 Write vitest tests for healthCheck.router.ts

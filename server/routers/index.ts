@@ -17,6 +17,7 @@ import { cascadeRouter } from "./cascade.router";
 import { adminRouter } from "./admin.router";
 import { favoritesRouter } from "./favorites.router";
 import { schedulingRouter } from "./scheduling.router";
+import { healthCheckRouter } from "./healthCheck.router";
 
 export const appRouter = router({
   system: systemRouter,
@@ -39,6 +40,7 @@ export const appRouter = router({
   admin: adminRouter,
   favorites: favoritesRouter,
   scheduling: schedulingRouter,
+  healthCheck: healthCheckRouter,
 });
 
 export type AppRouter = typeof appRouter;
