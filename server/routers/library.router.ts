@@ -8,6 +8,9 @@ import * as fs from "fs";
 import * as path from "path";
 import { publicProcedure, adminProcedure, router } from "../_core/trpc";
 import { ENV } from "../_core/env";
+import { getDb } from "../db";
+import { authorProfiles, bookProfiles } from "../../drizzle/schema";
+import { sql } from "drizzle-orm";
 
 // -- Constants ------------------------------------------------
 // Folder IDs are configurable via DRIVE_AUTHORS_FOLDER_ID / DRIVE_BOOKS_AUDIO_FOLDER_ID env vars
@@ -464,6 +467,32 @@ const LIBRARY_DATA_PATH = path.join(PROJECT_ROOT, "client", "src", "lib", "libra
 const AUDIO_DATA_PATH = path.join(PROJECT_ROOT, "client", "src", "lib", "audioData.ts");
 
 export const libraryRouter = router({
+  /**
+   * Returns live counts from the DB for the stat tiles on the home page.
+   * Falls back to static libraryData.ts values if the DB is unavailable.
+   */
+  getStats: publicProcedure.query(async () => {
+    try {
+      const db = await getDb();
+      if (!db) return null;
+
+      const [authorResult] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(authorProfiles);
+      const [bookResult] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(bookProfiles);
+
+      return {
+        authors: Number(authorResult?.count ?? 0),
+        books: Number(bookResult?.count ?? 0),
+        categories: 9,
+      };
+    } catch {
+      return null;
+    }
+  }),
+
   regenerate: adminProcedure.mutation(async () => {
     const startTime = Date.now();
 

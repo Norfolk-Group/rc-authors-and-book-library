@@ -54,6 +54,7 @@ import {
   type AuthorSort,
   type BookSort,
 } from "@/hooks/useLibraryData";
+import { trpc } from "@/lib/trpc";
 
 import {
   Search,
@@ -98,6 +99,10 @@ export default function Home() {
   const [selectedBook, setSelectedBook] = useState<typeof BOOKS[number] | null>(null);
   const [bookSheetOpen, setBookSheetOpen] = useState(false);
   const [lightboxCover, setLightboxCover] = useState<{ url: string | null; title: string; author?: string; color?: string; amazonUrl?: string } | null>(null);
+
+  // Live DB stats (falls back to static STATS if DB unavailable)
+  const liveStatsQuery = trpc.library.getStats.useQuery(undefined, { staleTime: 5 * 60_000 });
+  const liveStats = liveStatsQuery.data;
 
   // Scroll + highlight refs
   const mainRef = useRef<HTMLElement>(null);
@@ -226,10 +231,10 @@ export default function Home() {
                 <FloatingBooks count={6} className="w-full h-full" />
               </div>
               <div className="relative z-10 grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <StatCard label="Authors" value={STATS.totalAuthors} icon={Users} />
-                <StatCard label="Books" value={STATS.totalBooks} icon={BookOpen} />
+                <StatCard label="Authors" value={liveStats?.authors ?? STATS.totalAuthors} icon={Users} />
+                <StatCard label="Books" value={liveStats?.books ?? STATS.totalBooks} icon={BookOpen} />
                 <StatCard label="Audiobooks" value={AUDIO_BOOKS.length} icon={Headphones} />
-                <StatCard label="Categories" value={STATS.totalCategories} icon={LayoutGrid} />
+                <StatCard label="Categories" value={liveStats?.categories ?? STATS.totalCategories} icon={LayoutGrid} />
               </div>
             </div>
 
@@ -318,6 +323,25 @@ export default function Home() {
                       </SelectContent>
                     </Select>
                   )}
+                  {/* Favorites sort badge — shows count when favorites-first is active */}
+                  {isAuthenticated && activeTab === "authors" && authorSort === "favorites-first" && (() => {
+                    const count = Object.values(authorFavoritesQuery.data ?? {}).filter(Boolean).length;
+                    return (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-600 border border-rose-200">
+                        <Heart className="w-3 h-3 fill-rose-500 stroke-rose-500" />
+                        {count} saved
+                      </span>
+                    );
+                  })()}
+                  {isAuthenticated && activeTab === "books" && bookSort === "favorites-first" && (() => {
+                    const count = Object.values(bookFavoritesQuery.data ?? {}).filter(Boolean).length;
+                    return (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-600 border border-rose-200">
+                        <Heart className="w-3 h-3 fill-rose-500 stroke-rose-500" />
+                        {count} saved
+                      </span>
+                    );
+                  })()}
                 </div>
               )}
             </div>

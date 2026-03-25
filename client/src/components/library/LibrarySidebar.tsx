@@ -25,8 +25,12 @@ import {
   ShieldCheck,
   Trophy,
   BarChart,
+  RefreshCw,
   type LucideIcon,
 } from "lucide-react";
+import { useState } from "react";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
 import {
   CATEGORIES,
   CATEGORY_COLORS,
@@ -71,6 +75,30 @@ export function LibrarySidebar({
 }: LibrarySidebarProps) {
   const { settings: { colorMode: appTheme } } = useAppSettings();
   const showCategoryFilter = activeTab !== "audio";
+
+  // Drive Sync (admin only)
+  const regenerateMutation = trpc.library.regenerate.useMutation();
+  const [syncState, setSyncState] = useState<"idle" | "running" | "done" | "error">("idle");
+  const handleDriveSync = async () => {
+    if (syncState === "running") return;
+    setSyncState("running");
+    try {
+      const result = await regenerateMutation.mutateAsync();
+      if (result.success && result.stats) {
+        setSyncState("done");
+        toast.success(`Drive synced — ${result.stats.authors} authors, ${result.stats.books} books. Reload to see changes.`, { duration: 8000 });
+        setTimeout(() => setSyncState("idle"), 5000);
+      } else {
+        setSyncState("error");
+        toast.error("Drive sync failed");
+        setTimeout(() => setSyncState("idle"), 4000);
+      }
+    } catch (err) {
+      setSyncState("error");
+      toast.error(err instanceof Error ? err.message : "Drive sync error");
+      setTimeout(() => setSyncState("idle"), 4000);
+    }
+  };
 
   return (
     <Sidebar collapsible="offcanvas" className="border-r border-sidebar-border">
@@ -215,6 +243,26 @@ export function LibrarySidebar({
             Admin Console
             <ChevronRight className="w-3 h-3 ml-auto opacity-50" />
           </a>
+          {isAuthenticated && (
+            <button
+              onClick={handleDriveSync}
+              disabled={syncState === "running"}
+              className={`w-full flex items-center gap-2 text-xs px-2 py-1.5 rounded-md transition-colors ${
+                syncState === "running"
+                  ? "text-muted-foreground cursor-wait"
+                  : syncState === "done"
+                  ? "text-emerald-600 hover:bg-muted/60"
+                  : syncState === "error"
+                  ? "text-rose-500 hover:bg-muted/60"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+              }`}
+              title="Re-scan Google Drive and rebuild the library"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 flex-shrink-0 ${syncState === "running" ? "animate-spin" : ""}`} />
+              {syncState === "running" ? "Syncing Drive…" : syncState === "done" ? "Sync complete" : syncState === "error" ? "Sync failed" : "Sync Drive"}
+              {syncState === "idle" && <ChevronRight className="w-3 h-3 ml-auto opacity-50" />}
+            </button>
+          )}
         </div>
         <div className="mt-3 pt-3 border-t border-border/50">
           <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Media Folders</p>

@@ -1953,3 +1953,8 @@ Live URL: https://authlib-ehsrgokn.manus.space
 - [x] Fix: Replaced two `checkMany.useQuery` calls in `useLibraryData.ts` with a single `trpc.favorites.list.useQuery` (returns all user favorites, small result set), then built author/book maps client-side from that data
 - [x] Also changed `checkMany` procedure from `.query()` to `.mutation()` and raised key limit to 500 as a safety net
 - [x] All 439 tests passing, TypeScript clean
+
+## Session March 25, 2026 — Three Improvements
+- [x] Wire stat tiles (AUTHORS, BOOKS, AUDIOBOOKS, CATEGORIES) to live DB counts instead of static libraryData.ts values
+- [x] Add favorites sort badge/indicator showing how many items are favorited when "Favorites First" sort is active
+- [x] Add Drive rescan trigger button in Admin Console (Library tab or dedicated Sync tab)
