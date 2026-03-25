@@ -1556,6 +1556,271 @@ const books = await db
       };
     }),
 
+  /** Enrich enterprise impact (SEC EDGAR + Quartr) for a single author */
+  enrichEnterpriseImpact: adminProcedure
+    .input(z.object({ authorName: z.string() }))
+    .mutation(async ({ input }) => {
+      const { enrichEnterpriseImpact } = await import("../enrichment/quartr");
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+
+      const [profile] = await db
+        .select()
+        .from(authorProfiles)
+        .where(eq(authorProfiles.authorName, input.authorName))
+        .limit(1);
+      if (!profile) throw new Error(`Author not found: ${input.authorName}`);
+
+      const books = await db
+        .select({ bookTitle: bookProfiles.bookTitle })
+        .from(bookProfiles)
+        .where(eq(bookProfiles.authorName, input.authorName));
+      const bookTitles = books.map((b) => b.bookTitle).filter(Boolean);
+
+      const result = await enrichEnterpriseImpact(input.authorName, bookTitles);
+
+      await db
+        .update(authorProfiles)
+        .set({
+          earningsCallMentionsJson: JSON.stringify(result),
+          earningsCallMentionsEnrichedAt: new Date(),
+        })
+        .where(eq(authorProfiles.authorName, input.authorName));
+
+      return {
+        authorName: input.authorName,
+        totalMentions: result.totalMentions,
+        uniqueCompanies: result.uniqueCompanies.length,
+        impactScore: result.impactScore,
+        fetchedAt: result.fetchedAt,
+      };
+    }),
+
+  /** Get enterprise impact data for a single author */
+  getEnterpriseImpact: publicProcedure
+    .input(z.object({ authorName: z.string() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const [row] = await db
+        .select({
+          earningsCallMentionsJson: authorProfiles.earningsCallMentionsJson,
+          earningsCallMentionsEnrichedAt: authorProfiles.earningsCallMentionsEnrichedAt,
+        })
+        .from(authorProfiles)
+        .where(eq(authorProfiles.authorName, input.authorName))
+        .limit(1);
+      if (!row?.earningsCallMentionsJson) return null;
+      return {
+        data: JSON.parse(row.earningsCallMentionsJson),
+        enrichedAt: row.earningsCallMentionsEnrichedAt,
+      };
+    }),
+
+  /** Enrich professional profile (Wikidata + Apollo.io) for a single author */
+  enrichProfessionalProfile: adminProcedure
+    .input(z.object({ authorName: z.string() }))
+    .mutation(async ({ input }) => {
+      const { enrichProfessionalProfile } = await import("../enrichment/apollo");
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+
+      const [profile] = await db
+        .select()
+        .from(authorProfiles)
+        .where(eq(authorProfiles.authorName, input.authorName))
+        .limit(1);
+      if (!profile) throw new Error(`Author not found: ${input.authorName}`);
+
+      const result = await enrichProfessionalProfile(input.authorName);
+
+      await db
+        .update(authorProfiles)
+        .set({
+          professionalProfileJson: JSON.stringify(result),
+          professionalProfileEnrichedAt: new Date(),
+        })
+        .where(eq(authorProfiles.authorName, input.authorName));
+
+      return {
+        authorName: input.authorName,
+        rolesCount: result.roles.length,
+        boardSeatsCount: result.boardSeats.length,
+        educationCount: result.education.length,
+        awardsCount: result.awards.length,
+        source: result.source,
+        fetchedAt: result.fetchedAt,
+      };
+    }),
+
+  /** Get professional profile data for a single author */
+  getProfessionalProfile: publicProcedure
+    .input(z.object({ authorName: z.string() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const [row] = await db
+        .select({
+          professionalProfileJson: authorProfiles.professionalProfileJson,
+          professionalProfileEnrichedAt: authorProfiles.professionalProfileEnrichedAt,
+        })
+        .from(authorProfiles)
+        .where(eq(authorProfiles.authorName, input.authorName))
+        .limit(1);
+      if (!row?.professionalProfileJson) return null;
+      return {
+        data: JSON.parse(row.professionalProfileJson),
+        enrichedAt: row.professionalProfileEnrichedAt,
+      };
+    }),
+
+  /** Index document archive from Google Drive for a single author */
+  indexDocumentArchive: adminProcedure
+    .input(z.object({ authorName: z.string() }))
+    .mutation(async ({ input }) => {
+      const { buildDocumentArchive } = await import("../enrichment/gdrive");
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+
+      const [profile] = await db
+        .select({
+          authorName: authorProfiles.authorName,
+          driveFolderId: authorProfiles.driveFolderId,
+        })
+        .from(authorProfiles)
+        .where(eq(authorProfiles.authorName, input.authorName))
+        .limit(1);
+      if (!profile) throw new Error(`Author not found: ${input.authorName}`);
+      if (!profile.driveFolderId) throw new Error(`No Drive folder for: ${input.authorName}`);
+
+      const archive = await buildDocumentArchive(input.authorName, profile.driveFolderId);
+
+      await db
+        .update(authorProfiles)
+        .set({
+          documentArchiveJson: JSON.stringify(archive),
+          documentArchiveEnrichedAt: new Date(),
+        })
+        .where(eq(authorProfiles.authorName, input.authorName));
+
+      return {
+        authorName: input.authorName,
+        documentCount: archive.documentCount,
+        totalSize: archive.totalSize,
+        folderUrl: archive.folderUrl,
+      };
+    }),
+
+  /** Get document archive data for a single author */
+  getDocumentArchive: publicProcedure
+    .input(z.object({ authorName: z.string() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const [row] = await db
+        .select({
+          documentArchiveJson: authorProfiles.documentArchiveJson,
+          documentArchiveEnrichedAt: authorProfiles.documentArchiveEnrichedAt,
+        })
+        .from(authorProfiles)
+        .where(eq(authorProfiles.authorName, input.authorName))
+        .limit(1);
+      if (!row?.documentArchiveJson) return null;
+      return {
+        data: JSON.parse(row.documentArchiveJson),
+        enrichedAt: row.documentArchiveEnrichedAt,
+      };
+    }),
+
+  /** Batch enrich enterprise impact for all authors */
+  enrichEnterpriseImpactBatch: adminProcedure
+    .input(z.object({
+      limit: z.number().optional().default(20),
+      onlyMissing: z.boolean().optional().default(true),
+    }))
+    .mutation(async ({ input }) => {
+      const { enrichEnterpriseImpact } = await import("../enrichment/quartr");
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+
+      const condition = input.onlyMissing
+        ? isNull(authorProfiles.earningsCallMentionsEnrichedAt)
+        : undefined;
+      const rows = await db
+        .select({ authorName: authorProfiles.authorName })
+        .from(authorProfiles)
+        .where(condition)
+        .limit(input.limit);
+
+      let succeeded = 0;
+      let failed = 0;
+      for (const row of rows) {
+        try {
+          const books = await db
+            .select({ bookTitle: bookProfiles.bookTitle })
+            .from(bookProfiles)
+            .where(eq(bookProfiles.authorName, row.authorName));
+          const bookTitles = books.map((b) => b.bookTitle).filter(Boolean);
+          const result = await enrichEnterpriseImpact(row.authorName, bookTitles);
+          await db
+            .update(authorProfiles)
+            .set({
+              earningsCallMentionsJson: JSON.stringify(result),
+              earningsCallMentionsEnrichedAt: new Date(),
+            })
+            .where(eq(authorProfiles.authorName, row.authorName));
+          succeeded++;
+        } catch {
+          failed++;
+        }
+        await new Promise((r) => setTimeout(r, 1000)); // SEC EDGAR rate limit
+      }
+
+      return { processed: rows.length, succeeded, failed };
+    }),
+
+  /** Batch enrich professional profiles for all authors */
+  enrichProfessionalProfileBatch: adminProcedure
+    .input(z.object({
+      limit: z.number().optional().default(20),
+      onlyMissing: z.boolean().optional().default(true),
+    }))
+    .mutation(async ({ input }) => {
+      const { enrichProfessionalProfile } = await import("../enrichment/apollo");
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+
+      const condition = input.onlyMissing
+        ? isNull(authorProfiles.professionalProfileEnrichedAt)
+        : undefined;
+      const rows = await db
+        .select({ authorName: authorProfiles.authorName })
+        .from(authorProfiles)
+        .where(condition)
+        .limit(input.limit);
+
+      let succeeded = 0;
+      let failed = 0;
+      for (const row of rows) {
+        try {
+          const result = await enrichProfessionalProfile(row.authorName);
+          await db
+            .update(authorProfiles)
+            .set({
+              professionalProfileJson: JSON.stringify(result),
+              professionalProfileEnrichedAt: new Date(),
+            })
+            .where(eq(authorProfiles.authorName, row.authorName));
+          succeeded++;
+        } catch {
+          failed++;
+        }
+        await new Promise((r) => setTimeout(r, 1000)); // Wikidata rate limit
+      }
+
+      return { processed: rows.length, succeeded, failed };
+    }),
+
   /** Get academic research data for a single author */
   getAcademicResearch: publicProcedure
     .input(z.object({ authorName: z.string() }))

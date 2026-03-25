@@ -293,6 +293,59 @@ async function checkRapidApi(): Promise<ServiceHealthResult> {
   }
 }
 
+async function checkSecEdgar(): Promise<ServiceHealthResult> {
+  try {
+    const { result: res, latencyMs } = await timed(() =>
+      fetch("https://efts.sec.gov/LATEST/search-index?q=test&size=1", {
+        headers: { "User-Agent": "NCGLibrary/1.0 (mailto:admin@norfolkai.vip)" },
+      })
+    );
+    if (!res.ok) {
+      return error("SEC EDGAR", latencyMs, `HTTP ${res.status}`);
+    }
+    return ok("SEC EDGAR", latencyMs, "EFTS full-text search reachable (free, no key)");
+  } catch (e: unknown) {
+    return error("SEC EDGAR", null, "Network error", String(e));
+  }
+}
+
+async function checkOpenAlex(): Promise<ServiceHealthResult> {
+  try {
+    const { result: res, latencyMs } = await timed(() =>
+      fetch("https://api.openalex.org/works?filter=title.search:test&per_page=1", {
+        headers: { "User-Agent": "NCGLibrary/1.0 (mailto:admin@norfolkai.vip)" },
+      })
+    );
+    if (!res.ok) {
+      return error("OpenAlex", latencyMs, `HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    const count = data?.meta?.count ?? "?";
+    return ok("OpenAlex", latencyMs, `Academic search reachable (free, no key) · ${count} works indexed`);
+  } catch (e: unknown) {
+    return error("OpenAlex", null, "Network error", String(e));
+  }
+}
+
+async function checkGitHub(): Promise<ServiceHealthResult> {
+  try {
+    const { result: res, latencyMs } = await timed(() =>
+      fetch("https://api.github.com/rate_limit", {
+        headers: { "User-Agent": "NCGLibrary/1.0" },
+      })
+    );
+    if (!res.ok) {
+      return error("GitHub API", latencyMs, `HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    const remaining = data?.rate?.remaining ?? "?";
+    const limit = data?.rate?.limit ?? "?";
+    return ok("GitHub API", latencyMs, `Search API reachable · ${remaining}/${limit} requests remaining`);
+  } catch (e: unknown) {
+    return error("GitHub API", null, "Network error", String(e));
+  }
+}
+
 // ─── Router ───────────────────────────────────────────────────────────────────
 
 export const healthCheckRouter = router({
@@ -312,6 +365,9 @@ export const healthCheckRouter = router({
           "tavily",
           "perplexity",
           "rapidapi",
+          "sec_edgar",
+          "openalex",
+          "github",
         ]),
       })
     )
@@ -326,8 +382,26 @@ export const healthCheckRouter = router({
         case "tavily":     return checkTavily();
         case "perplexity": return checkPerplexity();
         case "rapidapi":   return checkRapidApi();
+        case "sec_edgar":  return checkSecEdgar();
+        case "openalex":   return checkOpenAlex();
+        case "github":     return checkGitHub();
       }
     }),
+
+  /** Ping SEC EDGAR full-text search */
+  checkSecEdgar: publicProcedure.mutation(async (): Promise<ServiceHealthResult> => {
+    return checkSecEdgar();
+  }),
+
+  /** Ping OpenAlex API */
+  checkOpenAlex: publicProcedure.mutation(async (): Promise<ServiceHealthResult> => {
+    return checkOpenAlex();
+  }),
+
+  /** Ping GitHub API */
+  checkGitHub: publicProcedure.mutation(async (): Promise<ServiceHealthResult> => {
+    return checkGitHub();
+  }),
 
   /**
    * Run health checks for ALL services in parallel and return results.
@@ -343,13 +417,17 @@ export const healthCheckRouter = router({
       checkTavily(),
       checkPerplexity(),
       checkRapidApi(),
+      checkSecEdgar(),
+      checkOpenAlex(),
+      checkGitHub(),
     ]);
 
     return results.map((r, i) => {
       const services = [
         "Apify", "Google Gemini", "Anthropic (Claude)", "Replicate",
         "YouTube Data API", "Twitter/X API", "Tavily Search",
-        "Perplexity AI", "RapidAPI",
+        "Perplexity AI", "RapidAPI", "SEC EDGAR", "OpenAlex",
+        "GitHub API",
       ];
       if (r.status === "fulfilled") return r.value;
       return error(services[i], null, "Unexpected error", String(r.reason));

@@ -199,11 +199,11 @@ describe("healthCheck.router — checkAll", () => {
     vi.restoreAllMocks();
   });
 
-  it("returns an array of 9 results", async () => {
+  it("returns an array of 12 results", async () => {
     mockFetch(200, {});
     const caller = makeCaller();
     const results = (await caller.checkAll()) as unknown[];
-    expect(results).toHaveLength(9);
+    expect(results).toHaveLength(12);
   });
 
   it("all results have required fields", async () => {

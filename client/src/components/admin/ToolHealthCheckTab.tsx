@@ -33,7 +33,10 @@ type ServiceKey =
   | "twitter"
   | "tavily"
   | "perplexity"
-  | "rapidapi";
+  | "rapidapi"
+  | "sec_edgar"
+  | "openalex"
+  | "github";
 
 interface ServiceHealthResult {
   service: string;
@@ -103,6 +106,24 @@ const SERVICE_META: Record<
     description: "Yahoo Finance, CNBC, LinkedIn, Seeking Alpha endpoints",
     icon: "⚡",
     docsUrl: "https://rapidapi.com",
+  },
+  sec_edgar: {
+    label: "SEC EDGAR",
+    description: "Full-text search of SEC filings (free, no key required)",
+    icon: "🏦",
+    docsUrl: "https://efts.sec.gov/LATEST/",
+  },
+  openalex: {
+    label: "OpenAlex",
+    description: "Academic research database (free, no key required)",
+    icon: "🎓",
+    docsUrl: "https://openalex.org",
+  },
+  github: {
+    label: "GitHub API",
+    description: "Repository search for technical book references",
+    icon: "🐙",
+    docsUrl: "https://docs.github.com/en/rest",
   },
 };
 

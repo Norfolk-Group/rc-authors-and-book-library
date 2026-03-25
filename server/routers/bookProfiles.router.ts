@@ -689,4 +689,165 @@ export const bookProfilesRouter = router({
         .where(eq(bookProfiles.bookTitle, input.bookTitle)).limit(1);
       return rows[0] ?? null;
     }),
+
+  /** Enrich technical references for a book (GitHub + Context7) */
+  enrichTechnicalReferences: adminProcedure
+    .input(z.object({ bookTitle: z.string() }))
+    .mutation(async ({ input }) => {
+      const { enrichTechnicalReferences } = await import("../enrichment/context7");
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+
+      const [book] = await db
+        .select()
+        .from(bookProfiles)
+        .where(eq(bookProfiles.bookTitle, input.bookTitle))
+        .limit(1);
+      if (!book) throw new Error(`Book not found: ${input.bookTitle}`);
+
+      const result = await enrichTechnicalReferences(
+        input.bookTitle,
+        book.summary,
+        book.keyThemes,
+      );
+
+      await db
+        .update(bookProfiles)
+        .set({
+          technicalReferencesJson: JSON.stringify(result),
+          technicalReferencesEnrichedAt: new Date(),
+        })
+        .where(eq(bookProfiles.bookTitle, input.bookTitle));
+
+      return {
+        bookTitle: input.bookTitle,
+        referencesCount: result.totalReferences,
+        technologies: result.technologies,
+        source: result.source,
+        fetchedAt: result.fetchedAt,
+      };
+    }),
+
+  /** Get technical references for a book */
+  getTechnicalReferences: publicProcedure
+    .input(z.object({ bookTitle: z.string() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) return null;
+      const [row] = await db
+        .select({
+          technicalReferencesJson: bookProfiles.technicalReferencesJson,
+          technicalReferencesEnrichedAt: bookProfiles.technicalReferencesEnrichedAt,
+        })
+        .from(bookProfiles)
+        .where(eq(bookProfiles.bookTitle, input.bookTitle))
+        .limit(1);
+      if (!row?.technicalReferencesJson) return null;
+      return {
+        data: JSON.parse(row.technicalReferencesJson),
+        enrichedAt: row.technicalReferencesEnrichedAt,
+      };
+    }),
+
+  /** Get reading notes synced from Notion for a book */
+  getReadingNotes: publicProcedure
+    .input(z.object({ bookTitle: z.string() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) return null;
+      const [row] = await db
+        .select({
+          readingNotesJson: bookProfiles.readingNotesJson,
+          readingNotesSyncedAt: bookProfiles.readingNotesSyncedAt,
+        })
+        .from(bookProfiles)
+        .where(eq(bookProfiles.bookTitle, input.bookTitle))
+        .limit(1);
+      if (!row?.readingNotesJson) return null;
+      return {
+        data: JSON.parse(row.readingNotesJson),
+        syncedAt: row.readingNotesSyncedAt,
+      };
+    }),
+
+  /** Sync reading notes from Notion for a book */
+  syncReadingNotes: adminProcedure
+    .input(z.object({
+      bookTitle: z.string(),
+      notionPageId: z.string(),
+    }))
+    .mutation(async ({ input }) => {
+      const { pullNotesFromNotion } = await import("../enrichment/notion");
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+
+      const notes = await pullNotesFromNotion(input.notionPageId);
+      if (!notes) throw new Error("Failed to pull notes from Notion");
+
+      await db
+        .update(bookProfiles)
+        .set({
+          readingNotesJson: JSON.stringify(notes),
+          readingNotesSyncedAt: new Date(),
+        })
+        .where(eq(bookProfiles.bookTitle, input.bookTitle));
+
+      return {
+        bookTitle: input.bookTitle,
+        hasNotes: !!notes.notes,
+        highlightsCount: notes.highlights.length,
+        status: notes.status,
+        syncedAt: notes.lastEditedAt,
+      };
+    }),
+
+  /** Batch enrich technical references for all books */
+  enrichTechnicalReferencesBatch: adminProcedure
+    .input(z.object({
+      limit: z.number().optional().default(20),
+      onlyMissing: z.boolean().optional().default(true),
+    }))
+    .mutation(async ({ input }) => {
+      const { enrichTechnicalReferences } = await import("../enrichment/context7");
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+
+      const condition = input.onlyMissing
+        ? isNull(bookProfiles.technicalReferencesEnrichedAt)
+        : undefined;
+      const rows = await db
+        .select({
+          bookTitle: bookProfiles.bookTitle,
+          summary: bookProfiles.summary,
+          keyThemes: bookProfiles.keyThemes,
+        })
+        .from(bookProfiles)
+        .where(condition)
+        .limit(input.limit);
+
+      let succeeded = 0;
+      let failed = 0;
+      for (const row of rows) {
+        try {
+          const result = await enrichTechnicalReferences(
+            row.bookTitle,
+            row.summary,
+            row.keyThemes,
+          );
+          await db
+            .update(bookProfiles)
+            .set({
+              technicalReferencesJson: JSON.stringify(result),
+              technicalReferencesEnrichedAt: new Date(),
+            })
+            .where(eq(bookProfiles.bookTitle, row.bookTitle));
+          succeeded++;
+        } catch {
+          failed++;
+        }
+        await new Promise((r) => setTimeout(r, 1500)); // GitHub rate limit
+      }
+
+      return { processed: rows.length, succeeded, failed };
+    }),
 });

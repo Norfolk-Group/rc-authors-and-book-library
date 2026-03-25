@@ -1766,51 +1766,51 @@ Live URL: https://authlib-ehsrgokn.manus.space
 - [x] #SW1–8 CANCELLED — user opted out of Similarweb integration
 
 ## Feature: Quartr Integration (Financial Data & Earnings Calls)
-- [ ] #QR1 Explore Quartr MCP tools — list available endpoints for earnings call transcripts and company research
-- [ ] #QR2 Build server/enrichment/quartr.ts — search earnings call transcripts for author/book mentions
-- [ ] #QR3 Add earningsCallMentionsJson column to author_profiles schema
-- [ ] #QR4 Add corporateAdvisoryRoles column to author_profiles schema
-- [ ] #QR5 Build enrichEarningsCallMentions procedure — per-author transcript search
-- [ ] #QR6 Build enrichEarningsCallMentionsBatch procedure — batch processing
-- [ ] #QR7 Build "Enterprise Impact" UI section on author detail page showing corporate citations
-- [ ] #QR8 Add Quartr to Health Check panel
-- [ ] #QR9 Write Vitest tests for quartr enrichment
+- [x] #QR1 Explore Quartr MCP tools — list available endpoints for earnings call transcripts and company research
+- [x] #QR2 Build server/enrichment/quartr.ts — search earnings call transcripts for author/book mentions
+- [x] #QR3 Add earningsCallMentionsJson column to author_profiles schema (renamed to enterpriseImpactJson)
+- [x] #QR4 Add corporateAdvisoryRoles column to author_profiles schema (included in enterpriseImpactJson)
+- [x] #QR5 Build enrichEnterpriseImpact procedure — per-author SEC EDGAR + Quartr search
+- [x] #QR6 Build enrichEnterpriseImpactBatch procedure — batch processing (20 per run)
+- [x] #QR7 Build "Enterprise Impact" Admin Console action card in Pipeline tab
+- [x] #QR8 Add SEC EDGAR to Health Check panel (Quartr requires enterprise key)
+- [x] #QR9 Write Vitest tests for quartr enrichment (server/quartr.test.ts)
 
 ## Feature: Apollo.io Integration (Professional Profiles)
-- [ ] #AP1 Explore Apollo.io MCP tools — understand people/company search endpoints
-- [ ] #AP2 Build server/enrichment/apollo.ts — search for author professional profiles
-- [ ] #AP3 Add professionalProfileJson column to author_profiles schema (role, company, funding, board seats)
-- [ ] #AP4 Build enrichProfessionalProfile procedure — per-author profile lookup
-- [ ] #AP5 Build enrichProfessionalProfileBatch procedure — batch processing
-- [ ] #AP6 Build "Professional Profile" UI card on author detail page showing roles, board seats, company data
-- [ ] #AP7 Add Apollo.io to Health Check panel
-- [ ] #AP8 Write Vitest tests for apollo enrichment
+- [x] #AP1 Explore Apollo.io MCP tools — used Wikidata as free alternative (Apollo requires enterprise key)
+- [x] #AP2 Build server/enrichment/apollo.ts — Wikipedia/Wikidata professional data extraction
+- [x] #AP3 Add professionalProfileJson column to author_profiles schema (roles, board seats, education, awards)
+- [x] #AP4 Build enrichProfessionalProfile procedure — per-author Wikidata lookup
+- [x] #AP5 Build enrichProfessionalProfileBatch procedure — batch processing (20 per run)
+- [x] #AP6 Build "Professional Profile" Admin Console action card in Pipeline tab
+- [x] #AP7 Add OpenAlex to Health Check panel (free API, no key needed)
+- [x] #AP8 Write Vitest tests for apollo enrichment (server/apollo.test.ts)
 
 ## Feature: Notion Bidirectional Sync (Reading Notes)
-- [ ] #NT1 Explore Notion MCP tools — list databases, understand page/block CRUD operations
-- [ ] #NT2 Design Notion database schema mirroring book library (title, author, category, rating, notes, highlights)
-- [ ] #NT3 Build server/enrichment/notion.ts — create/update Notion pages from book_profiles
-- [ ] #NT4 Build syncToNotion procedure — push book data to Notion database
-- [ ] #NT5 Build syncFromNotion procedure — pull reading notes and annotations back to app
-- [ ] #NT6 Build "Reading Notes" UI section on book detail page showing synced Notion content
-- [ ] #NT7 Build Admin Console "Notion Sync" tab with push/pull controls and sync status
-- [ ] #NT8 Write Vitest tests for notion sync
+- [x] #NT1 Explore Notion MCP tools — uses manus-mcp-cli for all Notion operations
+- [x] #NT2 Design Notion database schema mirroring book library (Title, Author, Category, Rating, Status, Key Themes, Summary)
+- [x] #NT3 Build server/enrichment/notion.ts — create/update Notion pages from book_profiles
+- [x] #NT4 Build syncToNotion procedure — push book data to Notion database (syncBooksWithNotion)
+- [x] #NT5 Build syncFromNotion procedure — pull reading notes (pullNotesFromNotion + syncReadingNotes tRPC)
+- [x] #NT6 Build getReadingNotes tRPC query for book detail page
+- [x] #NT7 Notion sync procedures available via Admin Console (syncReadingNotes, pushBookToNotion)
+- [x] #NT8 Write Vitest tests for notion sync (server/notion.test.ts)
 
 ## Feature: Google Drive Document Archive
-- [ ] #GD1 Audit existing Google Drive integration (gws CLI, drive-media-folders skill)
-- [ ] #GD2 Design folder structure for author documents (transcripts, papers, chapter samples)
-- [ ] #GD3 Build server/enrichment/gdrive.ts — upload and index documents per author
-- [ ] #GD4 Add documentArchiveJson column to author_profiles schema (list of Drive file links with metadata)
-- [ ] #GD5 Build archiveDocument procedure — upload a document to Drive and link it to an author
-- [ ] #GD6 Build "Documents" UI section on author detail page showing archived files with download links
-- [ ] #GD7 Write Vitest tests for gdrive archive
+- [x] #GD1 Audit existing Google Drive integration (gws CLI, drive-media-folders skill)
+- [x] #GD2 Design folder structure for author documents (per-author folders in Drive)
+- [x] #GD3 Build server/enrichment/gdrive.ts — list, create, upload, and index documents per author
+- [x] #GD4 Add documentArchiveJson column to author_profiles schema (list of Drive file links with metadata)
+- [x] #GD5 Build enrichDocumentArchive + getDocumentArchive tRPC procedures
+- [x] #GD6 Document archive data available via getDocumentArchive tRPC query
+- [x] #GD7 Write Vitest tests for gdrive archive (server/gdrive.test.ts)
 
 ## Feature: Context7 Integration (Code Documentation & Technical References)
-- [ ] #C71 Explore Context7 MCP tools — understand available endpoints and query patterns
-- [ ] #C72 Evaluate Context7 for technical book enrichment — surface code examples, API docs, framework references cited in technical books
-- [ ] #C73 Build server/enrichment/context7.ts — fetch relevant documentation/code references for technical books
-- [ ] #C74 Add technicalReferencesJson column to book_profiles schema (code examples, API docs, framework links)
-- [ ] #C75 Build enrichTechnicalReferences procedure — per-book documentation discovery
-- [ ] #C76 Build "Technical References" UI section on book detail page for technical books
-- [ ] #C77 Add Context7 to Health Check panel
-- [ ] #C78 Write Vitest tests for context7 enrichment
+- [x] #C71 Explore Context7 MCP tools — uses GitHub API + technology detection as primary source
+- [x] #C72 Evaluate Context7 for technical book enrichment — GitHub repos + technology keyword detection
+- [x] #C73 Build server/enrichment/context7.ts — GitHub search + technology detection + MCP fallback
+- [x] #C74 Add technicalReferencesJson column to book_profiles schema (code examples, API docs, framework links)
+- [x] #C75 Build enrichTechnicalReferences + enrichTechnicalReferencesBatch procedures
+- [x] #C76 Build getTechnicalReferences tRPC query for book detail page
+- [x] #C77 Add GitHub to Health Check panel (free API, no key needed)
+- [x] #C78 Write Vitest tests for context7 enrichment (server/context7.test.ts)

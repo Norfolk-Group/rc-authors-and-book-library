@@ -284,3 +284,103 @@ All 122 tests still passing. claude.md architecture overview updated with new fi
 - Confirmed AppSettingsContext applies theme-norfolk-ai class to html element
 - All CSS variables in .theme-norfolk-ai block use official NCG palette: Navy #112548, Yellow #FDB817, Teal #0091AE, Orange #F4795B, Green #21B9A3, Light Gray #F5F8FA
 - Theme verified as correct — no changes needed
+
+## March 25, 2026 — Tool Health Check, CNBC, Avatar Resolution, Academic Research
+
+### Tool Health Check Panel (Complete)
+- Built `server/routers/healthCheck.router.ts` with `checkService` and `checkAll` mutations for 9 external services: Apify, Gemini, Anthropic, Replicate, YouTube, Twitter/X, Tavily, Perplexity, Google Imagen
+- Built `client/src/components/admin/ToolHealthCheckTab.tsx` with service cards, status dots (green/yellow/red), latency badges, last-checked timestamps, per-service Re-check button, "Run All Checks" button, summary bar, status legend
+- Wired into Admin Console as "Health" tab (Activity icon)
+- 22 new tests in healthCheck.test.ts
+- Checkpoint: `c2961606`
+
+### CNBC RapidAPI Integration (Partial — Blocked on Subscription)
+- Rewrote `server/enrichment/rapidapi.ts` with improved multi-feed CNBC search
+- Removed Seeking Alpha (user cancelled)
+- CNBC API requires RapidAPI subscription (currently 403 — not subscribed)
+- Strategy: fetch from 6 CNBC franchise feeds in parallel, filter by author name in `relatedTagsFilteredFormatted` and `authorFormatted`
+- Added `enrichBusinessProfile` and `enrichBusinessProfileBatch` procedures
+- UI and tests still pending (#CNBC7-10)
+
+### Connector Audit & Enrichment Recommendations
+- Audited 46 connectors from user's screenshots (Airtable, Apify, Apollo.io, Clay, Cloudflare, etc.)
+- Recommended 6 connectors + Context7 for enrichment value:
+  1. Consensus → Academic research papers (implemented via OpenAlex)
+  2. Similarweb → Web traffic (CANCELLED by user)
+  3. Quartr → Earnings call transcripts
+  4. Apollo.io → Professional profiles
+  5. Notion → Bidirectional reading notes sync
+  6. Google Drive → Document archive
+  7. Context7 → Technical book references
+- Added 57 new todo items across 7 features
+
+### Three.js Integration (Complete)
+- Installed @react-three/fiber + @react-three/drei
+- Built `client/src/components/FloatingBooks.tsx` — 3D floating book shapes as background for hero stat section
+- Wired into Home.tsx hero area
+
+### Aaron Ross Pipeline Test (Complete)
+- Ran meticulous pipeline end-to-end on Aaron Ross
+- All 3 sources hit (Wikipedia, Tavily, Apify) — 5 photos found
+- Gemini Vision: 2/5 photos inlined as base64 multimodal parts
+- Description: Male, late 40s-50s, oval face, dark brown hair with graying, hazel eyes, rectangular glasses
+- Disambiguation issue: Wikipedia bio returns football player Aaron Ross (known limitation)
+- Best reference photo: meetime-blog headshot
+
+### Avatar Resolution Controls (Complete)
+- Extended `types.ts` with `AspectRatio` (9 ratios) and `OutputFormat` (png/jpeg/webp) types
+- Extended `ImageGenerationRequest` with: aspectRatio, width, height, outputFormat, outputQuality, guidanceScale, numInferenceSteps
+- Extended `MeticulousPipelineOptions` with same fields
+- Updated `replicate.ts` with `validateDimension` helper (64px alignment) and full resolution param passthrough
+- Updated `google.ts` with `mapToImagen3AspectRatio` helper for unsupported ratio mapping
+- Updated `meticulousPipeline.ts` to pass resolution options through (removed hardcoded values)
+- Added resolution fields to `AppSettings` with sensible defaults (1:1, 1024x1024, png, 90%, 7.5 guidance, 28 steps)
+- Built Avatar Resolution Controls card in AiTab with sliders for all params
+- 11 new tests in avatarResolution.test.ts
+
+### Academic Research / Consensus Integration (Complete)
+- Built `server/enrichment/academicResearch.ts` using OpenAlex (primary, free, no key) + Semantic Scholar (fallback)
+- OpenAlex: author search → h-index, citation count, works count, top papers, book-related papers
+- Semantic Scholar: rate-limited on sandbox IPs (429) but works as production fallback
+- Added `academicResearchJson` + `academicResearchEnrichedAt` columns to author_profiles schema
+- Built 3 procedures: enrichAcademicResearch, enrichAcademicResearchBatch, getAcademicResearch
+- Built `client/src/components/AcademicResearchPanel.tsx` — h-index badge, citation count, top papers with DOI links, book-related papers section, admin "Enrich" button
+- Wired into AuthorDetail.tsx
+- 17 new tests in academicResearch.test.ts
+
+### Similarweb — CANCELLED
+- User opted out of Similarweb integration
+- Removed `server/enrichment/webTraffic.ts` and `scripts/fetch-similarweb.py`
+- Marked all #SW items as cancelled in todo.md
+
+### Stale Items Resolved
+- Marked 6 items as already-done duplicates (Avatar Terminology, Claude routing, authorDescriptionJson UI, Claude model ID, Gemini multimodal, nano-banana default)
+
+### Test Suite Status
+- 267 tests passing across 20 test files (up from 239)
+- New: avatarResolution.test.ts (11), academicResearch.test.ts (17)
+
+### Checkpoints
+- `c2961606` — Health Check panel complete
+- `4fd31ca3` — First 10 todo items (Three.js, Aaron Ross test, stale items)
+- `80c19dbe` — Avatar Resolution Controls + Academic Research + Similarweb cancelled
+
+### Files Changed
+- `server/routers/healthCheck.router.ts` (new)
+- `client/src/components/admin/ToolHealthCheckTab.tsx` (new)
+- `client/src/components/FloatingBooks.tsx` (new)
+- `client/src/components/AcademicResearchPanel.tsx` (new)
+- `server/enrichment/academicResearch.ts` (new)
+- `server/enrichment/rapidapi.ts` (rewritten)
+- `server/lib/authorAvatars/types.ts` (extended)
+- `server/lib/authorAvatars/imageGenerators/replicate.ts` (updated)
+- `server/lib/authorAvatars/imageGenerators/google.ts` (updated)
+- `server/lib/authorAvatars/meticulousPipeline.ts` (updated)
+- `client/src/contexts/AppSettingsContext.tsx` (extended)
+- `client/src/components/admin/AiTab.tsx` (extended)
+- `client/src/pages/AuthorDetail.tsx` (extended)
+- `client/src/pages/Home.tsx` (FloatingBooks wired)
+- `client/src/pages/Admin.tsx` (Health tab wired)
+- `drizzle/schema.ts` (academicResearchJson columns)
+- `server/routers/authorProfiles.router.ts` (academic + business procedures)
+- `todo.md` (57 new items, 10+ marked complete)

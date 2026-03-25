@@ -208,6 +208,29 @@ export const authorProfiles = mysqlTable("author_profiles", {
   webTrafficJson: text("webTrafficJson"),
   /** When webTrafficJson was last enriched */
   webTrafficEnrichedAt: timestamp("webTrafficEnrichedAt"),
+  /**
+   * JSON string of EnterpriseImpactResult: filingMentions, earningsCallMentions,
+   * advisoryRoles, impactScore, uniqueCompanies.
+   * Source: SEC EDGAR + Quartr API.
+   */
+  earningsCallMentionsJson: text("earningsCallMentionsJson"),
+  /** When earningsCallMentionsJson was last enriched */
+  earningsCallMentionsEnrichedAt: timestamp("earningsCallMentionsEnrichedAt"),
+  /**
+   * JSON string of ProfessionalProfileResult: roles, boardSeats, education,
+   * awards, companyAffiliations.
+   * Source: Wikipedia/Wikidata + Apollo.io.
+   */
+  professionalProfileJson: text("professionalProfileJson"),
+  /** When professionalProfileJson was last enriched */
+  professionalProfileEnrichedAt: timestamp("professionalProfileEnrichedAt"),
+  /**
+   * JSON string of DocumentArchive: documents list with Drive file metadata.
+   * Source: Google Drive.
+   */
+  documentArchiveJson: text("documentArchiveJson"),
+  /** When documentArchiveJson was last indexed */
+  documentArchiveEnrichedAt: timestamp("documentArchiveEnrichedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, (table) => ({
@@ -277,6 +300,21 @@ export const bookProfiles = mysqlTable("book_profiles", {
    * Shape: {fullSummary: string, keyInsights: string[], quotes: string[], similarBooks: [{title, author, reason}], enrichedAt: string, model: string}
    */
   richSummaryJson: text("richSummaryJson"),
+  /**
+   * JSON string of TechnicalReferencesResult: code references, GitHub repos,
+   * documentation links for technical books.
+   * Source: GitHub API + Context7.
+   */
+  technicalReferencesJson: text("technicalReferencesJson"),
+  /** When technicalReferencesJson was last enriched */
+  technicalReferencesEnrichedAt: timestamp("technicalReferencesEnrichedAt"),
+  /**
+   * JSON string of ReadingNote from Notion sync: notes, highlights, status.
+   * Source: Notion MCP.
+   */
+  readingNotesJson: text("readingNotesJson"),
+  /** When readingNotesJson was last synced from Notion */
+  readingNotesSyncedAt: timestamp("readingNotesSyncedAt"),
   enrichedAt: timestamp("enrichedAt"),
   /** Google Drive folder ID for this book's folder in 02 — Knowledge Library / 02 — Books by Category */
   driveFolderId: varchar("driveFolderId", { length: 128 }),

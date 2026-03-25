@@ -61,6 +61,7 @@ import {
   type LucideIcon,
   Heart,
   Activity,
+  Briefcase,
 } from "lucide-react";
 import { AUTHORS, BOOKS } from "@/lib/libraryData";
 import { getAuthorAvatar } from "@/lib/authorAvatars";
@@ -304,6 +305,8 @@ export default function Admin() {
   const enrichSocialStatsMutation = trpc.authorProfiles.enrichSocialStatsBatch.useMutation();
   const enrichRichBioMutation = trpc.authorProfiles.enrichRichBioBatch.useMutation();
   const enrichRichSummaryMutation = trpc.bookProfiles.enrichRichSummaryBatch.useMutation();
+  const enrichEnterpriseBatchMutation = trpc.authorProfiles.enrichEnterpriseImpactBatch.useMutation();
+  const enrichProfessionalBatchMutation = trpc.authorProfiles.enrichProfessionalProfileBatch.useMutation();
 
   // -- Action states --
   const [regenerateState, setRegenerateState] = useState<ActionState>(INITIAL_STATE);
@@ -323,6 +326,8 @@ export default function Admin() {
   const [enrichSocialStatsState, setEnrichSocialStatsState] = useState<ActionState>(INITIAL_STATE);
   const [enrichRichBioState, setEnrichRichBioState] = useState<ActionState>(INITIAL_STATE);
   const [enrichRichSummaryState, setEnrichRichSummaryState] = useState<ActionState>(INITIAL_STATE);
+  const [enrichEnterpriseState, setEnrichEnterpriseState] = useState<ActionState>(INITIAL_STATE);
+  const [enrichProfessionalState, setEnrichProfessionalState] = useState<ActionState>(INITIAL_STATE);
 
   // -- Research Cascade stats --
   const authorStats = trpc.cascade.authorStats.useQuery(undefined, { staleTime: 60_000 });
@@ -348,6 +353,8 @@ export default function Admin() {
     enrichSocialStatsState,
     enrichRichBioState,
     enrichRichSummaryState,
+    enrichEnterpriseState,
+    enrichProfessionalState,
   ].some((s) => s.status === "running");
 
   const recordAction = useCallback(
@@ -962,6 +969,42 @@ export default function Admin() {
     }
   }, [enrichRichSummaryState.status, enrichRichSummaryMutation, recordAction]);
 
+  // -- Enrich Enterprise Impact (SEC EDGAR + Quartr) --
+  const handleEnrichEnterprise = useCallback(async () => {
+    if (enrichEnterpriseState.status === "running") return;
+    const start = Date.now();
+    setEnrichEnterpriseState({ status: "running", progress: 0, message: "Searching SEC EDGAR for author mentions in filings…", done: 0, total: 0, failed: 0 });
+    try {
+      const result = await enrichEnterpriseBatchMutation.mutateAsync({ limit: 20, onlyMissing: true });
+      setEnrichEnterpriseState({ status: "done", progress: 100, message: `Enriched ${result.succeeded} authors`, done: result.succeeded, total: result.processed, failed: result.failed });
+      toast.success(`Enterprise impact enrichment complete: ${result.succeeded} authors`);
+      await recordAction("enrich-enterprise-impact", "Enrich Enterprise Impact", start, "success", result.succeeded);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setEnrichEnterpriseState((s) => ({ ...s, status: "error", message: msg }));
+      toast.error("Enterprise impact enrichment failed: " + msg);
+      await recordAction("enrich-enterprise-impact", "Enrich Enterprise Impact", start, `error: ${msg}`);
+    }
+  }, [enrichEnterpriseState.status, enrichEnterpriseBatchMutation, recordAction]);
+
+  // -- Enrich Professional Profiles (Wikidata + Apollo) --
+  const handleEnrichProfessional = useCallback(async () => {
+    if (enrichProfessionalState.status === "running") return;
+    const start = Date.now();
+    setEnrichProfessionalState({ status: "running", progress: 0, message: "Fetching professional data from Wikidata…", done: 0, total: 0, failed: 0 });
+    try {
+      const result = await enrichProfessionalBatchMutation.mutateAsync({ limit: 20, onlyMissing: true });
+      setEnrichProfessionalState({ status: "done", progress: 100, message: `Enriched ${result.succeeded} authors`, done: result.succeeded, total: result.processed, failed: result.failed });
+      toast.success(`Professional profile enrichment complete: ${result.succeeded} authors`);
+      await recordAction("enrich-professional-profile", "Enrich Professional Profiles", start, "success", result.succeeded);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setEnrichProfessionalState((s) => ({ ...s, status: "error", message: msg }));
+      toast.error("Professional profile enrichment failed: " + msg);
+      await recordAction("enrich-professional-profile", "Enrich Professional Profiles", start, `error: ${msg}`);
+    }
+  }, [enrichProfessionalState.status, enrichProfessionalBatchMutation, recordAction]);
+
   // -- Stats for Research Cascade --
   const aStats = authorStats.data;
   const bStats = bookStats.data;
@@ -1311,6 +1354,32 @@ export default function Admin() {
               confirmDescription="This runs two LLM calls per book (research pass + write pass). Books with existing rich summaries will be skipped. Processes 10 books per run."
               onRun={handleEnrichRichSummary}
               buttonLabel="Enrich Rich Summaries"
+              disabled={anyRunning}
+            />
+            <ActionCard
+              title="Enrich Enterprise Impact"
+              description="Search SEC EDGAR full-text search for mentions of each author in corporate filings, earnings calls, and annual reports. Free API, no key needed. Processes 20 authors per run."
+              icon={Briefcase}
+              actionKey="enrich-enterprise-impact"
+              state={enrichEnterpriseState}
+              lastRun={getLastRun("enrich-enterprise-impact")}
+              confirmTitle="Enrich enterprise impact for all authors?"
+              confirmDescription="This will search SEC EDGAR for each author's mentions in corporate filings. Authors already enriched will be skipped. Processes 20 authors per run."
+              onRun={handleEnrichEnterprise}
+              buttonLabel="Enrich Enterprise"
+              disabled={anyRunning}
+            />
+            <ActionCard
+              title="Enrich Professional Profiles"
+              description="Fetch structured professional data from Wikidata (alma mater, employers, awards, board memberships) for each author. Free API, no key needed. Processes 20 authors per run."
+              icon={Users}
+              actionKey="enrich-professional-profile"
+              state={enrichProfessionalState}
+              lastRun={getLastRun("enrich-professional-profile")}
+              confirmTitle="Enrich professional profiles for all authors?"
+              confirmDescription="This will query Wikidata for each author's professional background. Authors already enriched will be skipped. Processes 20 authors per run."
+              onRun={handleEnrichProfessional}
+              buttonLabel="Enrich Profiles"
               disabled={anyRunning}
             />
           </TabsContent>

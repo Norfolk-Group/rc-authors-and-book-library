@@ -33,6 +33,7 @@ import {
   BarChart2,
   ChevronDown,
   ChevronUp,
+  Loader2,
 } from "lucide-react";
 import { AUTHORS, CATEGORY_COLORS } from "@/lib/libraryData";
 import { canonicalName } from "@/lib/authorAliases";
@@ -41,6 +42,7 @@ import { AvatarUpload } from "@/components/AvatarUpload";
 import { fireConfetti } from "@/hooks/useConfetti";
 import authorBios from "@/lib/authorBios.json";
 import { useAppSettings } from "@/contexts/AppSettingsContext";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { PlatformPills } from "@/components/library/PlatformPills";
 import type { SocialStatsResult } from "../../../../server/enrichment/socialStats";
 
@@ -84,7 +86,19 @@ function StatBadge({ icon, label, value }: StatBadgeProps) {
  * Collapsible panel that shows the raw authorDescriptionJson (AI research output).
  * Renders a structured summary of demographics, physical features, and style notes.
  */
-function AuthorDescriptionCollapsible({ json }: { json: string }) {
+function AuthorDescriptionCollapsible({ json, authorName }: { json: string; authorName: string }) {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+  const utils = trpc.useUtils();
+  const refreshMutation = trpc.authorProfiles.generateAvatar.useMutation({
+    onSuccess: () => {
+      toast.success(`Research description refreshed for ${authorName}`);
+      void utils.authorProfiles.get.invalidate({ authorName });
+    },
+    onError: (err) => {
+      toast.error(`Refresh failed: ${err.message}`);
+    },
+  });
   const [open, setOpen] = useState(false);
   let parsed: Record<string, unknown> | null = null;
   try {
@@ -169,6 +183,25 @@ function AuthorDescriptionCollapsible({ json }: { json: string }) {
                 <ExternalLink className="w-3 h-3" />
                 View photo
               </a>
+            </div>
+          )}
+          {isAdmin && (
+            <div className="pt-1 border-t border-border/40">
+              <button
+                onClick={() => refreshMutation.mutate({
+                  authorName,
+                  forceRegenerate: true,
+                })}
+                disabled={refreshMutation.isPending}
+                className="inline-flex items-center gap-1.5 text-[11px] text-primary hover:underline disabled:opacity-50"
+              >
+                {refreshMutation.isPending ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-3 h-3" />
+                )}
+                Refresh Description
+              </button>
             </div>
           )}
         </div>
@@ -397,7 +430,7 @@ export function AuthorBioPanel({ author, onClose }: AuthorBioPanelProps) {
 
       {/* ── Research Description (authorDescriptionJson) ── */}
       {profile?.authorDescriptionJson && (
-        <AuthorDescriptionCollapsible json={profile.authorDescriptionJson} />
+        <AuthorDescriptionCollapsible json={profile.authorDescriptionJson} authorName={displayName} />
       )}
       {/* ── Social Stats Badges ── */}
       {statBadges.length > 0 && (
