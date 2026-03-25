@@ -1834,3 +1834,11 @@ Live URL: https://authlib-ehsrgokn.manus.space
 ### Code Hygiene
 - [x] Resolve TODO comment in server/db.ts:92 (replaced with note pointing to routers)
 - [x] Resolve TODO comment in wikipedia.ts:27 (no longer present; already cleaned up)
+
+## Feature: Dependencies Tab in Admin Console (March 25, 2026)
+- [x] Create DependenciesTab component with two sections: Manus Native and Third-Party/Optional
+- [x] Manus Native section: Database (TiDB), OAuth, S3 Storage, LLM (invokeLLM), Image Generation, Notifications, Analytics
+- [x] Third-Party section: 16 services — Gemini, Anthropic, Apify, Replicate, Tavily, Perplexity, YouTube, Twitter, RapidAPI, Google Books, Wikipedia/Wikidata, SEC EDGAR, OpenAlex, GitHub, Google Drive, Notion
+- [x] Each dependency shows: name, type badge (Native/Optional), description, features, env vars, status indicator, latency, docs link
+- [x] Add "dependencies" tab trigger and content in Admin.tsx
+- [x] Write vitest tests for the dependencies tab data structure (25 tests, all passing)
