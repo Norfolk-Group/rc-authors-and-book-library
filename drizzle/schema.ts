@@ -318,6 +318,30 @@ export const bookProfiles = mysqlTable("book_profiles", {
   /** When readingNotesJson was last synced from Notion */
   readingNotesSyncedAt: timestamp("readingNotesSyncedAt"),
   enrichedAt: timestamp("enrichedAt"),
+  /**
+   * Physical/digital format(s) the user owns.
+   * - physical: print copy only
+   * - digital: ebook/PDF only
+   * - audio: audiobook only
+   * - physical_digital: print + ebook
+   * - physical_audio: print + audiobook
+   * - digital_audio: ebook + audiobook
+   * - all: all three formats
+   * - none: no copy owned (reference/wishlist entry)
+   */
+  format: mysqlEnum("format", ["physical", "digital", "audio", "physical_digital", "physical_audio", "digital_audio", "all", "none"]),
+  /**
+   * Possession/reading status for this book.
+   * - owned: user owns a copy
+   * - wishlist: user wants to acquire it
+   * - reference: tracking for research/reference, no ownership intended
+   * - borrowed: borrowed from library/friend
+   * - gifted: gifted to someone else
+   * - read: finished reading
+   * - reading: currently reading
+   * - unread: owned but not yet read
+   */
+  possessionStatus: mysqlEnum("possessionStatus", ["owned", "wishlist", "reference", "borrowed", "gifted", "read", "reading", "unread"]),
   /** Google Drive folder ID for this book's folder in 02 — Knowledge Library / 02 — Books by Category */
   driveFolderId: varchar("driveFolderId", { length: 128 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

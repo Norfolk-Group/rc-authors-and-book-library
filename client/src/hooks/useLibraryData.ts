@@ -52,11 +52,14 @@ interface UseLibraryDataParams {
   authorSort: AuthorSort;
   bookSort: BookSort;
   enrichFilter: BookEnrichmentLevel | "all";
+  possessionFilter?: string;
 }
 
 export function useLibraryData({
   query,
   selectedCategories,
+  // possessionFilter used below in filteredBooks
+  possessionFilter = "all",
   authorSort,
   bookSort,
   enrichFilter,
@@ -158,7 +161,7 @@ export function useLibraryData({
   }, [bookFreshnessQuery.data]);
 
   const bookInfoMap = useMemo(() => {
-    const map = new Map<string, { summary?: string; rating?: string; ratingCount?: number; publishedDate?: string; keyThemes?: string }>();
+    const map = new Map<string, { summary?: string; rating?: string; ratingCount?: number; publishedDate?: string; keyThemes?: string; format?: string | null; possessionStatus?: string | null }>();
     for (const p of bookCoversQuery.data ?? []) {
       const hasRating = p.rating && String(p.rating).trim() !== '' && parseFloat(String(p.rating)) > 0;
       map.set(p.bookTitle.replace(/[?!.,;:]+$/, "").toLowerCase(), {
@@ -167,6 +170,8 @@ export function useLibraryData({
         ratingCount: hasRating && p.ratingCount ? Number(p.ratingCount) : undefined,
         publishedDate: p.publishedDate ?? undefined,
         keyThemes: p.keyThemes ?? undefined,
+        format: (p as { format?: string | null }).format ?? null,
+        possessionStatus: (p as { possessionStatus?: string | null }).possessionStatus ?? null,
       });
     }
     return map;
@@ -355,7 +360,10 @@ export function useLibraryData({
       const profile = bookCoversQuery.data?.find((p) => p.bookTitle.replace(/[?!.,;:]+$/, "").toLowerCase() === tk) ?? null;
       const level = getBookEnrichmentLevel(profile as Parameters<typeof getBookEnrichmentLevel>[0]);
       const matchesEnrich = enrichFilter === "all" || level === enrichFilter;
-      return matchesCat && matchesQ && matchesEnrich;
+      // Possession/format filter
+      const bookInfo = bookInfoMap.get(tk);
+      const matchesPossession = possessionFilter === "all" || bookInfo?.possessionStatus === possessionFilter;
+      return matchesCat && matchesQ && matchesEnrich && matchesPossession;
     }).sort((a, b) => {
       switch (bookSort) {
         case "name-asc": return a.name.localeCompare(b.name);
@@ -385,7 +393,7 @@ export function useLibraryData({
         default: return a.name.localeCompare(b.name);
       }
     });
-  }, [query, selectedCategories, bookSort, enrichFilter, bookCoversQuery.data, bookFavoritesQuery.data]);
+  }, [query, selectedCategories, bookSort, enrichFilter, possessionFilter, bookCoversQuery.data, bookFavoritesQuery.data, bookInfoMap]);
 
   const filteredAudio = useMemo(() => {
     const q = query.toLowerCase();

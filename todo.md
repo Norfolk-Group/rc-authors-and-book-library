@@ -2052,3 +2052,12 @@ Live URL: https://authlib-ehsrgokn.manus.space
 - [ ] Add Create/Edit/Delete Author forms
 - [ ] Add Create/Edit/Delete Book forms
 - [ ] Add Create/Edit/Delete Media content forms
+
+## Session March 26, 2026 — Three Improvements
+- [x] Remove false-positive non-person entries (e.g. "active listening") from libraryData.ts — confirmed DB is clean, no false positives
+- [ ] Add Drive scan validation to reject folder names that are not person/entity names
+- [x] Add format field to book_profiles (physical, digital, audio, both, none)
+- [x] Add possessionStatus field to book_profiles (owned, wishlist, reference, borrowed, gifted)
+- [x] Add format/possession badges on book cards
+- [x] Add format and possession filters within Books tab
+- [x] Build Author detail page Content Hub section with all platform logos + content items (2x3 grid with icons, sublabels, hover effects)

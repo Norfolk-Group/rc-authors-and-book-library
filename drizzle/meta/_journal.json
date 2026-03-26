@@ -211,6 +211,13 @@
       "when": 1774473511545,
       "tag": "0029_burly_peter_quill",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "5",
+      "when": 1774536066538,
+      "tag": "0030_lethal_clea",
+      "breakpoints": true
     }
   ]
 }

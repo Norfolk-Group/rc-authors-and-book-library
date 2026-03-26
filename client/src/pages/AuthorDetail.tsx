@@ -37,6 +37,9 @@ import {
   ChevronUp,
   Globe,
   ArrowRight,
+  Mic,
+  Mail,
+  Presentation,
 } from "lucide-react";
 import { AUTHORS, CATEGORY_COLORS } from "@/lib/libraryData";
 import { canonicalName } from "@/lib/authorAliases";
@@ -615,6 +618,67 @@ export default function AuthorDetail() {
             </div>
           </section>
         )}
+
+        {/* ── Content Hub ── */}
+        {(() => {
+          // Build a list of all content destinations for this author
+          const hubs: { icon: React.ReactNode; label: string; sublabel: string; url: string; color: string }[] = [];
+
+          // Social / writing platforms
+          if (profile?.substackUrl) hubs.push({ icon: <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current" aria-hidden><path d="M22.539 8.242H1.46V5.406h21.08v2.836zM1.46 10.812V24L12 18.11 22.54 24V10.812H1.46zM22.54 0H1.46v2.836h21.08V0z"/></svg>, label: "Substack", sublabel: socialStats?.substack?.postCount ? `${socialStats.substack.postCount} posts` : "Newsletter & posts", url: profile.substackUrl, color: "#FF6719" });
+          if (profile?.mediumUrl) hubs.push({ icon: <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current" aria-hidden><path d="M13.54 12a6.8 6.8 0 01-6.77 6.82A6.8 6.8 0 010 12a6.8 6.8 0 016.77-6.82A6.8 6.8 0 0113.54 12zM20.96 12c0 3.54-1.51 6.42-3.38 6.42-1.87 0-3.39-2.88-3.39-6.42s1.52-6.42 3.39-6.42 3.38 2.88 3.38 6.42M24 12c0 3.17-.53 5.75-1.19 5.75-.66 0-1.19-2.58-1.19-5.75s.53-5.75 1.19-5.75C23.47 6.25 24 8.83 24 12z"/></svg>, label: "Medium", sublabel: "Articles & essays", url: profile.mediumUrl, color: "#000000" });
+          if (profile?.youtubeUrl) hubs.push({ icon: <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current" aria-hidden><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>, label: "YouTube", sublabel: "Videos & talks", url: profile.youtubeUrl, color: "#FF0000" });
+          if (profile?.podcastUrl) hubs.push({ icon: <Mic className="w-5 h-5" />, label: "Podcast", sublabel: "Audio episodes", url: profile.podcastUrl, color: "#8B5CF6" });
+          if (profile?.twitterUrl) hubs.push({ icon: <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current" aria-hidden><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>, label: "X / Twitter", sublabel: "Posts & threads", url: profile.twitterUrl, color: "#000000" });
+          if (profile?.linkedinUrl) hubs.push({ icon: <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current" aria-hidden><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>, label: "LinkedIn", sublabel: socialStats?.linkedin?.followerCount ? `${formatCount(socialStats.linkedin.followerCount)} followers` : "Professional network", url: profile.linkedinUrl, color: "#0A66C2" });
+          if (profile?.instagramUrl) hubs.push({ icon: <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current" aria-hidden><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg>, label: "Instagram", sublabel: "Photos & stories", url: profile.instagramUrl, color: "#E4405F" });
+          if (profile?.tiktokUrl) hubs.push({ icon: <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current" aria-hidden><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg>, label: "TikTok", sublabel: "Short videos", url: profile.tiktokUrl, color: "#000000" });
+          if (profile?.githubUrl) hubs.push({ icon: <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current" aria-hidden><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>, label: "GitHub", sublabel: socialStats?.github?.followers ? `${formatCount(socialStats.github.followers)} followers` : "Code & projects", url: profile.githubUrl, color: "#181717" });
+          if (profile?.newsletterUrl) hubs.push({ icon: <Mail className="w-5 h-5" />, label: "Newsletter", sublabel: "Email updates", url: profile.newsletterUrl, color: "#059669" });
+          if (profile?.blogUrl) hubs.push({ icon: <Globe className="w-5 h-5" />, label: "Blog", sublabel: "Long-form writing", url: profile.blogUrl, color: "#6366F1" });
+          if (profile?.speakingUrl) hubs.push({ icon: <Presentation className="w-5 h-5" />, label: "Speaking", sublabel: "Talks & keynotes", url: profile.speakingUrl, color: "#F59E0B" });
+          if (profile?.websiteUrl) hubs.push({ icon: <Globe className="w-5 h-5" />, label: "Website", sublabel: "Official site", url: profile.websiteUrl, color: "#64748B" });
+          if (profile?.businessWebsiteUrl) hubs.push({ icon: <Globe className="w-5 h-5" />, label: "Company", sublabel: "Business site", url: profile.businessWebsiteUrl, color: "#0EA5E9" });
+          // Named websites from websitesJson
+          namedWebsites.forEach((site) => {
+            if (!hubs.some((h) => h.url === site.url)) {
+              hubs.push({ icon: <Globe className="w-5 h-5" />, label: site.label, sublabel: "Website", url: site.url, color: "#64748B" });
+            }
+          });
+          // Wikipedia
+          if (wiki?.pageUrl) hubs.push({ icon: <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current" aria-hidden><path d="M12.09 13.119c-.936 1.932-2.217 4.548-2.853 5.728-.616 1.074-1.127.931-1.532.029-1.406-3.321-4.293-9.144-5.651-12.409-.251-.601-.441-.987-.619-1.139-.181-.15-.554-.24-1.122-.271C.103 5.033 0 4.982 0 4.898v-.455l.052-.045c.924-.005 5.401 0 5.401 0l.051.045v.434c0 .084-.103.135-.2.157-.74.108-.835.361-.492 1.005 1.225 2.405 2.501 4.771 3.852 7.12l.828-1.569-2.947-5.542c-.238-.465-.557-.74-.927-.826-.127-.031-.198-.077-.198-.149v-.468l.055-.045h4.78l.05.045v.437c0 .084-.1.133-.198.157-.644.116-.834.361-.492 1.005l1.829 3.432 1.723-3.457c.353-.676.153-.93-.487-1.005-.1-.024-.199-.073-.199-.157v-.437l.05-.045h3.481l.05.045v.437c0 .084-.103.133-.199.157-.644.116-.834.361-.492 1.005l1.829 3.432 1.723-3.457c.353-.676.153-.93-.487-1.005-.1-.024-.199-.073-.199-.157v-.437l.05-.045h3.481l.05.045v.437c0 .084-.103.133-.199.157-.644.116-.834.361-.492 1.005l-4.147 8.334c-.617 1.074-1.127.931-1.532.029l-2.854-5.728z"/></svg>, label: "Wikipedia", sublabel: wikiViews ? `${wikiViews}/mo views` : "Encyclopedia entry", url: wiki.pageUrl, color: "#000000" });
+
+          if (hubs.length === 0) return null;
+
+          return (
+            <section>
+              <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">Content Hub</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {hubs.map((hub) => (
+                  <a
+                    key={hub.label}
+                    href={hub.url ?? "#"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group flex items-center gap-3 p-3 rounded-xl border border-border bg-card hover:shadow-md transition-all duration-200 hover:border-primary/30 hover:-translate-y-0.5"
+                  >
+                    <div
+                      className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110"
+                      style={{ backgroundColor: hub.color + "18", color: hub.color }}
+                    >
+                      {hub.icon}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-bold text-foreground leading-tight truncate">{hub.label}</p>
+                      <p className="text-[10px] text-muted-foreground leading-tight mt-0.5 truncate">{hub.sublabel}</p>
+                    </div>
+                    <ExternalLink className="w-3 h-3 text-muted-foreground/40 group-hover:text-primary/60 flex-shrink-0 transition-colors" />
+                  </a>
+                ))}
+              </div>
+            </section>
+          );
+        })()}
 
         {/* ── Academic Research Foundation ── */}
         <AcademicResearchPanel authorName={displayName} isAdmin={isAdmin} />

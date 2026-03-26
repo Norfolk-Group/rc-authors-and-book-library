@@ -1,0 +1,2 @@
+ALTER TABLE `book_profiles` ADD `format` enum('physical','digital','audio','physical_digital','physical_audio','digital_audio','all','none');--> statement-breakpoint
+ALTER TABLE `book_profiles` ADD `possessionStatus` enum('owned','wishlist','reference','borrowed','gifted','read','reading','unread');

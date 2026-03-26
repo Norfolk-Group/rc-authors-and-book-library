@@ -93,6 +93,7 @@ export default function Home() {
   const [authorSort, setAuthorSort] = useLocalStorage<AuthorSort>("lib:authorSort", "name-asc");
   const [bookSort, setBookSort] = useLocalStorage<BookSort>("lib:bookSort", "name-asc");
   const [enrichFilter, setEnrichFilter] = useLocalStorage<BookEnrichmentLevel | "all">("lib:enrichFilter", "all");
+  const [possessionFilter, setPossessionFilter] = useLocalStorage<string>("lib:possessionFilter", "all");
 
   // Modal state
   const [selectedAuthor, setSelectedAuthor] = useState<AuthorEntry | null>(null);
@@ -161,7 +162,7 @@ export default function Home() {
   }, [_setSelectedCategoriesAndPersist, setEnrichFilter]);
 
   // ── Data ────────────────────────────────────────────────────────────────
-  const data = useLibraryData({ query, selectedCategories, authorSort, bookSort, enrichFilter });
+  const data = useLibraryData({ query, selectedCategories, authorSort, bookSort, enrichFilter, possessionFilter });
   const {
     authorAvatarMapQuery, authorFavoritesQuery, bookFavoritesQuery, recentlyEnrichedQuery,
     enrichedSet, enrichedTitlesSet, bookCoverMap, amazonUrlMap, goodreadsUrlMap, wikipediaUrlMap,
@@ -362,6 +363,44 @@ export default function Home() {
               )}
             </div>
 
+            {/* Possession/format filter chips — Books tab */}
+            {activeTab === "books" && (
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <span className="text-xs text-muted-foreground font-medium">Status:</span>
+                {([
+                  { value: "all",       label: "All Books",     icon: "📚" },
+                  { value: "owned",     label: "Owned",         icon: "✅" },
+                  { value: "read",      label: "Read",          icon: "📖" },
+                  { value: "reading",   label: "Reading",       icon: "🔖" },
+                  { value: "unread",    label: "Unread",        icon: "📕" },
+                  { value: "wishlist",  label: "Wishlist",      icon: "⭐" },
+                  { value: "reference", label: "Reference",     icon: "🔍" },
+                  { value: "borrowed",  label: "Borrowed",      icon: "🤝" },
+                ] as const).map(({ value, label, icon }) => {
+                  const isActive = possessionFilter === value;
+                  return (
+                    <button
+                      key={value}
+                      onClick={() => setPossessionFilter(value)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border transition-all"
+                      style={{
+                        backgroundColor: isActive ? "hsl(var(--primary) / 0.12)" : "transparent",
+                        color: isActive ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))",
+                        borderColor: isActive ? "hsl(var(--primary))" : "hsl(var(--border))",
+                      }}
+                    >
+                      <span>{icon}</span> {label}
+                    </button>
+                  );
+                })}
+                {possessionFilter !== "all" && (
+                  <button onClick={() => setPossessionFilter("all")} className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 ml-1">
+                    Clear
+                  </button>
+                )}
+              </div>
+            )}
+
             {/* Enrichment filter chips — Books tab */}
             {activeTab === "books" && (
               <div className="flex flex-wrap items-center gap-2 mb-4">
@@ -508,6 +547,8 @@ export default function Home() {
                               isFavorite={(bookFavoritesQuery.data ?? {})[tk] ?? false}
                               hasRichSummary={richSummarySet.has(titleKey)}
                               freshnessDimensions={bookFreshnessMap.get(tk)}
+                              format={bookInfoMap.get(tk)?.format ?? null}
+                              possessionStatus={bookInfoMap.get(tk)?.possessionStatus ?? null}
                             />
                           </div>
                         );

@@ -1,0 +1,9 @@
+{
+  "query": "SELECT id, authorName FROM author_profiles WHERE LOWER(authorName) LIKE '%active%' OR LOWER(authorName) LIKE '%listening%' OR LOWER(authorName) LIKE '%pocket guide%' OR LOWER(authorName) LIKE '%sapiens%' OR LOWER(authorName) LIKE '%nexus%' ORDER BY authorName LIMIT 20;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 46FBtXPMNF6LwZ8.root --database ehSrGoKN2NYhXg8UYLtWGw --execute SELECT id, authorName FROM author_profiles WHERE LOWER(authorName) LIKE '%active%' OR LOWER(authorName) LIKE '%listening%' OR LOWER(authorName) LIKE '%pocket guide%' OR LOWER(authorName) LIKE '%sapiens%' OR LOWER(authorName) LIKE '%nexus%' ORDER BY authorName LIMIT 20;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 56
+}

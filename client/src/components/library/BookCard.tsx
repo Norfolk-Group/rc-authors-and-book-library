@@ -76,6 +76,10 @@ interface BookCardProps {
   hasRichSummary?: boolean;
   /** Freshness dimensions for this book (from getAllFreshness query) */
   freshnessDimensions?: FreshnessDimension[];
+  /** Physical/digital format(s) owned: physical | digital | audio | physical_digital | physical_audio | digital_audio | all | none */
+  format?: string | null;
+  /** Possession/reading status: owned | wishlist | reference | borrowed | gifted | read | reading | unread */
+  possessionStatus?: string | null;
 }
 
 export function BookCard({
@@ -98,6 +102,8 @@ export function BookCard({
   isFavorite,
   hasRichSummary,
   freshnessDimensions,
+  format,
+  possessionStatus,
 }: BookCardProps) {
   const color = CATEGORY_COLORS[book.category] ?? "hsl(var(--muted-foreground))";
   const iconName = CATEGORY_ICONS[book.category] ?? "book-open";
@@ -398,6 +404,48 @@ export function BookCard({
             </div>
           )}
         </div>
+
+        {/* ── Possession / Format badges ────────────────────────────────── */}
+        {(possessionStatus || format) && (
+          <div className="px-4 pb-2 flex flex-wrap gap-1 justify-center" onClick={(e) => e.stopPropagation()}>
+            {possessionStatus && possessionStatus !== "owned" && (() => {
+              const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
+                read:      { label: "Read",      color: "#059669", bg: "#d1fae5" },
+                reading:   { label: "Reading",   color: "#0284c7", bg: "#e0f2fe" },
+                unread:    { label: "Unread",    color: "#6b7280", bg: "#f3f4f6" },
+                wishlist:  { label: "Wishlist",  color: "#d97706", bg: "#fef3c7" },
+                reference: { label: "Reference", color: "#7c3aed", bg: "#ede9fe" },
+                borrowed:  { label: "Borrowed",  color: "#db2777", bg: "#fce7f3" },
+                gifted:    { label: "Gifted",    color: "#9333ea", bg: "#f3e8ff" },
+              };
+              const cfg = STATUS_CONFIG[possessionStatus];
+              return cfg ? (
+                <span
+                  className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold border"
+                  style={{ color: cfg.color, backgroundColor: cfg.bg, borderColor: cfg.color + "40" }}
+                >
+                  {cfg.label}
+                </span>
+              ) : null;
+            })()}
+            {format && format !== "none" && (() => {
+              const FORMAT_ICONS: Record<string, string> = {
+                physical: "📗", digital: "📱", audio: "🎧",
+                physical_digital: "📗📱", physical_audio: "📗🎧",
+                digital_audio: "📱🎧", all: "📗📱🎧",
+              };
+              const icon = FORMAT_ICONS[format] ?? "";
+              return icon ? (
+                <span
+                  className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-semibold bg-muted text-muted-foreground border border-border"
+                  title={`Format: ${format.replace(/_/g, " + ")}`}
+                >
+                  {icon}
+                </span>
+              ) : null;
+            })()}
+          </div>
+        )}
 
         {/* ── Divider ─────────────────────────────────────────────────────── */}
         {hasContent && <div className="mx-4 h-px bg-border flex-shrink-0" />}
