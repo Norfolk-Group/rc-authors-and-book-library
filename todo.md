@@ -2061,3 +2061,15 @@ Live URL: https://authlib-ehsrgokn.manus.space
 - [x] Add format/possession badges on book cards
 - [x] Add format and possession filters within Books tab
 - [x] Build Author detail page Content Hub section with all platform logos + content items (2x3 grid with icons, sublabels, hover effects)
+
+## Session March 26, 2026 — CRUD Forms for Authors & Books
+- [x] Add create/update/delete tRPC procedures for author_profiles
+- [x] Add create/update/delete tRPC procedures for book_profiles
+- [x] Build AuthorFormDialog (create + edit in one dialog) with all key fields
+- [x] Build DeleteAuthorDialog with name-confirmation step
+- [x] Wire "Add Author" button into Authors tab toolbar (admin only)
+- [ ] Wire "Edit" and "Delete" actions into AuthorCard and AuthorDetail page (next session)
+- [x] Build BookFormDialog (create + edit in one dialog) with format/possession/links fields
+- [x] Build DeleteBookDialog with title-confirmation step
+- [x] Wire "Add Book" button into Books tab toolbar (admin only)
+- [ ] Wire "Edit" and "Delete" actions into BookCard and BookDetail page (next session)

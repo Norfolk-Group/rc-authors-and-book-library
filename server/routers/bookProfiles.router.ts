@@ -850,4 +850,126 @@ export const bookProfilesRouter = router({
 
       return { processed: rows.length, succeeded, failed };
     }),
+
+  /** Create a new book profile manually */
+  createBook: adminProcedure
+    .input(
+      z.object({
+        bookTitle: z.string().min(1).max(512),
+        authorName: z.string().optional(),
+        summary: z.string().optional(),
+        keyThemes: z.string().optional(),
+        amazonUrl: z.string().url().optional().or(z.literal("")),
+        goodreadsUrl: z.string().url().optional().or(z.literal("")),
+        wikipediaUrl: z.string().url().optional().or(z.literal("")),
+        publisherUrl: z.string().url().optional().or(z.literal("")),
+        coverImageUrl: z.string().url().optional().or(z.literal("")),
+        isbn: z.string().optional(),
+        publishedDate: z.string().optional(),
+        publisher: z.string().optional(),
+        rating: z.number().min(0).max(5).optional(),
+        format: z.enum(["physical", "digital", "audio", "physical_digital", "physical_audio", "digital_audio", "all", "none"]).optional(),
+        possessionStatus: z.enum(["owned", "wishlist", "reference", "borrowed", "gifted", "read", "reading", "unread"]).optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database unavailable");
+      const existing = await db
+        .select({ bookTitle: bookProfiles.bookTitle })
+        .from(bookProfiles)
+        .where(eq(bookProfiles.bookTitle, input.bookTitle))
+        .limit(1);
+      if (existing.length > 0) throw new Error(`Book "${input.bookTitle}" already exists`);
+      const clean = (v: string | undefined) => (v === "" ? null : v ?? null);
+      await db.insert(bookProfiles).values({
+        bookTitle: input.bookTitle,
+        authorName: input.authorName ?? null,
+        summary: clean(input.summary),
+        keyThemes: clean(input.keyThemes),
+        amazonUrl: clean(input.amazonUrl),
+        goodreadsUrl: clean(input.goodreadsUrl),
+        wikipediaUrl: clean(input.wikipediaUrl),
+        publisherUrl: clean(input.publisherUrl),
+        coverImageUrl: clean(input.coverImageUrl),
+        isbn: clean(input.isbn),
+        publishedDate: clean(input.publishedDate),
+        publisher: clean(input.publisher),
+        rating: input.rating != null ? String(input.rating) : null,
+        format: input.format ?? null,
+        possessionStatus: input.possessionStatus ?? null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      const rows = await db
+        .select()
+        .from(bookProfiles)
+        .where(eq(bookProfiles.bookTitle, input.bookTitle))
+        .limit(1);
+      return rows[0];
+    }),
+
+  /** Update an existing book profile */
+  updateBook: adminProcedure
+    .input(
+      z.object({
+        bookTitle: z.string().min(1),
+        authorName: z.string().optional(),
+        summary: z.string().optional(),
+        keyThemes: z.string().optional(),
+        amazonUrl: z.string().url().optional().or(z.literal("")),
+        goodreadsUrl: z.string().url().optional().or(z.literal("")),
+        wikipediaUrl: z.string().url().optional().or(z.literal("")),
+        publisherUrl: z.string().url().optional().or(z.literal("")),
+        coverImageUrl: z.string().url().optional().or(z.literal("")),
+        isbn: z.string().optional(),
+        publishedDate: z.string().optional(),
+        publisher: z.string().optional(),
+        rating: z.number().min(0).max(5).optional(),
+        format: z.enum(["physical", "digital", "audio", "physical_digital", "physical_audio", "digital_audio", "all", "none"]).optional().nullable(),
+        possessionStatus: z.enum(["owned", "wishlist", "reference", "borrowed", "gifted", "read", "reading", "unread"]).optional().nullable(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database unavailable");
+      const clean = (v: string | undefined) => (v === "" ? null : v ?? undefined);
+      const patch: Record<string, unknown> = { updatedAt: new Date() };
+      if (input.authorName !== undefined) patch.authorName = input.authorName || null;
+      if (input.summary !== undefined) patch.summary = input.summary || null;
+      if (input.keyThemes !== undefined) patch.keyThemes = input.keyThemes || null;
+      if (input.amazonUrl !== undefined) patch.amazonUrl = clean(input.amazonUrl);
+      if (input.goodreadsUrl !== undefined) patch.goodreadsUrl = clean(input.goodreadsUrl);
+      if (input.wikipediaUrl !== undefined) patch.wikipediaUrl = clean(input.wikipediaUrl);
+      if (input.publisherUrl !== undefined) patch.publisherUrl = clean(input.publisherUrl);
+      if (input.coverImageUrl !== undefined) patch.coverImageUrl = clean(input.coverImageUrl);
+      if (input.isbn !== undefined) patch.isbn = input.isbn || null;
+      if (input.publishedDate !== undefined) patch.publishedDate = input.publishedDate || null;
+      if (input.publisher !== undefined) patch.publisher = input.publisher || null;
+      if (input.rating !== undefined) patch.rating = input.rating ?? null;
+      if (input.format !== undefined) patch.format = input.format ?? null;
+      if (input.possessionStatus !== undefined) patch.possessionStatus = input.possessionStatus ?? null;
+      await db
+        .update(bookProfiles)
+        .set(patch)
+        .where(eq(bookProfiles.bookTitle, input.bookTitle));
+      const rows = await db
+        .select()
+        .from(bookProfiles)
+        .where(eq(bookProfiles.bookTitle, input.bookTitle))
+        .limit(1);
+      return rows[0] ?? null;
+    }),
+
+  /** Delete a book profile by title */
+  deleteBook: adminProcedure
+    .input(z.object({ bookTitle: z.string().min(1) }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database unavailable");
+      await db
+        .delete(bookProfiles)
+        .where(eq(bookProfiles.bookTitle, input.bookTitle));
+      return { success: true, bookTitle: input.bookTitle };
+    }),
 });

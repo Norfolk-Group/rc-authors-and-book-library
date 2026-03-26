@@ -348,8 +348,144 @@ const authorProfilesCoreRouter = router({
         failed: batchResult.failed,
       };
     }),
+
+  /** Create a new author profile manually */
+  createAuthor: adminProcedure
+    .input(
+      z.object({
+        authorName: z.string().min(1).max(256),
+        category: z.string().optional(),
+        bio: z.string().optional(),
+        websiteUrl: z.string().url().optional().or(z.literal("")),
+        twitterUrl: z.string().url().optional().or(z.literal("")),
+        linkedinUrl: z.string().url().optional().or(z.literal("")),
+        youtubeUrl: z.string().url().optional().or(z.literal("")),
+        substackUrl: z.string().url().optional().or(z.literal("")),
+        mediumUrl: z.string().url().optional().or(z.literal("")),
+        instagramUrl: z.string().url().optional().or(z.literal("")),
+        tiktokUrl: z.string().url().optional().or(z.literal("")),
+        facebookUrl: z.string().url().optional().or(z.literal("")),
+        githubUrl: z.string().url().optional().or(z.literal("")),
+        podcastUrl: z.string().url().optional().or(z.literal("")),
+        newsletterUrl: z.string().url().optional().or(z.literal("")),
+        blogUrl: z.string().url().optional().or(z.literal("")),
+        speakingUrl: z.string().url().optional().or(z.literal("")),
+        businessWebsiteUrl: z.string().url().optional().or(z.literal("")),
+        avatarUrl: z.string().url().optional().or(z.literal("")),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database unavailable");
+      const existing = await db
+        .select({ authorName: authorProfiles.authorName })
+        .from(authorProfiles)
+        .where(eq(authorProfiles.authorName, input.authorName))
+        .limit(1);
+      if (existing.length > 0) throw new Error(`Author "${input.authorName}" already exists`);
+      const clean = (v: string | undefined) => (v === "" ? null : v ?? null);
+      await db.insert(authorProfiles).values({
+        authorName: input.authorName,
+        bio: clean(input.bio),
+        websiteUrl: clean(input.websiteUrl),
+        twitterUrl: clean(input.twitterUrl),
+        linkedinUrl: clean(input.linkedinUrl),
+        youtubeUrl: clean(input.youtubeUrl),
+        substackUrl: clean(input.substackUrl),
+        mediumUrl: clean(input.mediumUrl),
+        instagramUrl: clean(input.instagramUrl),
+        tiktokUrl: clean(input.tiktokUrl),
+        facebookUrl: clean(input.facebookUrl),
+        githubUrl: clean(input.githubUrl),
+        podcastUrl: clean(input.podcastUrl),
+        newsletterUrl: clean(input.newsletterUrl),
+        blogUrl: clean(input.blogUrl),
+        speakingUrl: clean(input.speakingUrl),
+        businessWebsiteUrl: clean(input.businessWebsiteUrl),
+        avatarUrl: clean(input.avatarUrl),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      const rows = await db
+        .select()
+        .from(authorProfiles)
+        .where(eq(authorProfiles.authorName, input.authorName))
+        .limit(1);
+      return rows[0];
+    }),
+
+  /** Update an existing author profile */
+  updateAuthor: adminProcedure
+    .input(
+      z.object({
+        authorName: z.string().min(1),
+        bio: z.string().optional(),
+        websiteUrl: z.string().url().optional().or(z.literal("")),
+        twitterUrl: z.string().url().optional().or(z.literal("")),
+        linkedinUrl: z.string().url().optional().or(z.literal("")),
+        youtubeUrl: z.string().url().optional().or(z.literal("")),
+        substackUrl: z.string().url().optional().or(z.literal("")),
+        mediumUrl: z.string().url().optional().or(z.literal("")),
+        instagramUrl: z.string().url().optional().or(z.literal("")),
+        tiktokUrl: z.string().url().optional().or(z.literal("")),
+        facebookUrl: z.string().url().optional().or(z.literal("")),
+        githubUrl: z.string().url().optional().or(z.literal("")),
+        podcastUrl: z.string().url().optional().or(z.literal("")),
+        newsletterUrl: z.string().url().optional().or(z.literal("")),
+        blogUrl: z.string().url().optional().or(z.literal("")),
+        speakingUrl: z.string().url().optional().or(z.literal("")),
+        businessWebsiteUrl: z.string().url().optional().or(z.literal("")),
+        avatarUrl: z.string().url().optional().or(z.literal("")),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database unavailable");
+      const clean = (v: string | undefined) => (v === "" ? null : v ?? undefined);
+      const patch: Record<string, unknown> = { updatedAt: new Date() };
+      if (input.bio !== undefined) patch.bio = input.bio || null;
+      if (input.websiteUrl !== undefined) patch.websiteUrl = clean(input.websiteUrl);
+      if (input.twitterUrl !== undefined) patch.twitterUrl = clean(input.twitterUrl);
+      if (input.linkedinUrl !== undefined) patch.linkedinUrl = clean(input.linkedinUrl);
+      if (input.youtubeUrl !== undefined) patch.youtubeUrl = clean(input.youtubeUrl);
+      if (input.substackUrl !== undefined) patch.substackUrl = clean(input.substackUrl);
+      if (input.mediumUrl !== undefined) patch.mediumUrl = clean(input.mediumUrl);
+      if (input.instagramUrl !== undefined) patch.instagramUrl = clean(input.instagramUrl);
+      if (input.tiktokUrl !== undefined) patch.tiktokUrl = clean(input.tiktokUrl);
+      if (input.facebookUrl !== undefined) patch.facebookUrl = clean(input.facebookUrl);
+      if (input.githubUrl !== undefined) patch.githubUrl = clean(input.githubUrl);
+      if (input.podcastUrl !== undefined) patch.podcastUrl = clean(input.podcastUrl);
+      if (input.newsletterUrl !== undefined) patch.newsletterUrl = clean(input.newsletterUrl);
+      if (input.blogUrl !== undefined) patch.blogUrl = clean(input.blogUrl);
+      if (input.speakingUrl !== undefined) patch.speakingUrl = clean(input.speakingUrl);
+      if (input.businessWebsiteUrl !== undefined) patch.businessWebsiteUrl = clean(input.businessWebsiteUrl);
+      if (input.avatarUrl !== undefined) patch.avatarUrl = clean(input.avatarUrl);
+      await db
+        .update(authorProfiles)
+        .set(patch)
+        .where(eq(authorProfiles.authorName, input.authorName));
+      const rows = await db
+        .select()
+        .from(authorProfiles)
+        .where(eq(authorProfiles.authorName, input.authorName))
+        .limit(1);
+      return rows[0] ?? null;
+    }),
+
+  /** Delete an author profile by name */
+  deleteAuthor: adminProcedure
+    .input(z.object({ authorName: z.string().min(1) }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database unavailable");
+      await db
+        .delete(authorProfiles)
+        .where(eq(authorProfiles.authorName, input.authorName));
+      return { success: true, authorName: input.authorName };
+    }),
 });
 
+// NOTE: createAuthor, updateAuthor, deleteAuthor are in authorProfilesCoreRouter above
 // ── Merged Router ──────────────────────────────────────────────────────────
 // Merge the core CRUD router with the three sub-routers so that the
 // existing frontend paths (authorProfiles.getAvatarMap, authorProfiles.enrichRichBio, etc.)

@@ -48,6 +48,11 @@ import { StatCard, EmptyState } from "@/components/library/LibraryPrimitives";
 import { FloatingBooks } from "@/components/FloatingBooks";
 import { STATS, type BookEnrichmentLevel } from "@/components/library/libraryConstants";
 import { LibrarySidebar, type TabType } from "@/components/library/LibrarySidebar";
+import { AuthorFormDialog } from "@/components/library/AuthorFormDialog";
+import { DeleteAuthorDialog } from "@/components/library/DeleteAuthorDialog";
+import { BookFormDialog } from "@/components/library/BookFormDialog";
+import { DeleteBookDialog } from "@/components/library/DeleteBookDialog";
+import { PlusCircle } from "lucide-react";
 import {
   useLibraryData,
   normalizeTitleKey,
@@ -101,6 +106,14 @@ export default function Home() {
   const [selectedBook, setSelectedBook] = useState<typeof BOOKS[number] | null>(null);
   const [bookSheetOpen, setBookSheetOpen] = useState(false);
   const [lightboxCover, setLightboxCover] = useState<{ url: string | null; title: string; author?: string; color?: string; amazonUrl?: string } | null>(null);
+
+  // CRUD dialog state
+  const [addAuthorOpen, setAddAuthorOpen] = useState(false);
+  const [editAuthorData, setEditAuthorData] = useState<{ authorName: string } | null>(null);
+  const [deleteAuthorName, setDeleteAuthorName] = useState<string | null>(null);
+  const [addBookOpen, setAddBookOpen] = useState(false);
+  const [editBookData, setEditBookData] = useState<{ bookTitle: string } | null>(null);
+  const [deleteBookTitle, setDeleteBookTitle] = useState<string | null>(null);
 
   // Live DB stats (falls back to static STATS if DB unavailable)
   const liveStatsQuery = trpc.library.getStats.useQuery(undefined, { staleTime: 5 * 60_000 });
@@ -299,6 +312,25 @@ export default function Home() {
               </div>
               {(activeTab === "authors" || activeTab === "books") && (
                 <div className="flex items-center gap-2">
+                  {/* Add Author / Add Book button — admin only */}
+                  {isAuthenticated && activeTab === "authors" && (
+                    <button
+                      onClick={() => setAddAuthorOpen(true)}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border border-[#c9b96e]/50 text-[#c9b96e] bg-[#c9b96e]/5 hover:bg-[#c9b96e]/15 hover:border-[#c9b96e] shadow-[0_2px_0_#8a7a3a] hover:shadow-[0_1px_0_#8a7a3a] hover:translate-y-[1px] active:shadow-none active:translate-y-[2px] transition-all"
+                    >
+                      <PlusCircle className="w-3.5 h-3.5" />
+                      Add Author
+                    </button>
+                  )}
+                  {isAuthenticated && activeTab === "books" && (
+                    <button
+                      onClick={() => setAddBookOpen(true)}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border border-[#c9b96e]/50 text-[#c9b96e] bg-[#c9b96e]/5 hover:bg-[#c9b96e]/15 hover:border-[#c9b96e] shadow-[0_2px_0_#8a7a3a] hover:shadow-[0_1px_0_#8a7a3a] hover:translate-y-[1px] active:shadow-none active:translate-y-[2px] transition-all"
+                    >
+                      <PlusCircle className="w-3.5 h-3.5" />
+                      Add Book
+                    </button>
+                  )}
                   {activeTab === "books" && (
                     <button
                       onClick={() => setEnrichFilter(enrichFilter === "complete" ? "all" : "complete")}
@@ -720,6 +752,35 @@ export default function Home() {
     )}
 
     <BackToTop scrollContainerRef={mainRef} />
+
+    {/* ── CRUD Dialogs ─────────────────────────────────────────────────────── */}
+    <AuthorFormDialog
+      open={addAuthorOpen || !!editAuthorData}
+      onOpenChange={(v) => { if (!v) { setAddAuthorOpen(false); setEditAuthorData(null); } }}
+      initialData={editAuthorData ?? undefined}
+      onSuccess={() => { setAddAuthorOpen(false); setEditAuthorData(null); }}
+    />
+
+    <DeleteAuthorDialog
+      open={!!deleteAuthorName}
+      onOpenChange={(v) => { if (!v) setDeleteAuthorName(null); }}
+      authorName={deleteAuthorName ?? ""}
+      onSuccess={() => setDeleteAuthorName(null)}
+    />
+
+    <BookFormDialog
+      open={addBookOpen || !!editBookData}
+      onOpenChange={(v) => { if (!v) { setAddBookOpen(false); setEditBookData(null); } }}
+      initialData={editBookData ?? undefined}
+      onSuccess={() => { setAddBookOpen(false); setEditBookData(null); }}
+    />
+
+    <DeleteBookDialog
+      open={!!deleteBookTitle}
+      onOpenChange={(v) => { if (!v) setDeleteBookTitle(null); }}
+      bookTitle={deleteBookTitle ?? ""}
+      onSuccess={() => setDeleteBookTitle(null)}
+    />
     </>
   );
 }
