@@ -3,7 +3,7 @@
  * Design: Editorial Intelligence — sidebar-07 layout + card grid
  * Fonts: Inter Tight (ExtraBold H1, SemiBold H2/H3, Regular body)
  * Palette: NCG Brand — Navy #112548, Yellow #FDB817, Teal #0091AE, Orange #F4795B
- * Tabs: Authors | Books | Books Audio
+ * Tabs: Authors | Books (unified, includes audiobooks) | Media | Favorites
  *
  * This file is the orchestrator. Data hooks live in useLibraryData.
  * Sidebar lives in LibrarySidebar. Card components live in
@@ -67,6 +67,7 @@ import {
   ArrowUpDown,
   Heart,
   Sparkles,
+  Film,
 } from "lucide-react";
 
 // ── Enrichment label config ───────────────────────────────────────────────────
@@ -172,6 +173,19 @@ export default function Home() {
 
   const hasFilters = selectedCategories.size > 0 || query.length > 0 || enrichFilter !== "all";
 
+  // Compute category counts for the active tab
+  const categoryCounts = activeTab === "authors" ? authorCounts : bookCounts;
+
+  // Tab display names
+  const tabDisplayName = (tab: TabType) => {
+    switch (tab) {
+      case "authors": return "Authors";
+      case "books": return "Books";
+      case "media": return "Media";
+      case "favorites": return "Favorites";
+    }
+  };
+
   return (
     <>
     <SidebarProvider defaultOpen={true}>
@@ -182,11 +196,10 @@ export default function Home() {
           clearCategoryFilters={() => _setSelectedCategoriesAndPersist(new Set())}
           selectedCategories={selectedCategories}
           toggleCategory={toggleCategory}
-          authorCounts={authorCounts}
-          bookCounts={bookCounts}
+          categoryCounts={categoryCounts}
           filteredAuthorsCount={filteredAuthors.length}
           filteredBooksCount={filteredBooks.length}
-          filteredAudioCount={filteredAudio.length}
+          filteredMediaCount={0}
           favoriteCount={Object.values(authorFavoritesQuery.data ?? {}).filter(Boolean).length + Object.values(bookFavoritesQuery.data ?? {}).filter(Boolean).length}
           isAuthenticated={isAuthenticated}
           authorAvatarData={authorAvatarMapQuery.data as { avatarUrl?: string | null }[] | undefined}
@@ -200,7 +213,7 @@ export default function Home() {
             <div className="hidden sm:flex items-center gap-1.5 text-sm text-muted-foreground">
               <span className="font-medium text-foreground">Ricardo Cidale's Library</span>
               <ChevronRight className="w-3.5 h-3.5" />
-              <span className="capitalize">{activeTab === "audio" ? "Books Audio" : activeTab}</span>
+              <span className="capitalize">{tabDisplayName(activeTab)}</span>
               {selectedCategories.size > 0 && (
                 <>
                   <ChevronRight className="w-3.5 h-3.5" />
@@ -211,7 +224,7 @@ export default function Home() {
             <div className="ml-auto relative w-full sm:w-64 max-w-xs search-glow rounded-md border border-transparent">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
               <Input
-                placeholder={activeTab === "audio" ? "Search audiobooks, authors..." : "Search authors, books, topics..."}
+                placeholder="Search authors, books, topics..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 className="pl-9 pr-8 h-8 text-sm bg-background"
@@ -274,13 +287,16 @@ export default function Home() {
             <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
               <div className="flex items-baseline gap-3">
                 <h1 className="text-xl font-extrabold font-display tracking-tight">
-                  {activeTab === "authors" ? "Authors" : activeTab === "books" ? "Books" : "Books Audio"}
+                  {tabDisplayName(activeTab)}
                 </h1>
                 <span className="text-sm text-muted-foreground">
-                  {activeTab === "authors" ? `${filteredAuthors.length} of ${STATS.totalAuthors}` : activeTab === "books" ? `${filteredBooks.length} of ${STATS.totalBooks}` : `${filteredAudio.length} of ${AUDIO_BOOKS.length}`}
+                  {activeTab === "authors" ? `${filteredAuthors.length} of ${liveStats?.authors ?? STATS.totalAuthors}` :
+                   activeTab === "books" ? `${filteredBooks.length} of ${liveStats?.books ?? STATS.totalBooks}` :
+                   activeTab === "media" ? "Coming soon" :
+                   ""}
                 </span>
               </div>
-              {activeTab !== "audio" && (
+              {(activeTab === "authors" || activeTab === "books") && (
                 <div className="flex items-center gap-2">
                   {activeTab === "books" && (
                     <button
@@ -463,49 +479,70 @@ export default function Home() {
                 )
               ) : activeTab === "books" ? (
                 filteredBooks.length === 0 ? <EmptyState query={query} /> : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 tab-content-enter">
-                    {filteredBooks.map((b, i) => {
-                      const titleKey = b.name.split(" - ")[0].trim().replace(/[?!.,;:]+$/, "");
-                      const tk = normalizeTitleKey(b.name);
-                      return (
-                        <div key={b.id + i} style={{ animationDelay: `${Math.min(i * 30, 400)}ms` }}
-                          ref={(el) => { if (el) bookCardRefs.current.set(tk, el); else bookCardRefs.current.delete(tk); }}
-                        >
-                          <BookCard
-                            book={b} query={query}
-                            onDetailClick={(book) => { setSelectedBook(book); setBookSheetOpen(true); }}
-                            coverImageUrl={bookCoverMap.get(titleKey)}
-                            isEnriched={enrichedTitlesSet.has(titleKey)}
-                            amazonUrl={amazonUrlMap.get(titleKey)}
-                            goodreadsUrl={goodreadsUrlMap.get(titleKey)}
-                            wikipediaUrl={wikipediaUrlMap.get(titleKey)}
-                            onCoverClick={(url, title, color) => setLightboxCover({ url, title, color })}
-                            onAuthorClick={navigateToAuthor}
-                            isHighlighted={highlightedBookTitle === tk}
-                            rating={bookInfoMap.get(tk)?.rating}
-                            ratingCount={bookInfoMap.get(tk)?.ratingCount}
-                            publishedDate={bookInfoMap.get(tk)?.publishedDate}
-                            keyThemes={bookInfoMap.get(tk)?.keyThemes}
-                            summary={bookInfoMap.get(tk)?.summary}
-                            isFavorite={(bookFavoritesQuery.data ?? {})[tk] ?? false}
-                            hasRichSummary={richSummarySet.has(titleKey)}
-                            freshnessDimensions={bookFreshnessMap.get(tk)}
-                          />
+                  <>
+                    {/* Digital Books grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 tab-content-enter">
+                      {filteredBooks.map((b, i) => {
+                        const titleKey = b.name.split(" - ")[0].trim().replace(/[?!.,;:]+$/, "");
+                        const tk = normalizeTitleKey(b.name);
+                        return (
+                          <div key={b.id + i} style={{ animationDelay: `${Math.min(i * 30, 400)}ms` }}
+                            ref={(el) => { if (el) bookCardRefs.current.set(tk, el); else bookCardRefs.current.delete(tk); }}
+                          >
+                            <BookCard
+                              book={b} query={query}
+                              onDetailClick={(book) => { setSelectedBook(book); setBookSheetOpen(true); }}
+                              coverImageUrl={bookCoverMap.get(titleKey)}
+                              isEnriched={enrichedTitlesSet.has(titleKey)}
+                              amazonUrl={amazonUrlMap.get(titleKey)}
+                              goodreadsUrl={goodreadsUrlMap.get(titleKey)}
+                              wikipediaUrl={wikipediaUrlMap.get(titleKey)}
+                              onCoverClick={(url, title, color) => setLightboxCover({ url, title, color })}
+                              onAuthorClick={navigateToAuthor}
+                              isHighlighted={highlightedBookTitle === tk}
+                              rating={bookInfoMap.get(tk)?.rating}
+                              ratingCount={bookInfoMap.get(tk)?.ratingCount}
+                              publishedDate={bookInfoMap.get(tk)?.publishedDate}
+                              keyThemes={bookInfoMap.get(tk)?.keyThemes}
+                              summary={bookInfoMap.get(tk)?.summary}
+                              isFavorite={(bookFavoritesQuery.data ?? {})[tk] ?? false}
+                              hasRichSummary={richSummarySet.has(titleKey)}
+                              freshnessDimensions={bookFreshnessMap.get(tk)}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Audiobooks section within Books tab */}
+                    {filteredAudio.length > 0 && (
+                      <div className="mt-8">
+                        <div className="flex items-center gap-2 mb-4">
+                          <Headphones className="w-4 h-4 text-muted-foreground" />
+                          <h2 className="text-base font-semibold">Audiobooks</h2>
+                          <span className="text-xs text-muted-foreground">({filteredAudio.length})</span>
                         </div>
-                      );
-                    })}
-                  </div>
-                )
-              ) : activeTab === "audio" ? (
-                filteredAudio.length === 0 ? <EmptyState query={query} /> : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                    {filteredAudio.map((a, i) => (
-                      <div key={a.id + i} style={{ animationDelay: `${Math.min(i * 30, 400)}ms` }}>
-                        <AudioCard audio={a} query={query} />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                          {filteredAudio.map((a, i) => (
+                            <div key={a.id + i} style={{ animationDelay: `${Math.min(i * 30, 400)}ms` }}>
+                              <AudioCard audio={a} query={query} />
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    ))}
-                  </div>
+                    )}
+                  </>
                 )
+              ) : activeTab === "media" ? (
+                /* Media tab — placeholder until content_items table is built */
+                <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
+                  <Film className="w-12 h-12 text-muted-foreground/30" />
+                  <p className="text-lg font-semibold text-muted-foreground">Media Content</p>
+                  <p className="text-sm text-muted-foreground/70 max-w-md">
+                    Articles, papers, podcasts, videos, courses, films, and other non-book content will appear here.
+                    Use the Admin Console to add media content items.
+                  </p>
+                </div>
               ) : activeTab === "favorites" ? (
                 !isAuthenticated ? (
                   <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">

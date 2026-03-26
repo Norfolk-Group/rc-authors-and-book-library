@@ -1,5 +1,7 @@
 /**
  * LibrarySidebar — Left navigation panel for the Home page.
+ * 4 tabs: Authors, Books, Media, Favorites
+ * Filter button opens a popover with category toggle switches.
  */
 import {
   Sidebar,
@@ -9,7 +11,6 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarGroup,
-  SidebarGroupLabel,
   SidebarGroupContent,
   SidebarFooter,
 } from "@/components/ui/sidebar";
@@ -17,30 +18,23 @@ import { Separator } from "@/components/ui/separator";
 import {
   BookOpen,
   Users,
-  Briefcase,
   ExternalLink,
   ChevronRight,
-  Headphones,
   Heart,
   ShieldCheck,
   Trophy,
   BarChart,
   RefreshCw,
-  type LucideIcon,
+  Film,
 } from "lucide-react";
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import {
-  CATEGORIES,
-  CATEGORY_COLORS,
-  CATEGORY_ICONS,
-} from "@/lib/libraryData";
-import { AUDIO_BOOKS } from "@/lib/audioData";
-import { ICON_MAP, FORMAT_CLASSES, FORMAT_LABEL, STATS } from "@/components/library/libraryConstants";
+import { STATS } from "@/components/library/libraryConstants";
 import { useAppSettings } from "@/contexts/AppSettingsContext";
+import { FilterPopover } from "@/components/library/FilterPopover";
 
-export type TabType = "authors" | "books" | "audio" | "favorites";
+export type TabType = "authors" | "books" | "media" | "favorites";
 
 interface LibrarySidebarProps {
   activeTab: TabType;
@@ -48,11 +42,11 @@ interface LibrarySidebarProps {
   clearCategoryFilters: () => void;
   selectedCategories: Set<string>;
   toggleCategory: (cat: string) => void;
-  authorCounts: Record<string, number>;
-  bookCounts: Record<string, number>;
+  /** Counts per category for the active tab */
+  categoryCounts: Record<string, number>;
   filteredAuthorsCount: number;
   filteredBooksCount: number;
-  filteredAudioCount: number;
+  filteredMediaCount: number;
   favoriteCount: number;
   isAuthenticated: boolean;
   authorAvatarData: { avatarUrl?: string | null }[] | undefined;
@@ -64,17 +58,15 @@ export function LibrarySidebar({
   clearCategoryFilters,
   selectedCategories,
   toggleCategory,
-  authorCounts,
-  bookCounts,
+  categoryCounts,
   filteredAuthorsCount,
   filteredBooksCount,
-  filteredAudioCount,
+  filteredMediaCount,
   favoriteCount,
   isAuthenticated,
   authorAvatarData,
 }: LibrarySidebarProps) {
   const { settings: { colorMode: appTheme } } = useAppSettings();
-  const showCategoryFilter = activeTab !== "audio";
 
   // Live last-sync timestamp
   const lastSyncQuery = trpc.admin.getLastSync.useQuery(undefined, { staleTime: 5 * 60_000 });
@@ -90,9 +82,7 @@ export function LibrarySidebar({
       const result = await regenerateMutation.mutateAsync();
       if (result.success && result.stats) {
         setSyncState("done");
-        // Invalidate the live stats query so the stat tiles refresh immediately
         await utils.library.getStats.invalidate();
-        // Invalidate the last-sync timestamp so the sidebar footer updates
         await utils.admin.getLastSync.invalidate();
         toast.success(`Drive synced — ${result.stats.authors} authors, ${result.stats.books} books`, { duration: 8000 });
         setTimeout(() => setSyncState("idle"), 5000);
@@ -127,6 +117,7 @@ export function LibrarySidebar({
       </SidebarHeader>
 
       <SidebarContent className="px-2 py-3">
+        {/* Navigation tabs */}
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -145,10 +136,10 @@ export function LibrarySidebar({
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton isActive={activeTab === "audio"} onClick={() => { setActiveTab("audio"); clearCategoryFilters(); }} tooltip="Books Audio">
-                  <Headphones className="w-4 h-4" />
-                  <span>Books Audio</span>
-                  <span className="ml-auto text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">{filteredAudioCount}</span>
+                <SidebarMenuButton isActive={activeTab === "media"} onClick={() => { setActiveTab("media"); clearCategoryFilters(); }} tooltip="Media">
+                  <Film className="w-4 h-4" />
+                  <span>Media</span>
+                  <span className="ml-auto text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">{filteredMediaCount}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               {isAuthenticated && (
@@ -168,59 +159,21 @@ export function LibrarySidebar({
 
         <Separator className="my-2 group-data-[collapsible=icon]:hidden" />
 
-        {showCategoryFilter && (
-          <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-            <SidebarGroupLabel className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground px-2 mb-1">
-              Filter by Category
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {CATEGORIES.map((cat) => {
-                  const color = CATEGORY_COLORS[cat] ?? "hsl(var(--muted-foreground))";
-                  const iconName = CATEGORY_ICONS[cat] ?? "briefcase";
-                  const Icon = (ICON_MAP[iconName] ?? Briefcase) as LucideIcon;
-                  const count = activeTab === "authors" ? (authorCounts[cat] ?? 0) : (bookCounts[cat] ?? 0);
-                  if (count === 0) return null;
-                  const isActive = selectedCategories.has(cat);
-                  return (
-                    <SidebarMenuItem key={cat}>
-                      <SidebarMenuButton isActive={isActive} onClick={() => toggleCategory(cat)} className="h-auto py-1.5">
-                        <Icon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: isActive ? color : undefined }} />
-                        <span className="text-xs leading-tight flex-1 truncate">{cat}</span>
-                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ backgroundColor: isActive ? color + "20" : undefined, color: isActive ? color : undefined }}>
-                          {count}
-                        </span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
-
-        {activeTab === "audio" && (
-          <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-            <SidebarGroupLabel className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground px-2 mb-1">
-              Audio Formats
-            </SidebarGroupLabel>
-            <SidebarGroupContent className="px-2">
-              {Object.entries(FORMAT_CLASSES).map(([fmt, cls]) => (
-                <div key={fmt} className="flex items-center gap-2 py-1">
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${cls}`}>
-                    {FORMAT_LABEL[fmt] ?? fmt}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {fmt === "MP3" ? "Standard audio" : fmt === "M4B" ? "Chapters + bookmarks" : fmt === "AAX" ? "Audible DRM" : "Apple audio"}
-                  </span>
-                </div>
-              ))}
-            </SidebarGroupContent>
+        {/* Filter button */}
+        {activeTab !== "favorites" && (
+          <SidebarGroup className="group-data-[collapsible=icon]:hidden px-2">
+            <FilterPopover
+              selectedCategories={selectedCategories}
+              toggleCategory={toggleCategory}
+              clearCategoryFilters={clearCategoryFilters}
+              categoryCounts={categoryCounts}
+            />
           </SidebarGroup>
         )}
       </SidebarContent>
 
       <SidebarFooter className="px-4 py-3 border-t border-sidebar-border group-data-[collapsible=icon]:hidden">
+        {/* Live sync timestamp */}
         {(() => {
           const ts = lastSyncQuery.data;
           let label: string;
@@ -249,6 +202,8 @@ export function LibrarySidebar({
             </p>
           );
         })()}
+
+        {/* Avatar progress bar */}
         {authorAvatarData && (() => {
           const withAvatar = authorAvatarData.filter(r => r.avatarUrl).length;
           const total = STATS.totalAuthors;
@@ -262,6 +217,8 @@ export function LibrarySidebar({
             </div>
           );
         })()}
+
+        {/* Footer links */}
         <div className="mt-3 pt-3 border-t border-border/50">
           <a href="/leaderboard" className="w-full flex items-center gap-2 text-xs px-2 py-1.5 rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/60">
             <Trophy className="w-3.5 h-3.5 flex-shrink-0" />
@@ -299,6 +256,8 @@ export function LibrarySidebar({
             </button>
           )}
         </div>
+
+        {/* Media Folders */}
         <div className="mt-3 pt-3 border-t border-border/50">
           <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Media Folders</p>
           <div className="flex flex-col gap-1">
@@ -314,6 +273,8 @@ export function LibrarySidebar({
             </a>
           </div>
         </div>
+
+        {/* Norfolk AI branding */}
         <div className="mt-3 pt-3 border-t border-border/30">
           <a href="https://norfolkai.com" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 hover:opacity-90 transition-opacity norfolk-logo-pulse" title="Powered by Norfolk AI">
             <img

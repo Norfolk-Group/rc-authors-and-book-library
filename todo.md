@@ -1964,3 +1964,91 @@ Live URL: https://authlib-ehsrgokn.manus.space
 
 ## Session March 25, 2026 — Live "Data as of" timestamp
 - [x] Replace static STATS.lastUpdated in sidebar footer with live timestamp from last successful regenerate action log
+
+## Session March 26, 2026 — Expanded Content Model
+
+### Immediate Fix
+- [ ] Remove "active listening" and any other non-person/non-entity entries from author_profiles DB
+- [ ] Add Drive scan validation: folder name must look like a person or entity name (not a topic/content title) before creating an author record
+- [ ] Audit all author_profiles rows for other false positives (topics, book titles, generic phrases)
+
+### Phase 1 — CRUD for Authors and Books
+- [ ] Add Create Author form (name, bio, category, avatar upload, links)
+- [ ] Add Edit Author form (all fields editable inline or via modal)
+- [ ] Add Delete Author action (confirmation dialog, cascade to content)
+- [ ] Add Create Book/Content form (title, author, URL, cover upload)
+- [ ] Add Edit Book/Content form
+- [ ] Add Delete Book/Content action
+
+### Phase 2 — Tagging System
+- [ ] Add tags table to schema (id, name, slug, color, usageCount)
+- [ ] Add tagsJson column to author_profiles
+- [ ] Add tagsJson column to book_profiles
+- [ ] Build tag management UI (create, rename, delete tags)
+- [ ] Add inline tag picker on author and book cards
+- [ ] Add tag filter to sidebar and search
+
+### Phase 3 — content_items Table
+- [ ] Design and add content_items table to schema (22 content types)
+- [ ] Run db:push migration
+- [ ] Migrate existing book_profiles rows into content_items
+- [ ] Update all existing book-related tRPC procedures to use content_items
+- [ ] Update UI to read books from content_items
+
+### Phase 4 — Type-Aware Content Forms
+- [ ] Build content type selector (22 types with icons)
+- [ ] Build universal content create/edit form
+- [ ] Add type-specific metadata fields per content type
+- [ ] Support multi-author content items
+- [ ] Add cover image upload for content items
+
+### Phase 5 — Non-Book Enrichment Pipelines
+- [ ] Podcast enrichment (Spotify/Apple Podcasts stats)
+- [ ] YouTube video/channel enrichment
+- [ ] TED talk enrichment (view counts, event data)
+- [ ] Academic paper enrichment (DOI, citations via OpenAlex)
+- [ ] Film/TV enrichment (IMDB data)
+- [ ] Substack post enrichment (individual post stats)
+
+## Session March 26, 2026 — Full Sidebar & Content Model Redesign
+
+### Phase 1 — Sidebar Redesign
+- [x] Redesign sidebar to 4 tabs: Authors, Books, Media, Favorites
+- [x] Replace per-category sidebar list with single "Filter" button
+- [x] Build Filter popover/panel with all 9 categories as toggle switches in responsive 2-3 column grid
+- [x] Add "All" / "None" quick toggle in Filter panel
+- [x] Show active filter count badge on Filter button
+
+### Phase 2 — Unified Books Tab
+- [x] Merge audiobooks into Books tab (remove separate Books Audio tab)
+- [ ] Add format field to book_profiles (physical, digital, audio, combos, none)
+- [ ] Add possessionStatus field to book_profiles (owned, wishlist, reference, borrowed, gifted)
+- [ ] Add format badges on book cards (speaker/document/book icons)
+- [ ] Add format and possession filters within Books tab
+
+### Phase 3 — Per-Tab Favorites Toggle
+- [ ] Add "Show favorites only" heart toggle inside Authors tab
+- [ ] Add "Show favorites only" heart toggle inside Books tab
+- [ ] Add "Show favorites only" heart toggle inside Media tab
+
+### Phase 4 — Media Tab
+- [ ] Design and add content_items table to schema (all non-book content types)
+- [ ] Run db:push migration
+- [ ] Build Media tab UI with sub-filters (Written, Audio & Video, Courses, Film & TV)
+- [ ] Add content type cards with appropriate icons
+
+### Phase 5 — Author Detail Page Link Hub
+- [ ] Build dedicated author detail page (/author/:id)
+- [ ] Show all platform links with recognizable logos/icons (Twitter, LinkedIn, YouTube, Substack, Medium, etc.)
+- [ ] Show all content items grouped by type (books, articles, podcasts, etc.)
+- [ ] Show all reference links (Wikipedia, Amazon, Goodreads)
+
+### Phase 6 — Book Detail View Link Hub
+- [ ] Build book detail view with purchase/read links (Amazon, Goodreads, publisher) with logos
+- [ ] Show library file links with format icons (PDF, EPUB, audio)
+- [ ] Show related links (Wikipedia, author page, similar books)
+
+### Phase 7 — CRUD Forms
+- [ ] Add Create/Edit/Delete Author forms
+- [ ] Add Create/Edit/Delete Book forms
+- [ ] Add Create/Edit/Delete Media content forms

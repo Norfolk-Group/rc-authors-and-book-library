@@ -1,0 +1,694 @@
+{
+  "query": "SELECT id, authorName FROM author_profiles ORDER BY authorName LIMIT 200;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 46FBtXPMNF6LwZ8.root --database ehSrGoKN2NYhXg8UYLtWGw --execute SELECT id, authorName FROM author_profiles ORDER BY authorName LIMIT 200;",
+  "rows": [
+    {
+      "id": "90001",
+      "authorName": "Aaron Ross"
+    },
+    {
+      "id": "30001",
+      "authorName": "Adam Grant"
+    },
+    {
+      "id": "30004",
+      "authorName": "Al Ries"
+    },
+    {
+      "id": "30005",
+      "authorName": "Alan Dib"
+    },
+    {
+      "id": "30006",
+      "authorName": "Albert Rutherford"
+    },
+    {
+      "id": "30007",
+      "authorName": "Alex Hormozi"
+    },
+    {
+      "id": "30008",
+      "authorName": "Alison Wood Brooks"
+    },
+    {
+      "id": "30009",
+      "authorName": "Andrew Ross Sorkin"
+    },
+    {
+      "id": "120003",
+      "authorName": "Anne Morriss"
+    },
+    {
+      "id": "30010",
+      "authorName": "Annie Duke"
+    },
+    {
+      "id": "30011",
+      "authorName": "April Dunford"
+    },
+    {
+      "id": "1",
+      "authorName": "Arianna Huffington"
+    },
+    {
+      "id": "2",
+      "authorName": "Ash Maurya"
+    },
+    {
+      "id": "150001",
+      "authorName": "Ashvin Vaidyanathan"
+    },
+    {
+      "id": "30014",
+      "authorName": "Ben Horowitz"
+    },
+    {
+      "id": "3",
+      "authorName": "Benjamin Franklin"
+    },
+    {
+      "id": "120002",
+      "authorName": "Bill Carr"
+    },
+    {
+      "id": "120004",
+      "authorName": "Bo Burlingham"
+    },
+    {
+      "id": "150063",
+      "authorName": "Brad Stone"
+    },
+    {
+      "id": "150062",
+      "authorName": "Brene Brown"
+    },
+    {
+      "id": "120007",
+      "authorName": "Brent Adamson"
+    },
+    {
+      "id": "150061",
+      "authorName": "Brian Tracy"
+    },
+    {
+      "id": "30015",
+      "authorName": "Cal Newport"
+    },
+    {
+      "id": "150060",
+      "authorName": "Carmine Gallo"
+    },
+    {
+      "id": "30016",
+      "authorName": "Charles Duhigg"
+    },
+    {
+      "id": "120008",
+      "authorName": "Chip Heath"
+    },
+    {
+      "id": "30017",
+      "authorName": "Chris Dixon"
+    },
+    {
+      "id": "30018",
+      "authorName": "Chris Voss"
+    },
+    {
+      "id": "150059",
+      "authorName": "Clayton Christensen"
+    },
+    {
+      "id": "150002",
+      "authorName": "Colin Bryar"
+    },
+    {
+      "id": "150058",
+      "authorName": "Colt Dodd"
+    },
+    {
+      "id": "30020",
+      "authorName": "Dale Carnegie"
+    },
+    {
+      "id": "30021",
+      "authorName": "Dan Harris"
+    },
+    {
+      "id": "30022",
+      "authorName": "Daniel J. Siegel"
+    },
+    {
+      "id": "30023",
+      "authorName": "Daniel Kahneman"
+    },
+    {
+      "id": "30024",
+      "authorName": "Daniel Larose"
+    },
+    {
+      "id": "150057",
+      "authorName": "Daniel Pink"
+    },
+    {
+      "id": "30025",
+      "authorName": "Darrell Huff"
+    },
+    {
+      "id": "30026",
+      "authorName": "David Brooks"
+    },
+    {
+      "id": "150056",
+      "authorName": "David Goggins"
+    },
+    {
+      "id": "150055",
+      "authorName": "David Meerman Scott"
+    },
+    {
+      "id": "30027",
+      "authorName": "David N. Schwartz"
+    },
+    {
+      "id": "30028",
+      "authorName": "David Nihill"
+    },
+    {
+      "id": "150054",
+      "authorName": "Derek Sivers"
+    },
+    {
+      "id": "150053",
+      "authorName": "Donald Miller"
+    },
+    {
+      "id": "30029",
+      "authorName": "Emma Leigh Weber"
+    },
+    {
+      "id": "150052",
+      "authorName": "Epictetus"
+    },
+    {
+      "id": "30030",
+      "authorName": "Eric Ries"
+    },
+    {
+      "id": "30031",
+      "authorName": "Eric Topol"
+    },
+    {
+      "id": "30032",
+      "authorName": "Esther Perel"
+    },
+    {
+      "id": "30033",
+      "authorName": "Ezra Klein"
+    },
+    {
+      "id": "150003",
+      "authorName": "Frances Frei"
+    },
+    {
+      "id": "150051",
+      "authorName": "Frank Slootman"
+    },
+    {
+      "id": "30036",
+      "authorName": "Fred Dust"
+    },
+    {
+      "id": "150050",
+      "authorName": "Gary Vaynerchuk"
+    },
+    {
+      "id": "30037",
+      "authorName": "Geoffrey A. Moore"
+    },
+    {
+      "id": "60002",
+      "authorName": "Geoffrey Moore"
+    },
+    {
+      "id": "30038",
+      "authorName": "George Friedman"
+    },
+    {
+      "id": "30039",
+      "authorName": "Gino Wickman"
+    },
+    {
+      "id": "150049",
+      "authorName": "Guy Kawasaki"
+    },
+    {
+      "id": "30040",
+      "authorName": "Hamilton Helmer"
+    },
+    {
+      "id": "30041",
+      "authorName": "Hans Peter Bech"
+    },
+    {
+      "id": "30042",
+      "authorName": "Henry Louis Gates Jr"
+    },
+    {
+      "id": "150048",
+      "authorName": "Horst Schulze"
+    },
+    {
+      "id": "30043",
+      "authorName": "Houston Howard"
+    },
+    {
+      "id": "150004",
+      "authorName": "Jack Stack"
+    },
+    {
+      "id": "150047",
+      "authorName": "Jack Welch"
+    },
+    {
+      "id": "30002",
+      "authorName": "James Clear"
+    },
+    {
+      "id": "30045",
+      "authorName": "James Surowiecki"
+    },
+    {
+      "id": "30046",
+      "authorName": "Jason Harris"
+    },
+    {
+      "id": "120001",
+      "authorName": "Jason Lemkin"
+    },
+    {
+      "id": "30047",
+      "authorName": "Jeb Blount"
+    },
+    {
+      "id": "30048",
+      "authorName": "Jeff Shannon"
+    },
+    {
+      "id": "150046",
+      "authorName": "Jeff Walker"
+    },
+    {
+      "id": "30049",
+      "authorName": "Jefferson Fisher"
+    },
+    {
+      "id": "30050",
+      "authorName": "Jim Camp"
+    },
+    {
+      "id": "30051",
+      "authorName": "Jim Collins"
+    },
+    {
+      "id": "150045",
+      "authorName": "Jim Kwik"
+    },
+    {
+      "id": "120009",
+      "authorName": "John David Mann"
+    },
+    {
+      "id": "30052",
+      "authorName": "John Doerr"
+    },
+    {
+      "id": "30053",
+      "authorName": "John Mullins"
+    },
+    {
+      "id": "150044",
+      "authorName": "Jonathan Haidt"
+    },
+    {
+      "id": "150043",
+      "authorName": "Jordan Belfort"
+    },
+    {
+      "id": "30054",
+      "authorName": "Karen Blumenthal"
+    },
+    {
+      "id": "30055",
+      "authorName": "Karen Eber"
+    },
+    {
+      "id": "150042",
+      "authorName": "Keith Ferrazzi"
+    },
+    {
+      "id": "60003",
+      "authorName": "Kelly Leonard"
+    },
+    {
+      "id": "30057",
+      "authorName": "Kerry Leonard"
+    },
+    {
+      "id": "30058",
+      "authorName": "Kim Scott"
+    },
+    {
+      "id": "30059",
+      "authorName": "Lawrence Weinstein"
+    },
+    {
+      "id": "30060",
+      "authorName": "Leander Kahney"
+    },
+    {
+      "id": "30061",
+      "authorName": "Leil Lowndes"
+    },
+    {
+      "id": "150041",
+      "authorName": "Liz Wiseman"
+    },
+    {
+      "id": "30062",
+      "authorName": "Malcolm Gladwell"
+    },
+    {
+      "id": "30063",
+      "authorName": "Marcus Aurelius"
+    },
+    {
+      "id": "150040",
+      "authorName": "Mark Manson"
+    },
+    {
+      "id": "30064",
+      "authorName": "Martin Lindstrom"
+    },
+    {
+      "id": "30065",
+      "authorName": "Matt Dixon"
+    },
+    {
+      "id": "30066",
+      "authorName": "Matthew Dixon"
+    },
+    {
+      "id": "150039",
+      "authorName": "Matthew McConaughey"
+    },
+    {
+      "id": "150038",
+      "authorName": "Matthew Walker"
+    },
+    {
+      "id": "30067",
+      "authorName": "Mel Robbins"
+    },
+    {
+      "id": "150037",
+      "authorName": "Michael Bungay Stanier"
+    },
+    {
+      "id": "150036",
+      "authorName": "Michael Lewis"
+    },
+    {
+      "id": "150035",
+      "authorName": "Mike Michalowicz"
+    },
+    {
+      "id": "30068",
+      "authorName": "Mike Smerkle"
+    },
+    {
+      "id": "30069",
+      "authorName": "Morgan Housel"
+    },
+    {
+      "id": "150034",
+      "authorName": "Napoleon Hill"
+    },
+    {
+      "id": "150033",
+      "authorName": "Nassim Nicholas Taleb"
+    },
+    {
+      "id": "150032",
+      "authorName": "Naval Ravikant"
+    },
+    {
+      "id": "150031",
+      "authorName": "Neil Rackham"
+    },
+    {
+      "id": "150030",
+      "authorName": "Nir Eyal"
+    },
+    {
+      "id": "30070",
+      "authorName": "Nixaly Leonardo"
+    },
+    {
+      "id": "150029",
+      "authorName": "Noah Kagan"
+    },
+    {
+      "id": "150028",
+      "authorName": "Noel Tichy"
+    },
+    {
+      "id": "150027",
+      "authorName": "Patrick Lencioni"
+    },
+    {
+      "id": "30071",
+      "authorName": "Peter Hans Beck"
+    },
+    {
+      "id": "30072",
+      "authorName": "Peter Northhouse"
+    },
+    {
+      "id": "150026",
+      "authorName": "Peter Thiel"
+    },
+    {
+      "id": "150025",
+      "authorName": "Phil Knight"
+    },
+    {
+      "id": "30073",
+      "authorName": "Philipp Dettmer"
+    },
+    {
+      "id": "150024",
+      "authorName": "Ray Dalio"
+    },
+    {
+      "id": "30074",
+      "authorName": "Ray Kurzweil"
+    },
+    {
+      "id": "30075",
+      "authorName": "Reid Hoffman"
+    },
+    {
+      "id": "30076",
+      "authorName": "Rhea Orion"
+    },
+    {
+      "id": "150023",
+      "authorName": "Richard Koch"
+    },
+    {
+      "id": "30077",
+      "authorName": "Richard Thaler"
+    },
+    {
+      "id": "30078",
+      "authorName": "Rob Fitzpatrick"
+    },
+    {
+      "id": "30079",
+      "authorName": "Rob Walling"
+    },
+    {
+      "id": "30080",
+      "authorName": "Robert Cialdini"
+    },
+    {
+      "id": "150021",
+      "authorName": "Robert Greene"
+    },
+    {
+      "id": "30081",
+      "authorName": "Robert M Grant"
+    },
+    {
+      "id": "150020",
+      "authorName": "Robin Sharma"
+    },
+    {
+      "id": "120005",
+      "authorName": "Ruben Rabago"
+    },
+    {
+      "id": "150019",
+      "authorName": "Ryan Holiday"
+    },
+    {
+      "id": "150018",
+      "authorName": "Sam Walton"
+    },
+    {
+      "id": "30082",
+      "authorName": "Sanjoy Mahajan"
+    },
+    {
+      "id": "150017",
+      "authorName": "Scott Adams"
+    },
+    {
+      "id": "30083",
+      "authorName": "Scott Brinker"
+    },
+    {
+      "id": "30084",
+      "authorName": "Scott Galloway"
+    },
+    {
+      "id": "30085",
+      "authorName": "Sean Ellis"
+    },
+    {
+      "id": "30086",
+      "authorName": "Seth Godin"
+    },
+    {
+      "id": "30087",
+      "authorName": "Shankar Vedantam"
+    },
+    {
+      "id": "30088",
+      "authorName": "Simon Sinek"
+    },
+    {
+      "id": "150016",
+      "authorName": "Spencer Johnson"
+    },
+    {
+      "id": "150015",
+      "authorName": "Stephen Covey"
+    },
+    {
+      "id": "30089",
+      "authorName": "Stephen Hawking"
+    },
+    {
+      "id": "30090",
+      "authorName": "Stephen R Poland"
+    },
+    {
+      "id": "30091",
+      "authorName": "Stephen R. Covey"
+    },
+    {
+      "id": "150014",
+      "authorName": "Steve Blank"
+    },
+    {
+      "id": "30092",
+      "authorName": "Steven Bartlett"
+    },
+    {
+      "id": "150013",
+      "authorName": "Steven Pressfield"
+    },
+    {
+      "id": "30094",
+      "authorName": "Sue Hawkes"
+    },
+    {
+      "id": "150012",
+      "authorName": "Sun Tzu"
+    },
+    {
+      "id": "150011",
+      "authorName": "Sundar Pichai"
+    },
+    {
+      "id": "30095",
+      "authorName": "Susin Nielsen"
+    },
+    {
+      "id": "30096",
+      "authorName": "TEST Matthew Dixon"
+    },
+    {
+      "id": "150010",
+      "authorName": "Tali Sharot"
+    },
+    {
+      "id": "120006",
+      "authorName": "Ted McKenna"
+    },
+    {
+      "id": "150009",
+      "authorName": "Tim Ferriss"
+    },
+    {
+      "id": "150008",
+      "authorName": "Todd Herman"
+    },
+    {
+      "id": "30097",
+      "authorName": "Tom Yorton"
+    },
+    {
+      "id": "150007",
+      "authorName": "Tony Robbins"
+    },
+    {
+      "id": "30098",
+      "authorName": "Uri Levine"
+    },
+    {
+      "id": "150006",
+      "authorName": "Vanessa Van Edwards"
+    },
+    {
+      "id": "30099",
+      "authorName": "Walter Isaacson"
+    },
+    {
+      "id": "30100",
+      "authorName": "Will Guidara"
+    },
+    {
+      "id": "120010",
+      "authorName": "William Ury"
+    },
+    {
+      "id": "30101",
+      "authorName": "Your Next Five Moves"
+    },
+    {
+      "id": "30102",
+      "authorName": "Yuval Noah Harari"
+    },
+    {
+      "id": "150005",
+      "authorName": "Zig Ziglar"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tauthorName\n90001\tAaron Ross\n30001\tAdam Grant\n30004\tAl Ries\n30005\tAlan Dib\n30006\tAlbert Rutherford\n30007\tAlex Hormozi\n30008\tAlison Wood Brooks\n30009\tAndrew Ross Sorkin\n120003\tAnne Morriss\n30010\tAnnie Duke\n30011\tApril Dunford\n1\tArianna Huffington\n2\tAsh Maurya\n150001\tAshvin Vaidyanathan\n30014\tBen Horowitz\n3\tBenjamin Franklin\n120002\tBill Carr\n120004\tBo Burlingham\n150063\tBrad Stone\n150062\tBrene Brown\n120007\tBrent Adamson\n150061\tBrian Tracy\n30015\tCal Newport\n150060\tCarmine Gallo\n30016\tCharles Duhigg\n120008\tChip Heath\n30017\tChris Dixon\n30018\tChris Voss\n150059\tClayton Christensen\n150002\tColin Bryar\n150058\tColt Dodd\n30020\tDale Carnegie\n30021\tDan Harris\n30022\tDaniel J. Siegel\n30023\tDaniel Kahneman\n30024\tDaniel Larose\n150057\tDaniel Pink\n30025\tDarrell Huff\n30026\tDavid Brooks\n150056\tDavid Goggins\n150055\tDavid Meerman Scott\n30027\tDavid N. Schwartz\n30028\tDavid Nihill\n150054\tDerek Sivers\n150053\tDonald Miller\n30029\tEmma Leigh Weber\n150052\tEpictetus\n30030\tEric Ries\n30031\tEric Topol\n30032\tEsther Perel\n30033\tEzra Klein\n150003\tFrances Frei\n150051\tFrank Slootman\n30036\tFred Dust\n150050\tGary Vaynerchuk\n30037\tGeoffrey A. Moore\n60002\tGeoffrey Moore\n30038\tGeorge Friedman\n30039\tGino Wickman\n150049\tGuy Kawasaki\n30040\tHamilton Helmer\n30041\tHans Peter Bech\n30042\tHenry Louis Gates Jr\n150048\tHorst Schulze\n30043\tHouston Howard\n150004\tJack Stack\n150047\tJack Welch\n30002\tJames Clear\n30045\tJames Surowiecki\n30046\tJason Harris\n120001\tJason Lemkin\n30047\tJeb Blount\n30048\tJeff Shannon\n150046\tJeff Walker\n30049\tJefferson Fisher\n30050\tJim Camp\n30051\tJim Collins\n150045\tJim Kwik\n120009\tJohn David Mann\n30052\tJohn Doerr\n30053\tJohn Mullins\n150044\tJonathan Haidt\n150043\tJordan Belfort\n30054\tKaren Blumenthal\n30055\tKaren Eber\n150042\tKeith Ferrazzi\n60003\tKelly Leonard\n30057\tKerry Leonard\n30058\tKim Scott\n30059\tLawrence Weinstein\n30060\tLeander Kahney\n30061\tLeil Lowndes\n150041\tLiz Wiseman\n30062\tMalcolm Gladwell\n30063\tMarcus Aurelius\n150040\tMark Manson\n30064\tMartin Lindstrom\n30065\tMatt Dixon\n30066\tMatthew Dixon\n150039\tMatthew McConaughey\n150038\tMatthew Walker\n30067\tMel Robbins\n150037\tMichael Bungay Stanier\n150036\tMichael Lewis\n150035\tMike Michalowicz\n30068\tMike Smerkle\n30069\tMorgan Housel\n150034\tNapoleon Hill\n150033\tNassim Nicholas Taleb\n150032\tNaval Ravikant\n150031\tNeil Rackham\n150030\tNir Eyal\n30070\tNixaly Leonardo\n150029\tNoah Kagan\n150028\tNoel Tichy\n150027\tPatrick Lencioni\n30071\tPeter Hans Beck\n30072\tPeter Northhouse\n150026\tPeter Thiel\n150025\tPhil Knight\n30073\tPhilipp Dettmer\n150024\tRay Dalio\n30074\tRay Kurzweil\n30075\tReid Hoffman\n30076\tRhea Orion\n150023\tRichard Koch\n30077\tRichard Thaler\n30078\tRob Fitzpatrick\n30079\tRob Walling\n30080\tRobert Cialdini\n150021\tRobert Greene\n30081\tRobert M Grant\n150020\tRobin Sharma\n120005\tRuben Rabago\n150019\tRyan Holiday\n150018\tSam Walton\n30082\tSanjoy Mahajan\n150017\tScott Adams\n30083\tScott Brinker\n30084\tScott Galloway\n30085\tSean Ellis\n30086\tSeth Godin\n30087\tShankar Vedantam\n30088\tSimon Sinek\n150016\tSpencer Johnson\n150015\tStephen Covey\n30089\tStephen Hawking\n30090\tStephen R Poland\n30091\tStephen R. Covey\n150014\tSteve Blank\n30092\tSteven Bartlett\n150013\tSteven Pressfield\n30094\tSue Hawkes\n150012\tSun Tzu\n150011\tSundar Pichai\n30095\tSusin Nielsen\n30096\tTEST Matthew Dixon\n150010\tTali Sharot\n120006\tTed McKenna\n150009\tTim Ferriss\n150008\tTodd Herman\n30097\tTom Yorton\n150007\tTony Robbins\n30098\tUri Levine\n150006\tVanessa Van Edwards\n30099\tWalter Isaacson\n30100\tWill Guidara\n120010\tWilliam Ury\n30101\tYour Next Five Moves\n30102\tYuval Noah Harari\n150005\tZig Ziglar\n",
+  "stderr": "",
+  "execution_time_ms": 67
+}
