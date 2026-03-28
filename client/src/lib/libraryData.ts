@@ -1,112 +1,25 @@
 // AUTO-GENERATED — DO NOT EDIT MANUALLY
 // Generated: 2026-03-25 21:35 UTC
 // Source: Google Drive scan of 01 — Authors folder (18SjO_Cz6U7hjsSQZwSFVaAA12pL2RQaf)
-// Design: Editorial Intelligence - Playfair Display + DM Sans, warm paper palette, 9-category system
-export interface BookEntry {
-  name: string;
-  id: string;
-  contentTypes: Record<string, number>;
-}
-export interface AuthorEntry {
-  name: string;
-  id: string;
-  category: string;
-  books: BookEntry[];
-}
-export interface BookRecord {
-  name: string;
-  id: string;
-  category: string;
-  contentTypes: Record<string, number>;
-}
-export const CATEGORY_COLORS: Record<string, string> = {
-  "Business & Entrepreneurship": "#FDB817",
-  "Behavioral Science & Psychology": "#0091AE",
-  "Sales & Negotiation": "#112548",
-  "Leadership & Management": "#21B9A3",
-  "Self-Help & Productivity": "#F4795B",
-  "Communication & Storytelling": "#00A9B8",
-  "Technology & Futurism": "#112548",
-  "Strategy & Economics": "#34475B",
-  "History & Biography": "#6A9E56",
-};
-// Soft pastel background tints per category (NCG palette-aware)
-export const CATEGORY_BG: Record<string, string> = {
-  "Business & Entrepreneurship": "#fffbec",
-  "Behavioral Science & Psychology": "#edf8fc",
-  "Sales & Negotiation": "#eef1f8",
-  "Leadership & Management": "#edfaf8",
-  "Self-Help & Productivity": "#fef3ef",
-  "Communication & Storytelling": "#edfafc",
-  "Technology & Futurism": "#eef1f8",
-  "Strategy & Economics": "#f5f8fa",
-  "History & Biography": "#f1f7ee",
-};
-export const CATEGORY_ICONS: Record<string, string> = {
-  "Business & Entrepreneurship": "briefcase",
-  "Behavioral Science & Psychology": "brain",
-  "Sales & Negotiation": "handshake",
-  "Leadership & Management": "users",
-  "Self-Help & Productivity": "zap",
-  "Communication & Storytelling": "message-circle",
-  "Technology & Futurism": "cpu",
-  "Strategy & Economics": "trending-up",
-  "History & Biography": "book-open",
-};
-export const CONTENT_TYPE_ICONS: Record<string, string> = {
-  "PDF": "file-text",
-  "Binder": "book",
-  "Transcript": "align-left",
-  "Summary": "list",
-  "Supplemental": "package",
-  "Video": "video",
-  "Images": "image",
-  "Papers": "scroll",
-  "Articles": "newspaper",
-  "Links": "link",
-  "Audio": "headphones",
-  "EPUB": "book-open",
-  "Notes": "pen-line",
-  "Substack": "rss",
-  "Medium": "file-text",
-  "Other": "folder",
-};
-export const CONTENT_TYPE_COLORS: Record<string, string> = {
-  "PDF": "#dc2626",
-  "Binder": "#7c3aed",
-  "Transcript": "#059669",
-  "Summary": "#0891b2",
-  "Supplemental": "#6b7280",
-  "Video": "#db2777",
-  "Images": "#0891b2",
-  "Papers": "#0d9488",
-  "Articles": "#78350f",
-  "Links": "#4338ca",
-  "Audio": "#7c3aed",
-  "EPUB": "#0891b2",
-  "Notes": "#059669",
-  "Substack": "#ff6719",
-  "Medium": "#000000",
-  "Other": "#9ca3af",
-};
+//
+// Static constants (CATEGORY_COLORS, CATEGORY_ICONS, etc.) have been moved to:
+//   client/src/lib/libraryConstants.ts
+// Import from there for constants; import from here for AUTHORS and BOOKS data.
 
-export const LIBRARY_STATS = {
-  totalAuthors: 105,
-  totalBooks: 174,
-  categories: 9,
-};
+// Import types for use in the data arrays below
+import type { AuthorEntry, BookRecord } from "./libraryConstants";
 
-export const CATEGORIES: string[] = [
-  "Behavioral Science & Psychology",
-  "Business & Entrepreneurship",
-  "Communication & Storytelling",
-  "History & Biography",
-  "Leadership & Management",
-  "Sales & Negotiation",
-  "Self-Help & Productivity",
-  "Strategy & Economics",
-  "Technology & Futurism"
-];
+// Re-export everything from libraryConstants so existing imports still work
+export type { BookEntry, AuthorEntry, BookRecord } from "./libraryConstants";
+export {
+  CATEGORY_COLORS,
+  CATEGORY_BG,
+  CATEGORY_ICONS,
+  CONTENT_TYPE_ICONS,
+  CONTENT_TYPE_COLORS,
+  LIBRARY_STATS,
+  CATEGORIES,
+} from "./libraryConstants";
 
 export const AUTHORS: AuthorEntry[] = [
   {

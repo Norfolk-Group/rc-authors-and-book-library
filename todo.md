@@ -2083,3 +2083,26 @@ Live URL: https://authlib-ehsrgokn.manus.space
 - [x] Add "Add Physical Book" shortcut button in Books tab toolbar
 - [x] Auto-trigger author enrichment (bio + social links) after createAuthor succeeds (fire-and-forget)
 - [x] Auto-trigger book enrichment (cover + summary) after createBook succeeds (fire-and-forget)
+
+## Session March 28, 2026 — Codebase Audit & Optimization
+
+### Dead Code Removal
+- [x] Remove AIChatBox.tsx (unused, not imported anywhere)
+- [x] Remove DashboardLayout.tsx and DashboardLayoutSkeleton.tsx (unused, custom sidebar layout used instead)
+- [x] Remove Map.tsx (unused, not imported anywhere)
+- [x] Remove ComponentShowcase.tsx (unused, not imported anywhere)
+
+### Large File Splits
+- [x] Extract llm vendor catalogue data from llm.router.ts into server/lib/llmCatalogue.ts (~800 lines of static data)
+- [ ] Split bookProfiles.router.ts: extract book CRUD procedures into bookCrud.router.ts
+- [x] Extract libraryData constants (CATEGORY_COLORS, CATEGORY_BG, CATEGORY_ICONS, etc.) into client/src/lib/libraryConstants.ts
+- [ ] Extract Home.tsx CRUD dialog orchestration into a useLibraryCrud hook
+
+### Documentation Updates
+- [x] Update claude.md: fix stale file references (BookModal.tsx missing, line counts, new CRUD dialogs, sidebar redesign, format/possession fields)
+- [x] Sync manus.md as exact copy of claude.md
+- [x] Update skills: fix router split references (authorAvatar/authorEnrichment/authorSocial)
+- [x] Remove ThemeContext.tsx (superseded by AppSettingsContext.tsx)
+- [x] Remove stale probe/debug/test scripts (probe-cnbc*.mjs, probe-rapidapi.mjs, debug-rich-bio.ts, test-aaron-ross*.ts/mjs)
+- [x] Remove ThemeContext.tsx (superseded by AppSettingsContext.tsx)
+- [x] Remove stale probe/debug/test scripts

@@ -384,3 +384,62 @@ All 122 tests still passing. claude.md architecture overview updated with new fi
 - `drizzle/schema.ts` (academicResearchJson columns)
 - `server/routers/authorProfiles.router.ts` (academic + business procedures)
 - `todo.md` (57 new items, 10+ marked complete)
+
+---
+
+## March 28, 2026 — Codebase Audit & Optimization
+
+**Goal:** Audit and optimize the full codebase — identify large files, remove dead code, split modules, and update documentation.
+
+### Dead Code Removed
+- `client/src/components/AIChatBox.tsx` — template component, not used in this project
+- `client/src/components/DashboardLayout.tsx` — template component, not used (custom sidebar layout)
+- `client/src/components/DashboardLayoutSkeleton.tsx` — template component, not used
+- `client/src/components/Map.tsx` — template component, not used
+- `client/src/pages/ComponentShowcase.tsx` — template showcase page, not used
+- `client/src/contexts/ThemeContext.tsx` — fully superseded by `AppSettingsContext.tsx`
+
+### File Splits
+- **`server/lib/llmCatalogue.ts`** (new, ~899 lines) — extracted vendor catalogue data, types, and recommendation engine from `llm.router.ts`. The router is now ~133 lines (down from ~1006).
+- **`client/src/lib/libraryConstants.ts`** (new, ~131 lines) — extracted static constants (CATEGORY_COLORS, CATEGORY_BG, CATEGORY_ICONS, CONTENT_TYPE_ICONS, CONTENT_TYPE_COLORS, LIBRARY_STATS, CATEGORIES, types) from `libraryData.ts`. `libraryData.ts` re-exports them for backward compatibility.
+
+### Documentation Updated
+- `claude.md` / `manus.md` — full rewrite with accurate line counts, corrected file paths (removed BookModal.tsx, ThemeContext.tsx), added new files (libraryConstants.ts, llmCatalogue.ts, AuthorCard.tsx, AuthorBioPanel.tsx, BookDetailPanel.tsx, AuthorCardActions.tsx), updated test count (27 files, 439 tests), added Design Rule 14 (AppSettingsContext is the theme authority)
+- `skills/llm-recommendation-engine/SKILL.md` — updated Key Files section to point to `server/lib/llmCatalogue.ts`
+- `skills/library-content-enrichment/SKILL.md` — updated stale `authorProfiles.router.ts` reference to `authorSocial.router.ts`
+- `skills/webdev-card-system/SKILL.md` — added note that BookModal.tsx was replaced by BookDetailPanel.tsx in this project
+
+### Verification
+- TypeScript: 0 errors
+- Tests: 439 passing across 30 test files
+- Server: healthy (API endpoints responding)
+
+
+---
+
+## March 28, 2026 - Codebase Audit and Optimization
+
+**Goal:** Audit and optimize the full codebase -- identify large files, remove dead code, split modules, and update documentation.
+
+### Dead Code Removed
+- client/src/components/AIChatBox.tsx -- template component, not used in this project
+- client/src/components/DashboardLayout.tsx -- template component, not used (custom sidebar layout)
+- client/src/components/DashboardLayoutSkeleton.tsx -- template component, not used
+- client/src/components/Map.tsx -- template component, not used
+- client/src/pages/ComponentShowcase.tsx -- template showcase page, not used
+- client/src/contexts/ThemeContext.tsx -- fully superseded by AppSettingsContext.tsx
+
+### File Splits
+- server/lib/llmCatalogue.ts (new, ~899 lines) -- extracted vendor catalogue data, types, and recommendation engine from llm.router.ts. The router is now ~133 lines (down from ~1006).
+- client/src/lib/libraryConstants.ts (new, ~131 lines) -- extracted static constants (CATEGORY_COLORS, CATEGORY_BG, CATEGORY_ICONS, CONTENT_TYPE_ICONS, CONTENT_TYPE_COLORS, LIBRARY_STATS, CATEGORIES, types) from libraryData.ts. libraryData.ts re-exports them for backward compatibility.
+
+### Documentation Updated
+- claude.md / manus.md -- full rewrite with accurate line counts, corrected file paths, added new files, updated test count (27 files, 439 tests), added Design Rule 14 (AppSettingsContext is the theme authority)
+- skills/llm-recommendation-engine/SKILL.md -- updated Key Files section to point to server/lib/llmCatalogue.ts
+- skills/library-content-enrichment/SKILL.md -- updated stale authorProfiles.router.ts reference to authorSocial.router.ts
+- skills/webdev-card-system/SKILL.md -- added note that BookModal.tsx was replaced by BookDetailPanel.tsx
+
+### Verification
+- TypeScript: 0 errors
+- Tests: 439 passing across 30 test files
+- Server: healthy (API endpoints responding)
