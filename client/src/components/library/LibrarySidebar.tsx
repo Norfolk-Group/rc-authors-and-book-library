@@ -26,6 +26,8 @@ import {
   BarChart,
   RefreshCw,
   Film,
+  Flame,
+  GitCompare,
 } from "lucide-react";
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
@@ -228,6 +230,16 @@ export function LibrarySidebar({
           <a href="/compare" className="w-full flex items-center gap-2 text-xs px-2 py-1.5 rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/60">
             <BarChart className="w-3.5 h-3.5 flex-shrink-0" />
             Compare Authors
+            <ChevronRight className="w-3 h-3 ml-auto opacity-50" />
+          </a>
+          <a href="/interests/heatmap" className="w-full flex items-center gap-2 text-xs px-2 py-1.5 rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/60">
+            <Flame className="w-3.5 h-3.5 flex-shrink-0" />
+            Interest Heatmap
+            <ChevronRight className="w-3 h-3 ml-auto opacity-50" />
+          </a>
+          <a href="/interests/contrast" className="w-full flex items-center gap-2 text-xs px-2 py-1.5 rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/60">
+            <GitCompare className="w-3.5 h-3.5 flex-shrink-0" />
+            Group Contrast
             <ChevronRight className="w-3 h-3 ml-auto opacity-50" />
           </a>
           <a href="/admin" className="w-full flex items-center gap-2 text-xs px-2 py-1.5 rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/60">
