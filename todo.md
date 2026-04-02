@@ -2478,3 +2478,9 @@ Live URL: https://authlib-ehsrgokn.manus.space
 - [x] Wire Digital Me RAG file as context into Chat with Author (already fully implemented in authorChatbot.router.ts — verified and confirmed working)
 - [x] Wire login-04 form to /login route (Login.tsx page with Manus OAuth, login-04 layout, auto-redirect if already authenticated, /login route added to App.tsx)
 - [x] Run tests — 492 tests, 34 files, all passing, 0 TypeScript errors
+
+## Session Apr 2, 2026 — Next 3 Tasks (Taxonomy Toggle + Recently Tagged + Bio Tags)
+- [x] Bulk tag toggle in Taxonomy Matrix — clickable cells with +/✓ icons, spinner while pending, optimistic updates via applyToEntity mutation
+- [x] "Recently Tagged" strip on home page (shows up to 8 recently tagged entities with avatar, A/B type badge, tag color pills; hidden when filters active)
+- [x] Tag badges + inline tag picker on AuthorBioPanel (TagPicker below header, shows applied tags as color pills, admin can add/remove tags via popover)
+- [x] Run tests — 492 tests, 34 files, all passing, 0 TypeScript errors

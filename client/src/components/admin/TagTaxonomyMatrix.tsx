@@ -1,15 +1,16 @@
 /**
  * TagTaxonomyMatrix — Admin Tags section
  * Shows a matrix of all tags × all tagged entities (authors + books).
- * Each cell is a checkmark if the entity has that tag.
- * Allows quick visual audit of tag coverage.
+ * Clicking a cell toggles the tag on that entity (add/remove) via applyToEntity mutation.
+ * Optimistic updates for instant feedback.
  */
 import { useMemo, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MagnifyingGlass, Tag, User, BookOpen } from "@phosphor-icons/react";
+import { MagnifyingGlass, Tag, User, BookOpen, Check, Plus } from "@phosphor-icons/react";
+import { toast } from "sonner";
 
 type EntityRow = {
   key: string;
@@ -21,6 +22,7 @@ type EntityRow = {
 export function TagTaxonomyMatrix() {
   const [search, setSearch] = useState("");
   const [entityType, setEntityType] = useState<"all" | "author" | "book">("all");
+  const utils = trpc.useUtils();
 
   const tagsQuery = trpc.tags.list.useQuery(undefined, { staleTime: 60_000 });
   const authorTagsQuery = trpc.tags.getAllAuthorTagSlugs.useQuery(undefined, { staleTime: 30_000 });
@@ -28,6 +30,34 @@ export function TagTaxonomyMatrix() {
 
   const tags = tagsQuery.data ?? [];
   const isLoading = tagsQuery.isLoading || authorTagsQuery.isLoading || bookTagsQuery.isLoading;
+
+  // Track pending cell toggles for optimistic UI
+  const [pending, setPending] = useState<Set<string>>(new Set());
+
+  const applyMutation = trpc.tags.applyToEntity.useMutation({
+    onMutate: ({ entityKey, tagSlug }) => {
+      const cellKey = `${entityKey}::${tagSlug}`;
+      setPending((prev) => new Set(Array.from(prev).concat(cellKey)));
+    },
+    onSuccess: (_, { entityKey, tagSlug, action }) => {
+      const cellKey = `${entityKey}::${tagSlug}`;
+      setPending((prev) => {
+        const next = new Set(Array.from(prev).filter(k => k !== cellKey));
+        return next;
+      });
+      utils.tags.getAllAuthorTagSlugs.invalidate();
+      utils.tags.getAllBookTagSlugs.invalidate();
+      utils.tags.list.invalidate();
+    },
+    onError: (err, { entityKey, tagSlug }) => {
+      const cellKey = `${entityKey}::${tagSlug}`;
+      setPending((prev) => {
+        const next = new Set(Array.from(prev).filter(k => k !== cellKey));
+        return next;
+      });
+      toast.error(`Failed to update tag: ${err.message}`);
+    },
+  });
 
   const entities: EntityRow[] = useMemo(() => {
     const rows: EntityRow[] = [];
@@ -49,6 +79,18 @@ export function TagTaxonomyMatrix() {
     const q = search.toLowerCase();
     return entities.filter((e) => e.label.toLowerCase().includes(q));
   }, [entities, search]);
+
+  const handleCellClick = (entity: EntityRow, tagSlug: string) => {
+    const cellKey = `${entity.key}::${tagSlug}`;
+    if (pending.has(cellKey)) return; // debounce
+    const hasTag = entity.tagSlugs.has(tagSlug);
+    applyMutation.mutate({
+      entityType: entity.type,
+      entityKey: entity.key,
+      tagSlug,
+      action: hasTag ? "remove" : "add",
+    });
+  };
 
   if (isLoading) {
     return (
@@ -81,7 +123,7 @@ export function TagTaxonomyMatrix() {
     <div className="mt-6 space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-foreground">Tag Taxonomy Matrix</h3>
-        <span className="text-xs text-muted-foreground">{filtered.length} entities × {tags.length} tags</span>
+        <span className="text-xs text-muted-foreground">{filtered.length} entities × {tags.length} tags · click a cell to toggle</span>
       </div>
       <MatrixControls search={search} setSearch={setSearch} entityType={entityType} setEntityType={setEntityType} />
 
@@ -113,7 +155,7 @@ export function TagTaxonomyMatrix() {
             {filtered.map((entity, rowIdx) => (
               <tr
                 key={entity.key}
-                className={`border-b border-border/40 transition-colors hover:bg-muted/30 ${rowIdx % 2 === 0 ? "" : "bg-muted/10"}`}
+                className={`border-b border-border/40 transition-colors hover:bg-muted/20 ${rowIdx % 2 === 0 ? "" : "bg-muted/10"}`}
               >
                 <td className="sticky left-0 bg-background/95 backdrop-blur-sm px-3 py-1.5 font-medium z-10">
                   <div className="flex items-center gap-1.5 min-w-0">
@@ -125,21 +167,37 @@ export function TagTaxonomyMatrix() {
                     <span className="truncate max-w-[160px]" title={entity.label}>{entity.label}</span>
                   </div>
                 </td>
-                {tags.map((tag) => (
-                  <td key={tag.slug} className="px-2 py-1.5 text-center">
-                    {entity.tagSlugs.has(tag.slug) ? (
-                      <span
-                        className="inline-flex items-center justify-center w-5 h-5 rounded-full text-white text-[10px] font-bold"
-                        style={{ backgroundColor: tag.color ?? "#6b7280" }}
-                        title={`${entity.label} has tag "${tag.name}"`}
+                {tags.map((tag) => {
+                  const hasTag = entity.tagSlugs.has(tag.slug);
+                  const cellKey = `${entity.key}::${tag.slug}`;
+                  const isPending = pending.has(cellKey);
+                  return (
+                    <td key={tag.slug} className="px-2 py-1.5 text-center">
+                      <button
+                        onClick={() => handleCellClick(entity, tag.slug)}
+                        disabled={isPending}
+                        title={hasTag ? `Remove "${tag.name}" from ${entity.label}` : `Add "${tag.name}" to ${entity.label}`}
+                        className={`
+                          inline-flex items-center justify-center w-6 h-6 rounded-full transition-all duration-150
+                          ${isPending ? "opacity-50 cursor-wait scale-90" : "cursor-pointer hover:scale-110 active:scale-95"}
+                          ${hasTag
+                            ? "text-white shadow-sm hover:opacity-80"
+                            : "bg-muted/30 border border-border/40 text-muted-foreground hover:bg-muted/60 hover:border-border"
+                          }
+                        `}
+                        style={hasTag ? { backgroundColor: tag.color ?? "#6b7280" } : undefined}
                       >
-                        ✓
-                      </span>
-                    ) : (
-                      <span className="inline-block w-5 h-5 rounded-full bg-muted/30" />
-                    )}
-                  </td>
-                ))}
+                        {isPending ? (
+                          <span className="w-2 h-2 rounded-full border border-current border-t-transparent animate-spin" />
+                        ) : hasTag ? (
+                          <Check className="w-3 h-3" weight="bold" />
+                        ) : (
+                          <Plus className="w-3 h-3" />
+                        )}
+                      </button>
+                    </td>
+                  );
+                })}
               </tr>
             ))}
           </tbody>
@@ -147,7 +205,7 @@ export function TagTaxonomyMatrix() {
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+      <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
         <div className="flex items-center gap-1.5">
           <User className="w-3 h-3 text-blue-500" />
           <span>{(authorTagsQuery.data ?? []).length} tagged authors</span>
@@ -157,12 +215,19 @@ export function TagTaxonomyMatrix() {
           <span>{(bookTagsQuery.data ?? []).length} tagged books</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-primary text-white text-[9px]">✓</span>
-          <span>Tag applied</span>
+          <span
+            className="inline-flex items-center justify-center w-4 h-4 rounded-full text-white text-[9px]"
+            style={{ backgroundColor: "#6366F1" }}
+          >
+            <Check className="w-2.5 h-2.5" weight="bold" />
+          </span>
+          <span>Tag applied — click to remove</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="inline-block w-4 h-4 rounded-full bg-muted/30 border border-border/40" />
-          <span>Not tagged</span>
+          <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-muted/30 border border-border/40 text-muted-foreground">
+            <Plus className="w-2.5 h-2.5" />
+          </span>
+          <span>Not tagged — click to add</span>
         </div>
       </div>
     </div>

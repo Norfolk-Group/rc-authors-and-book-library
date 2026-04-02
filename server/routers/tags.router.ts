@@ -7,7 +7,7 @@ import { z } from "zod";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 import { tags, authorProfiles, bookProfiles } from "../../drizzle/schema";
-import { eq, asc, sql } from "drizzle-orm";
+import { eq, asc, sql, desc, isNotNull, ne } from "drizzle-orm";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -215,6 +215,57 @@ export const tagsRouter = router({
     return rows
       .filter((r) => r.tagsJson && r.tagsJson !== "[]")
       .map((r) => ({ bookTitle: r.bookTitle, tagSlugs: parseTagsJson(r.tagsJson) }));
+  }),
+
+  /**
+   * Get the most recently tagged authors and books (for the 'Recently Tagged' strip).
+   * Returns up to 8 entities ordered by updatedAt DESC.
+   */
+  getRecentlyTagged: publicProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) return [];
+    const authors = await db
+      .select({
+        entityKey: authorProfiles.authorName,
+        entityType: sql<'author'>`'author'`,
+        tagsJson: authorProfiles.tagsJson,
+        avatarUrl: authorProfiles.avatarUrl,
+        s3AvatarUrl: authorProfiles.s3AvatarUrl,
+        updatedAt: authorProfiles.updatedAt,
+      })
+      .from(authorProfiles)
+      .where(sql`${authorProfiles.tagsJson} IS NOT NULL AND ${authorProfiles.tagsJson} != '[]'`)
+      .orderBy(desc(authorProfiles.updatedAt))
+      .limit(8);
+    const books = await db
+      .select({
+        entityKey: bookProfiles.bookTitle,
+        entityType: sql<'book'>`'book'`,
+        tagsJson: bookProfiles.tagsJson,
+        avatarUrl: bookProfiles.coverImageUrl,
+        s3AvatarUrl: bookProfiles.s3CoverUrl,
+        updatedAt: bookProfiles.updatedAt,
+      })
+      .from(bookProfiles)
+      .where(sql`${bookProfiles.tagsJson} IS NOT NULL AND ${bookProfiles.tagsJson} != '[]'`)
+      .orderBy(desc(bookProfiles.updatedAt))
+      .limit(8);
+    // Merge, sort by updatedAt, return top 8
+    const combined = [...authors, ...books]
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+      .slice(0, 8);
+    // Fetch all tags for display
+    const allTags = await db.select({ slug: tags.slug, name: tags.name, color: tags.color }).from(tags);
+    const tagMap = new Map(allTags.map(t => [t.slug, t]));
+    return combined.map((row) => ({
+      entityKey: row.entityKey,
+      entityType: row.entityType as 'author' | 'book',
+      tagSlugs: parseTagsJson(row.tagsJson),
+      avatarUrl: row.avatarUrl ?? null,
+      s3AvatarUrl: row.s3AvatarUrl ?? null,
+      updatedAt: row.updatedAt,
+      tags: parseTagsJson(row.tagsJson).map(slug => tagMap.get(slug)).filter(Boolean) as { slug: string; name: string; color: string | null }[],
+    }));
   }),
 
   /**

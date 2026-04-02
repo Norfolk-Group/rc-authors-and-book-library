@@ -198,6 +198,8 @@ export default function Home() {
   } = data;
   const allTags: Array<{ slug: string; name: string; color?: string | null }> = data.allTags ?? [];
 
+  const recentlyTaggedQuery = trpc.tags.getRecentlyTagged.useQuery(undefined, { staleTime: 30_000 });
+
   const hasFilters = selectedCategories.size > 0 || query.length > 0 || enrichFilter !== "all" || selectedTagSlugs.size > 0;
 
   // Compute category counts for the active tab
@@ -524,6 +526,59 @@ export default function Home() {
                             {new Date(author.enrichedAt).toLocaleDateString([], { month: "short", day: "numeric" })}
                           </span>
                         )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Recently Tagged strip */}
+            {activeTab === "authors" && !query && selectedCategories.size === 0 && selectedTagSlugs.size === 0 && (recentlyTaggedQuery.data?.length ?? 0) > 0 && (
+              <div className="mb-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-base">🏷️</span>
+                  <h2 className="text-sm font-semibold">Recently Tagged</h2>
+                  <span className="text-xs text-muted-foreground">Entities with tags applied recently</span>
+                </div>
+                <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin">
+                  {recentlyTaggedQuery.data?.map((item) => {
+                    const avatarUrl = item.s3AvatarUrl || item.avatarUrl || null;
+                    return (
+                      <button
+                        key={`${item.entityType}::${item.entityKey}`}
+                        onClick={() => {
+                          if (item.entityType === "author") {
+                            const found = AUTHORS.find((a) => canonicalName(a.name).toLowerCase() === item.entityKey.toLowerCase());
+                            if (found) { setSelectedAuthor(found); setBioSheetOpen(true); }
+                          }
+                        }}
+                        className="flex-shrink-0 flex flex-col items-center gap-1.5 p-3 rounded-xl bg-muted/40 hover:bg-muted/70 border border-border/40 hover:border-border/80 transition-all w-[100px] group"
+                      >
+                        <div className="relative">
+                          {avatarUrl ? (
+                            <img src={avatarUrl} alt={item.entityKey} className="w-12 h-12 rounded-full object-cover ring-2 ring-violet-400/40 group-hover:ring-violet-400/80 transition-all" />
+                          ) : (
+                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-violet-400/20 to-violet-600/20 flex items-center justify-center text-lg font-bold text-violet-600">
+                              {item.entityKey.charAt(0)}
+                            </div>
+                          )}
+                          <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-violet-500 rounded-full flex items-center justify-center text-[9px] text-white font-bold">
+                            {item.entityType === "author" ? "A" : "B"}
+                          </span>
+                        </div>
+                        <span className="text-[10px] font-medium text-center leading-tight line-clamp-2 w-full">
+                          {item.entityKey.split(" ").slice(0, 2).join(" ")}
+                        </span>
+                        {item.tags.slice(0, 2).map((tag) => (
+                          <span
+                            key={tag.slug}
+                            className="text-[8px] px-1.5 py-0.5 rounded-full font-medium truncate max-w-full"
+                            style={{ backgroundColor: (tag.color ?? "#6366F1") + "22", color: tag.color ?? "#6366F1" }}
+                          >
+                            {tag.name}
+                          </span>
+                        ))}
                       </button>
                     );
                   })}

@@ -48,6 +48,7 @@ import authorBios from "@/lib/authorBios.json";
 import { useAppSettings } from "@/contexts/AppSettingsContext";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { PlatformPills } from "@/components/library/PlatformPills";
+import { TagPicker } from "@/components/TagPicker";
 import type { SocialStatsResult } from "../../../../server/enrichment/socialStats";
 import { Newspaper } from "lucide-react";
 
@@ -579,6 +580,16 @@ export function AuthorBioPanel({ author, onClose }: AuthorBioPanelProps) {
           </div>
         </div>
       </DialogHeader>
+
+      {/* ── Tags ── */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <TagPicker
+          entityType="author"
+          entityKey={displayName}
+          currentTagSlugs={[]}
+          showApplied={true}
+        />
+      </div>
 
       {/* ── Wikipedia Summary Card ── */}
       {wiki && (wiki.description || wiki.extract || wiki.thumbnailUrl) && (
