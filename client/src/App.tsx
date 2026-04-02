@@ -15,6 +15,7 @@ const AuthorChatbot = lazy(() => import("./pages/AuthorChatbot"));
 const InterestHeatmap = lazy(() => import("./pages/InterestHeatmap"));
 const GroupContrast = lazy(() => import("./pages/GroupContrast"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const Login = lazy(() => import("./pages/Login"));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center h-screen text-muted-foreground">
@@ -62,6 +63,11 @@ function Router() {
       <Route path={"/interests/contrast"}>
         <Suspense fallback={<PageLoader />}>
           <GroupContrast />
+        </Suspense>
+      </Route>
+      <Route path={"/login"}>
+        <Suspense fallback={<PageLoader />}>
+          <Login />
         </Suspense>
       </Route>
       <Route path={"/privacy"}>

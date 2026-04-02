@@ -46,6 +46,7 @@ import { FloatingBooks } from "@/components/FloatingBooks";
 import { STATS, type BookEnrichmentLevel } from "@/components/library/libraryConstants";
 import { LibrarySidebar, type TabType } from "@/components/library/LibrarySidebar";
 import { LibraryHeader } from "@/components/library/LibraryHeader";
+import { TagGroupHeader, groupByFirstTag } from "@/components/library/TagGroupHeader";
 import { useLibraryCrud } from "@/hooks/useLibraryCrud";
 import { PlusCircle } from "lucide-react";
 import {
@@ -192,9 +193,10 @@ export default function Home() {
     richSummarySet, richBioSet, dbAvatarMap, researchQualityMap, platformLinksMap, bookInfoMap,
     authorFreshnessMap, bookFreshnessMap,
     filteredAuthors, filteredBooks, filteredAudio, authorCounts, bookCounts,
-    bookTagsMap,
+    bookTagsMap, authorTagsMap,
     getBio, isAuthenticated,
   } = data;
+  const allTags: Array<{ slug: string; name: string; color?: string | null }> = data.allTags ?? [];
 
   const hasFilters = selectedCategories.size > 0 || query.length > 0 || enrichFilter !== "all" || selectedTagSlugs.size > 0;
 
@@ -533,6 +535,53 @@ export default function Home() {
             <div className="relative">
               {activeTab === "authors" ? (
                 filteredAuthors.length === 0 ? <EmptyState query={query} /> : (
+                  authorSort === "tags" ? (
+                    // Tag-group view: insert sticky section headers between groups
+                    <div className="space-y-0">
+                      {groupByFirstTag(
+                        filteredAuthors,
+                        (a) => {
+                          const tags = authorTagsMap.get(canonicalName(a.name).toLowerCase());
+                          return tags && tags.size > 0 ? Array.from(tags).sort()[0] : null;
+                        },
+                        allTags
+                      ).map((group) => (
+                        <div key={group.tagSlug ?? "__untagged__"} className="mb-6">
+                          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                            <TagGroupHeader tagName={group.tagName} tagColor={group.tagColor} count={group.items.length} />
+                            {group.items.map((a, i) => (
+                              <div key={a.id + i} style={{ animationDelay: `${Math.min(i * 30, 400)}ms` }}>
+                                <FlowbiteAuthorCard
+                                  author={a}
+                                  query={query}
+                                  onBioClick={(author) => { setSelectedAuthor(author); setBioSheetOpen(true); }}
+                                  isEnriched={enrichedSet.has(a.name.includes(" - ") ? a.name.slice(0, a.name.indexOf(" - ")) : a.name)}
+                                  bio={getBio(a)}
+                                  coverMap={bookCoverMap}
+                                  dbAvatarMap={dbAvatarMap}
+                                  researchQualityMap={researchQualityMap}
+                                  bookInfoMap={bookInfoMap}
+                                  onNavigateToBook={navigateToBook}
+                                  isHighlighted={highlightedAuthorName === canonicalName(a.name).toLowerCase()}
+                                  isFavorite={(authorFavoritesQuery.data ?? {})[canonicalName(a.name).toLowerCase()] ?? false}
+                                  hasRichBio={richBioSet.has(canonicalName(a.name).toLowerCase())}
+                                  platformLinks={platformLinksMap.get(canonicalName(a.name).toLowerCase()) ?? null}
+                                  freshnessDimensions={authorFreshnessMap.get(canonicalName(a.name).toLowerCase())}
+                                  cardRef={(el) => {
+                                    const key = canonicalName(a.name).toLowerCase();
+                                    if (el) authorCardRefs.current.set(key, el);
+                                    else authorCardRefs.current.delete(key);
+                                  }}
+                                  onEditClick={isAuthenticated ? () => openEditAuthor(canonicalName(a.name)) : undefined}
+                                  onDeleteClick={isAuthenticated ? () => openDeleteAuthor(canonicalName(a.name)) : undefined}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
                   <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 tab-content-enter">
                     {filteredAuthors.map((a, i) => (
                       <div key={a.id + i} style={{ animationDelay: `${Math.min(i * 30, 400)}ms` }}>
@@ -563,6 +612,7 @@ export default function Home() {
                       </div>
                     ))}
                   </div>
+                  )
                 )
               ) : activeTab === "books" ? (
                 filteredBooks.length === 0 ? <EmptyState query={query} /> : (

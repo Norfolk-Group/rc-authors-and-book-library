@@ -2471,3 +2471,10 @@ Live URL: https://authlib-ehsrgokn.manus.space
 - [x] Add "Group by Tag" sort option to author sort dropdown
 - [x] Add "Group by Tag" sort option to book sort dropdown
 - [x] Run tests — 492 tests, 34 files, all passing, 0 TypeScript errors
+
+## Session Apr 2, 2026 — Next 5 Tasks (Tag Groups + RAG Chat + Login)
+- [x] Add tag-group section headers in card grid when "Group by Tag" sort is active (TagGroupHeader component, sticky headers between tag groups, untagged items go last)
+- [x] Build Tag Taxonomy admin matrix view (TagTaxonomyMatrix in Admin → Tags, all tags × all tagged entities, filterable by name/type, color-coded checkmarks)
+- [x] Wire Digital Me RAG file as context into Chat with Author (already fully implemented in authorChatbot.router.ts — verified and confirmed working)
+- [x] Wire login-04 form to /login route (Login.tsx page with Manus OAuth, login-04 layout, auto-redirect if already authenticated, /login route added to App.tsx)
+- [x] Run tests — 492 tests, 34 files, all passing, 0 TypeScript errors

@@ -71,6 +71,7 @@ import { AdminBooksTab } from "@/components/admin/AdminBooksTab";
 import { AdminMediaTab } from "@/components/admin/AdminMediaTab";
 import { AdminPipelineTab } from "@/components/admin/AdminPipelineTab";
 import { TagManagement } from "@/components/admin/TagManagement";
+import { TagTaxonomyMatrix } from "@/components/admin/TagTaxonomyMatrix";
 import { CascadeTab } from "@/components/admin/CascadeTab";
 import { DigitalMeTab } from "@/components/admin/DigitalMeTab";
 import { AiTab } from "@/components/admin/AiTab";
@@ -374,6 +375,7 @@ export default function Admin() {
                     </div>
                   </div>
                   <TagManagement />
+                  <TagTaxonomyMatrix />
                 </div>
               )}
 
