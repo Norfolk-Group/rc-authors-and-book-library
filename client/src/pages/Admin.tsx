@@ -87,6 +87,7 @@ import { SettingsTab } from "@/components/admin/SettingsTab";
 import { AboutTab } from "@/components/admin/AboutTab";
 import { SyncJobsTab } from "@/components/admin/SyncJobsTab";
 import { BulkUrlImportPanel } from "@/components/admin/BulkUrlImportPanel";
+import { BookMigrationPanel } from "@/components/admin/BookMigrationPanel";
 
 // Hook
 import { useAdminActions } from "@/hooks/useAdminActions";
@@ -615,6 +616,7 @@ export default function Admin() {
                     </div>
                   </div>
                   <BulkUrlImportPanel />
+                  <BookMigrationPanel />
                 </div>
               )}
 

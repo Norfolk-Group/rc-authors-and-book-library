@@ -18,6 +18,7 @@ export const ENV = {
   rapidApiKey: process.env.RAPIDAPI_KEY ?? "",
   twitterBearerToken: process.env.TWITTER_BEARER_TOKEN ?? "",
   googleBooksApiKey: process.env.GOOGLE_BOOKS_API_KEY ?? "",
+  omdbApiKey: process.env.OMDB_API_KEY ?? "",
   // Google Drive folder IDs (NCG Library structure)
   // Set via environment variables to avoid hardcoding in source
   driveAuthorsFolderId: process.env.DRIVE_AUTHORS_FOLDER_ID ?? "18SjO_Cz6U7hjsSQZwSFVaAA12pL2RQaf",

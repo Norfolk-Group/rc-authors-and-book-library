@@ -88,12 +88,12 @@ Last cleaned: Apr 2, 2026
 - [x] YouTube enrichment procedure (`enrichFromYouTube` via YouTube Data API v3)
 - [x] Podcast enrichment procedure (`enrichFromPodcast` via iTunes Search API)
 - [x] `BulkUrlImportPanel` in Admin → Content Items tab (paste URLs → auto-import)
-- [ ] TED talk enrichment (view counts, event data)
-- [ ] Academic paper enrichment (DOI, citations via OpenAlex)
-- [ ] Film/TV enrichment (IMDB data)
-- [ ] Substack post enrichment (individual post stats)
-- [ ] Support multi-author content items (many-to-many via `authorContentLinks`)
-- [ ] Migrate existing `book_profiles` rows into `content_items` (data migration)
+- [x] TED talk enrichment (view counts, event data via TED public API + OG tag fallback)
+- [x] Academic paper enrichment (DOI, citations via OpenAlex API — free, no key required)
+- [x] Film/TV enrichment (IMDB data via OMDB API — requires OMDB_API_KEY secret)
+- [x] Substack post enrichment (individual post stats via Substack public API + OG fallback)
+- [x] Support multi-author content items (many-to-many via `authorContentLinks` — schema + router + BulkUrlImportPanel author field)
+- [x] Migrate existing `book_profiles` rows into `content_items` (idempotent batch migration with dry-run + progress UI in Admin → Content Items)
 
 ---
 
