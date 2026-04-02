@@ -23,7 +23,7 @@ import {
   Upload,
   Trash2,
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -54,7 +54,6 @@ function getTypeIcon(type: UrlEntry["type"]) {
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export function BulkUrlImportPanel() {
-  const { toast } = useToast();
   const [rawInput, setRawInput] = useState("");
   const [entries, setEntries] = useState<UrlEntry[]>([]);
   const [isRunning, setIsRunning] = useState(false);
@@ -69,7 +68,11 @@ export function BulkUrlImportPanel() {
       .split("\n")
       .map((l) => l.trim())
       .filter((l) => l.length > 0 && (l.startsWith("http://") || l.startsWith("https://")));
-    const unique = [...new Set(lines)];
+    const seen = new Set<string>();
+    const unique: string[] = [];
+    for (const l of lines) {
+      if (!seen.has(l)) { seen.add(l); unique.push(l); }
+    }
     setEntries(
       unique.map((url) => ({
         url,
@@ -134,11 +137,11 @@ export function BulkUrlImportPanel() {
     await utils.contentItems.list.invalidate();
     setIsRunning(false);
 
-    toast({
-      title: `Import complete`,
-      description: `${successCount} imported, ${errorCount} failed`,
-      variant: errorCount > 0 ? "destructive" : "default",
-    });
+    if (errorCount > 0) {
+      toast.error(`Import complete: ${successCount} imported, ${errorCount} failed`);
+    } else {
+      toast.success(`Import complete: ${successCount} items imported`);
+    }
   }
 
   const pendingCount = entries.filter((e) => e.status === "pending").length;
