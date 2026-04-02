@@ -72,6 +72,7 @@ import { AdminMediaTab } from "@/components/admin/AdminMediaTab";
 import { AdminPipelineTab } from "@/components/admin/AdminPipelineTab";
 import { TagManagement } from "@/components/admin/TagManagement";
 import { TagTaxonomyMatrix } from "@/components/admin/TagTaxonomyMatrix";
+import { TagStatisticsCard } from "@/components/admin/TagStatisticsCard";
 import { CascadeTab } from "@/components/admin/CascadeTab";
 import { DigitalMeTab } from "@/components/admin/DigitalMeTab";
 import { AiTab } from "@/components/admin/AiTab";
@@ -374,6 +375,7 @@ export default function Admin() {
                       <p className="text-muted-foreground text-sm">Create, rename, and delete tags for authors and books</p>
                     </div>
                   </div>
+                  <TagStatisticsCard />
                   <TagManagement />
                   <TagTaxonomyMatrix />
                 </div>

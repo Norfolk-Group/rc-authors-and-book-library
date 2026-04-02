@@ -269,6 +269,40 @@ export const tagsRouter = router({
   }),
 
   /**
+   * Get usage counts per tag (authors + books breakdown).
+   * Returns array sorted by total count descending.
+   */
+  getUsageCounts: publicProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) return [];
+    const allTags = await db.select({ slug: tags.slug, name: tags.name, color: tags.color }).from(tags).orderBy(asc(tags.name));
+    const authorRows = await db.select({ tagsJson: authorProfiles.tagsJson }).from(authorProfiles);
+    const bookRows = await db.select({ tagsJson: bookProfiles.tagsJson }).from(bookProfiles);
+    const authorCounts = new Map<string, number>();
+    const bookCounts = new Map<string, number>();
+    for (const row of authorRows) {
+      for (const slug of parseTagsJson(row.tagsJson)) {
+        authorCounts.set(slug, (authorCounts.get(slug) ?? 0) + 1);
+      }
+    }
+    for (const row of bookRows) {
+      for (const slug of parseTagsJson(row.tagsJson)) {
+        bookCounts.set(slug, (bookCounts.get(slug) ?? 0) + 1);
+      }
+    }
+    return allTags
+      .map((tag) => ({
+        slug: tag.slug,
+        name: tag.name,
+        color: tag.color,
+        authors: authorCounts.get(tag.slug) ?? 0,
+        books: bookCounts.get(tag.slug) ?? 0,
+        total: (authorCounts.get(tag.slug) ?? 0) + (bookCounts.get(tag.slug) ?? 0),
+      }))
+      .sort((a, b) => b.total - a.total);
+  }),
+
+  /**
    * Get tags for a specific entity.
    */
   getForEntity: publicProcedure

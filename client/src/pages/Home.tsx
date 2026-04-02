@@ -11,6 +11,7 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from "react";
+import { useLocation, useSearch } from "wouter";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { CoverLightbox } from "@/components/CoverLightbox";
 import { BackToTop } from "@/components/BackToTop";
@@ -94,14 +95,35 @@ export default function Home() {
   const [enrichFilter, setEnrichFilter] = useLocalStorage<BookEnrichmentLevel | "all">("lib:enrichFilter", "all");
   const [possessionFilter, setPossessionFilter] = useLocalStorage<string>("lib:possessionFilter", "all");
   const [_savedTagSlugs, _setSavedTagSlugs] = useLocalStorage<string[]>("lib:selectedTagSlugs", []);
-  const [selectedTagSlugs, setSelectedTagSlugs] = useState<Set<string>>(() => new Set(_savedTagSlugs));
+  // URL search params for shareable tag-filtered views
+  const searchString = useSearch();
+  const [, setLocation] = useLocation();
+  const urlTagSlugs = (() => {
+    const params = new URLSearchParams(searchString);
+    const t = params.get("tags");
+    return t ? t.split(",").filter(Boolean) : null;
+  })();
+  // Initialise from URL if present, otherwise fall back to localStorage
+  const [selectedTagSlugs, setSelectedTagSlugs] = useState<Set<string>>(
+    () => new Set(urlTagSlugs ?? _savedTagSlugs)
+  );
+  // Keep URL + localStorage in sync whenever selectedTagSlugs changes
   const _setSelectedTagSlugsAndPersist = useCallback((updater: Set<string> | ((prev: Set<string>) => Set<string>)) => {
     setSelectedTagSlugs((prev) => {
       const next = typeof updater === "function" ? updater(prev) : updater;
       _setSavedTagSlugs(Array.from(next));
+      // Update URL query param
+      const params = new URLSearchParams(window.location.search);
+      if (next.size > 0) {
+        params.set("tags", Array.from(next).join(","));
+      } else {
+        params.delete("tags");
+      }
+      const newSearch = params.toString();
+      setLocation(newSearch ? `/?${newSearch}` : "/", { replace: true });
       return next;
     });
-  }, [_setSavedTagSlugs]);
+  }, [_setSavedTagSlugs, setLocation]);
   const toggleTagSlug = useCallback((slug: string) => {
     _setSelectedTagSlugsAndPersist((prev) => {
       const next = new Set(prev);

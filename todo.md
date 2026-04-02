@@ -2492,3 +2492,8 @@ Live URL: https://authlib-ehsrgokn.manus.space
 - [x] Add tag badges + TagPicker to BookDetailPanel (TagPicker below publisher/date row in full variant header, shows applied tags + admin can add/remove)
 - [x] AI Model Config section in Admin (AIModelConfigTab already fully implemented — 421 lines, 3-column layout, primary/secondary LLM, all major vendors, seeded Google/Gemini 2.5 Pro)
 - [x] Run tests — 491/492 passing (1 network test fails due to sandbox restriction, not a code issue), 0 TypeScript errors
+## Session Apr 2, 2026 — Next 3 Tasks (URL Params + Tag Stats + Bulk Books)
+- [x] Add BulkTagBooksAssignment component to Admin → Books tab (mirrors BulkTagAssignment for authors; scrollable book list with checkboxes, tag dropdown, Apply/Remove buttons)
+- [x] Persist tag filter selection in URL query params (?tags=slug1,slug2) — shareable/bookmarkable filtered views; initialises from URL on load, syncs to localStorage simultaneously
+- [x] Tag Statistics bar chart in Admin → Tags (TagStatisticsCard with recharts horizontal BarChart; Authors vs Books stacked bars; top 20 tags; summary stats: tags in use / total assignments)
+- [x] Run tests — 492 tests, 34 files, all passing, 0 TypeScript errors
