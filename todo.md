@@ -108,7 +108,7 @@ Last cleaned: Apr 2, 2026
 - [x] `BulkUrlImportPanel` in Admin → Content Items
 - [x] Admin sidebar badge counts and running indicators (e.g. jobs in progress)
 - [x] Admin sidebar search/filter bar
-- [ ] Split `Admin.tsx` (641L) into focused tab components
+- [x] Split `Admin.tsx` (643L → 447L) into 15 focused wrapper tab components under `components/admin/` — Admin.tsx is now a thin orchestrator shell with single-component calls per section
 
 ---
 

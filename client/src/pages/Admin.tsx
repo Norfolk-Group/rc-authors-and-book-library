@@ -5,20 +5,17 @@
  * All tab content lives in focused components under components/admin/.
  *
  * Navigation groups:
- *   Content  → Authors | Books | Tags | Data Pipeline
- *   Media    → Media Assets | Sync & Storage
- *   Intelligence → Digital Me | Research | AI Settings | AI Models
+ *   Content        → Authors | Books | Tags | Data Pipeline
+ *   Media          → Media Assets | Content Items | Sync & Storage
+ *   Intelligence   → Digital Me | Research | AI Settings | AI Models
  *   Personalization → My Interests | Favorites
- *   System   → Health | Dependencies | Schedules | Info Tools
- *   Configuration → App Settings | About
+ *   System         → Health | Dependencies | Schedules | Info Tools
+ *   Configuration  → App Settings | About
  */
 import { useState, useCallback } from "react";
 import { useAppSettings } from "@/contexts/AppSettingsContext";
 import PageHeader from "@/components/PageHeader";
-import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
 import {
-  ArrowsClockwise,
   Books,
   Image,
   Database,
@@ -42,7 +39,7 @@ import {
   Tag,
   Cpu as CircuitBoard,
 } from "@phosphor-icons/react";
-import { Loader2, ChevronRight, Link } from "lucide-react";
+import { Loader2, ChevronRight } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -65,38 +62,41 @@ import {
 } from "@/components/ui/collapsible";
 import type { Icon as PhosphorIcon } from "@phosphor-icons/react";
 
-// Tab components
+// ── Tab components ────────────────────────────────────────────────────────────
+// Content
 import { AdminAuthorsTab } from "@/components/admin/AdminAuthorsTab";
 import { AdminBooksTab } from "@/components/admin/AdminBooksTab";
-import { AdminMediaTab } from "@/components/admin/AdminMediaTab";
+import { AdminTagsTab } from "@/components/admin/AdminTagsTab";
 import { AdminPipelineTab } from "@/components/admin/AdminPipelineTab";
-import { TagManagement } from "@/components/admin/TagManagement";
-import { TagTaxonomyMatrix } from "@/components/admin/TagTaxonomyMatrix";
-import { TagStatisticsCard } from "@/components/admin/TagStatisticsCard";
-import { CascadeTab } from "@/components/admin/CascadeTab";
-import { DigitalMeTab } from "@/components/admin/DigitalMeTab";
-import { AiTab } from "@/components/admin/AiTab";
-import { AIModelConfigTab } from "@/components/admin/AIModelConfigTab";
-import { MyInterestsTab } from "@/components/admin/MyInterestsTab";
-import { FavoritesTab } from "@/components/admin/FavoritesTab";
-import { ToolHealthCheckTab } from "@/components/admin/ToolHealthCheckTab";
-import { DependenciesTab } from "@/components/admin/DependenciesTab";
-import { SchedulingTab } from "@/components/admin/SchedulingTab";
-import { InformationToolsTab } from "@/components/admin/InformationToolsTab";
-import { SettingsTab } from "@/components/admin/SettingsTab";
-import { AboutTab } from "@/components/admin/AboutTab";
-import { SyncJobsTab } from "@/components/admin/SyncJobsTab";
-import { BulkUrlImportPanel } from "@/components/admin/BulkUrlImportPanel";
-import { BookMigrationPanel } from "@/components/admin/BookMigrationPanel";
+// Media
+import { AdminMediaTab } from "@/components/admin/AdminMediaTab";
+import { AdminContentItemsTab } from "@/components/admin/AdminContentItemsTab";
+import { AdminSyncTab } from "@/components/admin/AdminSyncTab";
+// Intelligence
+import { AdminDigitalMeTab } from "@/components/admin/AdminDigitalMeTab";
+import { AdminResearchTab } from "@/components/admin/AdminResearchTab";
+import { AdminAiSettingsTab } from "@/components/admin/AdminAiSettingsTab";
+import { AdminAiModelsTab } from "@/components/admin/AdminAiModelsTab";
+// Personalization
+import { AdminInterestsTab } from "@/components/admin/AdminInterestsTab";
+import { AdminFavoritesTab } from "@/components/admin/AdminFavoritesTab";
+// System
+import { AdminHealthTab } from "@/components/admin/AdminHealthTab";
+import { AdminDependenciesTab } from "@/components/admin/AdminDependenciesTab";
+import { AdminSchedulesTab } from "@/components/admin/AdminSchedulesTab";
+import { AdminInfoToolsTab } from "@/components/admin/AdminInfoToolsTab";
+// Configuration
+import { AdminAppSettingsTab } from "@/components/admin/AdminAppSettingsTab";
+import { AdminAboutTab } from "@/components/admin/AdminAboutTab";
 
-// Hook
+// ── Hook ──────────────────────────────────────────────────────────────────────
 import { useAdminActions } from "@/hooks/useAdminActions";
 
-// -- Types ------------------------------------------------------
+// ── Types ─────────────────────────────────────────────────────────────────────
 type NavItem = { id: string; label: string; icon: PhosphorIcon };
 type NavGroup = { label: string; icon: PhosphorIcon; items: NavItem[] };
 
-// -- Navigation -------------------------------------------------
+// ── Navigation ────────────────────────────────────────────────────────────────
 const NAV_GROUPS: NavGroup[] = [
   {
     label: "Content",
@@ -155,9 +155,9 @@ const NAV_GROUPS: NavGroup[] = [
   },
 ];
 
-// -- Main Admin Page --------------------------------------------
+// ── Main Admin Page ───────────────────────────────────────────────────────────
 export default function Admin() {
-  const { settings, updateSettings } = useAppSettings();
+  const { settings } = useAppSettings();
   const actions = useAdminActions(settings);
 
   const [activeSection, setActiveSection] = useState("authors");
@@ -262,11 +262,10 @@ export default function Admin() {
                               <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
                             </span>
                           )}
-                          <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 font-normal">
-                            {filteredItems.length}
-                          </Badge>
+                          <ChevronRight
+                            className={`h-3.5 w-3.5 transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`}
+                          />
                         </span>
-                        <ChevronRight className="h-3.5 w-3.5 shrink-0 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 group-data-[collapsible=icon]:hidden" />
                       </CollapsibleTrigger>
                     </SidebarGroupLabel>
                     <CollapsibleContent>
@@ -276,8 +275,7 @@ export default function Admin() {
                             <SidebarMenuItem key={item.id}>
                               <SidebarMenuButton
                                 isActive={activeSection === item.id}
-                                onClick={() => { setActiveSection(item.id); setSidebarSearch(""); }}
-                                tooltip={item.label}
+                                onClick={() => setActiveSection(item.id)}
                                 className="transition-all duration-150"
                               >
                                 <item.icon
@@ -316,7 +314,7 @@ export default function Admin() {
           <main className="flex-1 overflow-y-auto">
             <div className="p-6 max-w-5xl mx-auto space-y-6">
 
-              {/* ── Authors ── */}
+              {/* ── Content ── */}
               {activeSection === "authors" && (
                 <AdminAuthorsTab
                   anyRunning={actions.anyRunning}
@@ -346,8 +344,6 @@ export default function Admin() {
                   handleEnrichProfessional={actions.handleEnrichProfessional}
                 />
               )}
-
-              {/* ── Books ── */}
               {activeSection === "books" && (
                 <AdminBooksTab
                   anyRunning={actions.anyRunning}
@@ -367,24 +363,7 @@ export default function Admin() {
                   handleRebuildCovers={actions.handleRebuildCovers}
                 />
               )}
-
-              {/* ── Tags ── */}
-              {activeSection === "tags" && (
-                <div className="space-y-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-xl bg-primary/10"><Tag className="h-6 w-6 text-primary" weight="duotone" /></div>
-                    <div>
-                      <h1 className="text-2xl font-bold tracking-tight">Tag Management</h1>
-                      <p className="text-muted-foreground text-sm">Create, rename, and delete tags for authors and books</p>
-                    </div>
-                  </div>
-                  <TagStatisticsCard />
-                  <TagManagement />
-                  <TagTaxonomyMatrix />
-                </div>
-              )}
-
-              {/* ── Data Pipeline ── */}
+              {activeSection === "tags" && <AdminTagsTab />}
               {activeSection === "pipeline" && (
                 <AdminPipelineTab
                   anyRunning={actions.anyRunning}
@@ -413,7 +392,7 @@ export default function Admin() {
                 />
               )}
 
-              {/* ── Media Assets ── */}
+              {/* ── Media ── */}
               {activeSection === "media" && (
                 <AdminMediaTab
                   anyRunning={actions.anyRunning}
@@ -436,203 +415,28 @@ export default function Admin() {
                   handleRebuildCovers={actions.handleRebuildCovers}
                 />
               )}
+              {activeSection === "content-items" && <AdminContentItemsTab />}
+              {activeSection === "sync" && <AdminSyncTab />}
 
-              {/* ── Sync & Storage ── */}
-              {activeSection === "sync" && (
-                <div className="space-y-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-xl bg-primary/10"><Cloud className="h-6 w-6 text-primary" weight="duotone" /></div>
-                    <div>
-                      <h1 className="text-2xl font-bold tracking-tight">Sync & Storage</h1>
-                      <p className="text-muted-foreground text-sm">Manage cloud storage connections and sync jobs</p>
-                    </div>
-                  </div>
-                  <SyncJobsTab />
-                </div>
-              )}
+              {/* ── Intelligence ── */}
+              {activeSection === "digital-me" && <AdminDigitalMeTab />}
+              {activeSection === "cascade" && <AdminResearchTab />}
+              {activeSection === "ai" && <AdminAiSettingsTab />}
+              {activeSection === "ai-models" && <AdminAiModelsTab />}
 
-              {/* ── Digital Me ── */}
-              {activeSection === "digital-me" && (
-                <div className="space-y-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-xl bg-primary/10"><Robot className="h-6 w-6 text-primary" weight="duotone" /></div>
-                    <div>
-                      <h1 className="text-2xl font-bold tracking-tight">Digital Me</h1>
-                      <p className="text-muted-foreground text-sm">Manage AI personas and RAG profiles for authors</p>
-                    </div>
-                  </div>
-                  <DigitalMeTab />
-                </div>
-              )}
+              {/* ── Personalization ── */}
+              {activeSection === "interests" && <AdminInterestsTab />}
+              {activeSection === "favorites" && <AdminFavoritesTab />}
 
-              {/* ── Research ── */}
-              {activeSection === "cascade" && (
-                <div className="space-y-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-xl bg-primary/10"><ChartBar className="h-6 w-6 text-primary" weight="duotone" /></div>
-                    <div>
-                      <h1 className="text-2xl font-bold tracking-tight">Research</h1>
-                      <p className="text-muted-foreground text-sm">Live enrichment stats and cascade pipeline status</p>
-                    </div>
-                  </div>
-                  <CascadeTab aStats={actions.authorStats} bStats={actions.bookStats} scrapeStats={actions.batchScrapeStats} />
-                </div>
-              )}
+              {/* ── System ── */}
+              {activeSection === "health" && <AdminHealthTab />}
+              {activeSection === "dependencies" && <AdminDependenciesTab />}
+              {activeSection === "scheduling" && <AdminSchedulesTab />}
+              {activeSection === "tools" && <AdminInfoToolsTab />}
 
-              {/* ── AI Settings ── */}
-              {activeSection === "ai" && (
-                <div className="space-y-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-xl bg-primary/10"><Cpu className="h-6 w-6 text-primary" weight="duotone" /></div>
-                    <div>
-                      <h1 className="text-2xl font-bold tracking-tight">AI Settings</h1>
-                      <p className="text-muted-foreground text-sm">Configure AI generation parameters and prompts</p>
-                    </div>
-                  </div>
-                  <AiTab settings={settings} updateSettings={updateSettings} />
-                </div>
-              )}
-
-              {/* ── AI Models ── */}
-              {activeSection === "ai-models" && (
-                <div className="space-y-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-xl bg-primary/10"><CircuitBoard className="h-6 w-6 text-primary" weight="duotone" /></div>
-                    <div>
-                      <h1 className="text-2xl font-bold tracking-tight">AI Models</h1>
-                      <p className="text-muted-foreground text-sm">Select and configure LLM providers and models</p>
-                    </div>
-                  </div>
-                  <AIModelConfigTab />
-                </div>
-              )}
-
-              {/* ── My Interests ── */}
-              {activeSection === "interests" && (
-                <div className="space-y-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-xl bg-primary/10"><Heart className="h-6 w-6 text-primary" weight="duotone" /></div>
-                    <div>
-                      <h1 className="text-2xl font-bold tracking-tight">My Interests</h1>
-                      <p className="text-muted-foreground text-sm">Manage your reading interests and preferences</p>
-                    </div>
-                  </div>
-                  <MyInterestsTab />
-                </div>
-              )}
-
-              {/* ── Favorites ── */}
-              {activeSection === "favorites" && (
-                <div className="space-y-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-xl bg-primary/10"><Star className="h-6 w-6 text-primary" weight="duotone" /></div>
-                    <div>
-                      <h1 className="text-2xl font-bold tracking-tight">Favorites</h1>
-                      <p className="text-muted-foreground text-sm">Your saved authors and books</p>
-                    </div>
-                  </div>
-                  <FavoritesTab />
-                </div>
-              )}
-
-              {/* ── Health ── */}
-              {activeSection === "health" && (
-                <div className="space-y-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-xl bg-primary/10"><Heartbeat className="h-6 w-6 text-primary" weight="duotone" /></div>
-                    <div>
-                      <h1 className="text-2xl font-bold tracking-tight">Health</h1>
-                      <p className="text-muted-foreground text-sm">Tool function checks and service status</p>
-                    </div>
-                  </div>
-                  <ToolHealthCheckTab />
-                </div>
-              )}
-
-              {/* ── Dependencies ── */}
-              {activeSection === "dependencies" && (
-                <div className="space-y-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-xl bg-primary/10"><Package className="h-6 w-6 text-primary" weight="duotone" /></div>
-                    <div>
-                      <h1 className="text-2xl font-bold tracking-tight">Dependencies</h1>
-                      <p className="text-muted-foreground text-sm">Package versions and dependency status</p>
-                    </div>
-                  </div>
-                  <DependenciesTab />
-                </div>
-              )}
-
-              {/* ── Schedules ── */}
-              {activeSection === "scheduling" && (
-                <div className="space-y-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-xl bg-primary/10"><CalendarCheck className="h-6 w-6 text-primary" weight="duotone" /></div>
-                    <div>
-                      <h1 className="text-2xl font-bold tracking-tight">Schedules</h1>
-                      <p className="text-muted-foreground text-sm">Manage automated task schedules</p>
-                    </div>
-                  </div>
-                  <SchedulingTab />
-                </div>
-              )}
-
-              {/* ── Info Tools ── */}
-              {activeSection === "tools" && (
-                <div className="space-y-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-xl bg-primary/10"><Lightning className="h-6 w-6 text-primary" weight="duotone" /></div>
-                    <div>
-                      <h1 className="text-2xl font-bold tracking-tight">Info Tools</h1>
-                      <p className="text-muted-foreground text-sm">Research utilities and information lookup tools</p>
-                    </div>
-                  </div>
-                  <InformationToolsTab settings={settings} updateSettings={updateSettings} />
-                </div>
-              )}
-
-              {/* ── App Settings ── */}
-              {activeSection === "settings" && (
-                <div className="space-y-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-xl bg-primary/10"><Gear className="h-6 w-6 text-primary" weight="duotone" /></div>
-                    <div>
-                      <h1 className="text-2xl font-bold tracking-tight">App Settings</h1>
-                      <p className="text-muted-foreground text-sm">Theme, display, and application preferences</p>
-                    </div>
-                  </div>
-                  <SettingsTab settings={settings} updateSettings={updateSettings} />
-                </div>
-              )}
-
-              {/* ── Content Items ── */}
-              {activeSection === "content-items" && (
-                <div className="space-y-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-xl bg-primary/10"><Globe className="h-6 w-6 text-primary" weight="duotone" /></div>
-                    <div>
-                      <h1 className="text-2xl font-bold tracking-tight">Content Items</h1>
-                      <p className="text-muted-foreground text-sm">Import and manage media content items (YouTube, podcasts, articles)</p>
-                    </div>
-                  </div>
-                  <BulkUrlImportPanel />
-                  <BookMigrationPanel />
-                </div>
-              )}
-
-              {/* ── About ── */}
-              {activeSection === "about" && (
-                <div className="space-y-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-xl bg-primary/10"><Info className="h-6 w-6 text-primary" weight="duotone" /></div>
-                    <div>
-                      <h1 className="text-2xl font-bold tracking-tight">About</h1>
-                      <p className="text-muted-foreground text-sm">Application version, credits, and documentation</p>
-                    </div>
-                  </div>
-                  <AboutTab settings={settings} />
-                </div>
-              )}
+              {/* ── Configuration ── */}
+              {activeSection === "settings" && <AdminAppSettingsTab />}
+              {activeSection === "about" && <AdminAboutTab />}
 
             </div>
           </main>
