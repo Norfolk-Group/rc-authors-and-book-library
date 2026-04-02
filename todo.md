@@ -16,8 +16,8 @@ Last cleaned: Apr 2, 2026
 - [x] Build `TagTaxonomyMatrix` — bulk assign/remove tags across all entities
 - [x] Build `BulkTagAssignment` — bulk tag multiple authors at once
 - [x] Add Tag Statistics bar chart in Admin → Tags (`TagStatisticsCard.tsx` with recharts)
-- [ ] Tag rename cascade — when a tag slug changes, update all `tagsJson` arrays in `author_profiles` and `book_profiles`
-- [ ] Tag auto-suggest at creation time — add tag picker to Author and Book CRUD dialogs
+- [x] Tag rename cascade — when a tag slug changes, update all `tagsJson` arrays in `author_profiles` and `book_profiles`
+- [x] Tag auto-suggest at creation time — add tag picker to Author and Book CRUD dialogs
 
 ---
 
@@ -34,8 +34,8 @@ Last cleaned: Apr 2, 2026
 - [x] Media tab with sub-filters (All / Written / Audio & Video / Courses / Film & TV / Other)
 - [x] `MediaItemFormDialog` — Create / Edit / Delete media content items
 - [x] `BookFilterBar` component extracted from `Home.tsx`
-- [ ] Show active tag filter chips in header bar as dismissible badge pills (Books tab)
-- [ ] Add content type cards with appropriate icons in Media tab grid
+- [x] Show active tag filter chips in header bar as dismissible badge pills (Books tab)
+- [x] Add content type cards with appropriate icons in Media tab grid
 
 ---
 
@@ -44,13 +44,13 @@ Last cleaned: Apr 2, 2026
 - [x] `FlowbiteAuthorCard` — 6-zone card layout with avatar, badges, bio, book shelf, platforms, tags
 - [x] Suspicious name warning badge (`isLikelyAuthorName` check) in `FlowbiteAuthorCard`
 - [x] `BookCard` — card with cover, title, author, format, possession, tags
-- [ ] Redesign `FlowbiteAuthorCard` with strict 4-zone grid:
-  - [ ] Avatar zone: fixed 96×96px square, top-left, always same position
-  - [ ] Badges zone: category pill, quality badge, platform icons — right of avatar, top-aligned
-  - [ ] Info zone: author name, specialty, bio snippet — full-width middle strip
-  - [ ] Content shelf: book covers strip — full-width bottom, fixed height
-  - [ ] Card background: light theme-aware glass/frosted effect
-  - [ ] All cards identical structure regardless of data density
+- [x] Redesign `FlowbiteAuthorCard` with strict 4-zone grid:
+  - [x] Avatar zone: fixed 96×96px square, top-left, always same position
+  - [x] Badges zone: category pill, quality badge, platform icons — right of avatar, top-aligned
+  - [x] Info zone: author name, specialty, bio snippet — full-width middle strip
+  - [x] Content shelf: book covers strip — full-width bottom, fixed height
+  - [x] Card background: light theme-aware glass/frosted effect (bg-card/85 backdrop-blur-xl)
+  - [x] All cards identical structure regardless of data density
 
 ---
 
@@ -98,8 +98,8 @@ Last cleaned: Apr 2, 2026
 - [x] `TagStatisticsCard` bar chart in Admin → Tags
 - [x] `MediaItemFormDialog` — Create / Edit / Delete in Admin → Content Items
 - [x] `BulkUrlImportPanel` in Admin → Content Items
-- [ ] Admin sidebar badge counts and running indicators (e.g. jobs in progress)
-- [ ] Admin sidebar search/filter bar
+- [x] Admin sidebar badge counts and running indicators (e.g. jobs in progress)
+- [x] Admin sidebar search/filter bar
 - [ ] Split `Admin.tsx` (641L) into focused tab components
 
 ---

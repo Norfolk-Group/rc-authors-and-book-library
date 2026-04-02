@@ -25,6 +25,18 @@ import {
   Plus,
   Pencil,
   Trash2,
+  Newspaper,
+  Mic,
+  Youtube,
+  Tv,
+  BookOpen,
+  Globe2,
+  MessageSquare,
+  Radio,
+  Camera,
+  Wrench,
+  Rss,
+  type LucideIcon,
 } from "lucide-react";
 import {
   Select,
@@ -75,6 +87,33 @@ const CONTENT_TYPE_LABELS: Record<string, string> = {
   film:            "Film",
   photography:     "Photography",
   other:           "Other",
+};
+
+// ── Content type icon map ────────────────────────────────────────────────────
+const CONTENT_TYPE_ICONS: Record<string, LucideIcon> = {
+  paper:           FileText,
+  article:         Newspaper,
+  substack:        Rss,
+  newsletter:      Rss,
+  blog_post:       FileText,
+  social_post:     MessageSquare,
+  website:         Globe2,
+  speech:          Mic,
+  interview:       Mic,
+  podcast:         Headphones,
+  podcast_episode: Headphones,
+  youtube_video:   Youtube,
+  youtube_channel: Youtube,
+  ted_talk:        Mic,
+  radio:           Radio,
+  masterclass:     GraduationCap,
+  online_course:   GraduationCap,
+  tool:            Wrench,
+  tv_show:         Tv,
+  tv_episode:      Tv,
+  film:            Film,
+  photography:     Camera,
+  other:           MoreHorizontal,
 };
 
 const CONTENT_TYPE_COLORS: Record<string, string> = {
@@ -133,6 +172,7 @@ function MediaItemCard({ item, isAdmin, onEdit, onDelete, isFavorite, onToggleFa
   const typeLabel = CONTENT_TYPE_LABELS[item.contentType] ?? item.contentType;
   const typeColor = CONTENT_TYPE_COLORS[item.contentType] ?? "#6b7280";
   const rating = item.rating ? parseFloat(String(item.rating)) : null;
+  const TypeIcon = CONTENT_TYPE_ICONS[item.contentType] ?? MoreHorizontal;
 
   return (
     <div className="group flex flex-col rounded-xl border border-border/50 bg-card hover:border-border hover:shadow-md transition-all overflow-hidden">
@@ -146,19 +186,24 @@ function MediaItemCard({ item, isAdmin, onEdit, onDelete, isFavorite, onToggleFa
           />
         ) : (
           <div
-            className="w-full h-full flex items-center justify-center"
+            className="w-full h-full flex flex-col items-center justify-center gap-2"
             style={{ backgroundColor: typeColor + "18" }}
           >
-            <span className="text-4xl font-black opacity-20" style={{ color: typeColor }}>
-              {item.title.charAt(0).toUpperCase()}
+            <TypeIcon
+              className="w-12 h-12 opacity-40"
+              style={{ color: typeColor }}
+            />
+            <span className="text-[10px] font-semibold uppercase tracking-wide opacity-30" style={{ color: typeColor }}>
+              {typeLabel}
             </span>
           </div>
         )}
         {/* Type badge */}
         <span
-          className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-semibold text-white shadow-sm"
+          className="absolute top-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold text-white shadow-sm"
           style={{ backgroundColor: typeColor }}
         >
+          <TypeIcon className="w-2.5 h-2.5" />
           {typeLabel}
         </span>
         {/* Action buttons (top-right) */}

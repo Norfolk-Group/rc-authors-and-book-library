@@ -253,9 +253,9 @@ export function FlowbiteAuthorCard({
           }}
           className={[
             "h-full overflow-hidden relative",
-            "bg-card/80 backdrop-blur-md text-card-foreground",
-            "border border-border rounded-2xl",
-            "shadow-sm hover:shadow-lg",
+            "bg-card/85 backdrop-blur-xl text-card-foreground",
+            "border border-border/60 rounded-2xl",
+            "shadow-sm hover:shadow-xl",
             "transition-all duration-200",
             "flex flex-col items-stretch",
             "cursor-pointer",
@@ -284,16 +284,16 @@ export function FlowbiteAuthorCard({
 
           {/* ═══════════════════════════════════════════════════════════
               ZONE 1 + 2: Top row — Avatar (left) + Metadata (right)
-              Fixed height: 112px
+              Fixed height: 120px
           ═══════════════════════════════════════════════════════════ */}
-          <div className="flex flex-row items-start gap-3 p-3 h-[112px] flex-shrink-0">
+          <div className="flex flex-row items-start gap-3 p-3 h-[120px] flex-shrink-0">
 
-            {/* ZONE 1: Avatar square 88×88 — HOTSPOT 1 */}
+            {/* ZONE 1: Avatar square 96×96 — HOTSPOT 1 */}
             <div
-              className="flex-shrink-0 w-[88px] h-[88px] rounded-xl overflow-hidden bg-muted ring-1 ring-border shadow-sm cursor-pointer"
+              className="flex-shrink-0 w-[96px] h-[96px] rounded-xl overflow-hidden bg-muted ring-1 ring-border shadow-sm cursor-pointer"
               onClick={handleAvatarClick}
             >
-              <AvatarUpload authorName={displayName} currentAvatarUrl={avatarUrl} size={88}>
+              <AvatarUpload authorName={displayName} currentAvatarUrl={avatarUrl} size={96}>
                 {(url) => url ? (
                   <img
                     src={url}

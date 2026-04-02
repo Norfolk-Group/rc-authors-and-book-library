@@ -226,7 +226,26 @@ export default function Home() {
 
   const recentlyTaggedQuery = trpc.tags.getRecentlyTagged.useQuery(undefined, { staleTime: 30_000 });
 
-  const hasFilters = selectedCategories.size > 0 || query.length > 0 || enrichFilter !== "all" || selectedTagSlugs.size > 0 || formatFilter !== "all" || showFavoritesOnly;
+  const hasFilters = selectedCategories.size > 0 || query.length > 0 || enrichFilter !== "all" || selectedTagSlugs.size > 0 || formatFilter !== "all" || possessionFilter !== "all" || showFavoritesOnly;
+
+  const POSSESSION_LABELS: Record<string, { label: string; icon: string; color: string; bg: string }> = {
+    owned:     { label: "Owned",     icon: "✅", color: "#059669", bg: "#d1fae5" },
+    read:      { label: "Read",      icon: "📖", color: "#0284c7", bg: "#e0f2fe" },
+    reading:   { label: "Reading",   icon: "🔖", color: "#7c3aed", bg: "#ede9fe" },
+    unread:    { label: "Unread",    icon: "📕", color: "#dc2626", bg: "#fee2e2" },
+    wishlist:  { label: "Wishlist",  icon: "⭐", color: "#d97706", bg: "#fef3c7" },
+    reference: { label: "Reference", icon: "🔍", color: "#6b7280", bg: "#f3f4f6" },
+    borrowed:  { label: "Borrowed",  icon: "🤝", color: "#0891b2", bg: "#cffafe" },
+  };
+
+  const FORMAT_LABELS: Record<string, { label: string; icon: string; color: string; bg: string }> = {
+    physical:         { label: "Physical",          icon: "📗", color: "#65a30d", bg: "#ecfccb" },
+    digital:          { label: "Digital / eBook",   icon: "💻", color: "#0284c7", bg: "#e0f2fe" },
+    audio:            { label: "Audiobook",          icon: "🎧", color: "#7c3aed", bg: "#ede9fe" },
+    physical_digital: { label: "Physical + Digital", icon: "📗💻", color: "#0891b2", bg: "#cffafe" },
+    physical_audio:   { label: "Physical + Audio",   icon: "📗🎧", color: "#d97706", bg: "#fef3c7" },
+    digital_audio:    { label: "Digital + Audio",    icon: "💻🎧", color: "#6b7280", bg: "#f3f4f6" },
+  };
 
   // Compute category counts for the active tab
   const categoryCounts = activeTab === "authors" ? authorCounts : bookCounts;
@@ -315,17 +334,52 @@ export default function Home() {
                     </Badge>
                   ) : null;
                 })()}
+                {possessionFilter !== "all" && (() => {
+                  const p = POSSESSION_LABELS[possessionFilter];
+                  return p ? (
+                    <Badge variant="secondary" className="gap-1 text-xs" style={{ borderColor: p.color, color: p.color, backgroundColor: p.bg }}>
+                      <span>{p.icon}</span> {p.label}
+                      <button onClick={() => setPossessionFilter("all")}><X className="w-3 h-3" /></button>
+                    </Badge>
+                  ) : null;
+                })()}
+                {formatFilter !== "all" && (() => {
+                  const f = FORMAT_LABELS[formatFilter];
+                  return f ? (
+                    <Badge variant="secondary" className="gap-1 text-xs" style={{ borderColor: f.color, color: f.color, backgroundColor: f.bg }}>
+                      <span>{f.icon}</span> {f.label}
+                      <button onClick={() => setFormatFilter("all")}><X className="w-3 h-3" /></button>
+                    </Badge>
+                  ) : null;
+                })()}
+                {showFavoritesOnly && (
+                  <Badge variant="secondary" className="gap-1 text-xs" style={{ borderColor: "#e11d48", color: "#e11d48", backgroundColor: "#ffe4e6" }}>
+                    <Heart className="w-3 h-3 fill-current" /> Favorites only
+                    <button onClick={() => setShowFavoritesOnly(false)}><X className="w-3 h-3" /></button>
+                  </Badge>
+                )}
                 {Array.from(selectedTagSlugs).map((slug) => {
                   const tag = (data.allTags ?? []).find((t: { slug: string; name: string; color: string }) => t.slug === slug);
                   if (!tag) return null;
                   return (
-                    <Badge key={slug} variant="secondary" className="gap-1 text-xs" style={{ borderColor: tag.color, color: tag.color, backgroundColor: tag.color + "22" }}>
+                    <Badge key={slug} variant="secondary" className="gap-1 text-xs" style={{ borderColor: tag.color ?? undefined, color: tag.color ?? undefined, backgroundColor: (tag.color ?? "#888") + "22" }}>
                       {tag.name}
                       <button onClick={() => toggleTagSlug(slug)}><X className="w-3 h-3" /></button>
                     </Badge>
                   );
                 })}
-                <button onClick={clearFilters} className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2">Clear all</button>
+                <button
+                  onClick={() => {
+                    clearFilters();
+                    setPossessionFilter("all");
+                    setFormatFilter("all");
+                    setShowFavoritesOnly(false);
+                    clearTagFilters();
+                  }}
+                  className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
+                >
+                  Clear all
+                </button>
               </div>
             )}
 
