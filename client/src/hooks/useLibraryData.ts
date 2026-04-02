@@ -53,6 +53,10 @@ interface UseLibraryDataParams {
   bookSort: BookSort;
   enrichFilter: BookEnrichmentLevel | "all";
   possessionFilter?: string;
+  /** Format filter: physical | digital | audio | all */
+  formatFilter?: string;
+  /** Whether to show only favorited items */
+  showFavoritesOnly?: boolean;
   /** Tag slugs to filter by — only show entities that have ALL selected tags */
   selectedTagSlugs?: Set<string>;
 }
@@ -62,6 +66,8 @@ export function useLibraryData({
   selectedCategories,
   // possessionFilter used below in filteredBooks
   possessionFilter = "all",
+  formatFilter = "all",
+  showFavoritesOnly = false,
   authorSort,
   bookSort,
   enrichFilter,
@@ -322,13 +328,15 @@ export function useLibraryData({
     return deduped.filter((a) => {
       const matchesCat = selectedCategories.size === 0 || selectedCategories.has(a.category);
       const matchesQ = !q || a.name.toLowerCase().includes(q) || a.category.toLowerCase().includes(q) || a.books.some((b) => b.name.toLowerCase().includes(q));
+      // Favorites-only filter for authors
+      const matchesFavAuthor = !showFavoritesOnly || (authorFavoritesQuery.data ?? {})[canonicalName(a.name).toLowerCase()] === true;
       // Tag filter: author must have ALL selected tags
       const matchesTags = selectedTagSlugs.size === 0 || (() => {
         const authorTags = authorTagsMap.get(canonicalName(a.name).toLowerCase());
         if (!authorTags) return false;
         return Array.from(selectedTagSlugs).every((slug) => authorTags.has(slug));
       })();
-      return matchesCat && matchesQ && matchesTags;
+      return matchesCat && matchesQ && matchesFavAuthor && matchesTags;
     }).sort((a, b) => {
       switch (authorSort) {
         case "name-asc": return a.name.localeCompare(b.name);
@@ -374,7 +382,7 @@ export function useLibraryData({
         default: return a.name.localeCompare(b.name);
       }
     });
-  }, [query, selectedCategories, authorSort, researchQualityMap, authorFavoritesQuery.data, platformLinksMap, selectedTagSlugs, authorTagsMap]);
+  }, [query, selectedCategories, authorSort, showFavoritesOnly, researchQualityMap, authorFavoritesQuery.data, platformLinksMap, selectedTagSlugs, authorTagsMap]);
 
   const filteredBooks = useMemo(() => {
     const q = query.toLowerCase();
@@ -401,13 +409,22 @@ export function useLibraryData({
       // Possession/format filter
       const bookInfo = bookInfoMap.get(tk);
       const matchesPossession = possessionFilter === "all" || bookInfo?.possessionStatus === possessionFilter;
+      // Format filter: physical | digital | audio
+      const matchesFormat = formatFilter === "all" || (() => {
+        const fmt = bookInfo?.format ?? null;
+        if (!fmt || fmt === "none") return false;
+        // e.g. formatFilter=="physical" matches "physical", "physical_digital", "physical_audio", "all"
+        return fmt === formatFilter || fmt.includes(formatFilter) || fmt === "all";
+      })();
+      // Favorites-only filter for books
+      const matchesFavBook = !showFavoritesOnly || (bookFavoritesQuery.data ?? {})[tk] === true;
       // Tag filter: book must have ALL selected tags
       const matchesTags = selectedTagSlugs.size === 0 || (() => {
         const bookTags = bookTagsMap.get(tk);
         if (!bookTags) return false;
         return Array.from(selectedTagSlugs).every((slug) => bookTags.has(slug));
       })();
-      return matchesCat && matchesQ && matchesEnrich && matchesPossession && matchesTags;
+      return matchesCat && matchesQ && matchesEnrich && matchesPossession && matchesFormat && matchesFavBook && matchesTags;
     }).sort((a, b) => {
       switch (bookSort) {
         case "name-asc": return a.name.localeCompare(b.name);
@@ -447,7 +464,7 @@ export function useLibraryData({
         default: return a.name.localeCompare(b.name);
       }
     });
-  }, [query, selectedCategories, bookSort, enrichFilter, possessionFilter, bookCoversQuery.data, bookFavoritesQuery.data, bookInfoMap, selectedTagSlugs, bookTagsMap]);
+  }, [query, selectedCategories, bookSort, enrichFilter, possessionFilter, formatFilter, showFavoritesOnly, bookCoversQuery.data, bookFavoritesQuery.data, bookInfoMap, selectedTagSlugs, bookTagsMap]);
 
   const filteredAudio = useMemo(() => {
     const q = query.toLowerCase();

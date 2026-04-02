@@ -48,6 +48,7 @@ import { STATS, type BookEnrichmentLevel } from "@/components/library/libraryCon
 import { LibrarySidebar, type TabType } from "@/components/library/LibrarySidebar";
 import { LibraryHeader } from "@/components/library/LibraryHeader";
 import { TagGroupHeader, groupByFirstTag } from "@/components/library/TagGroupHeader";
+import { MediaTab } from "@/components/library/MediaTab";
 import { useLibraryCrud } from "@/hooks/useLibraryCrud";
 import { PlusCircle } from "lucide-react";
 import {
@@ -94,6 +95,8 @@ export default function Home() {
   const [bookSort, setBookSort] = useLocalStorage<BookSort>("lib:bookSort", "name-asc");
   const [enrichFilter, setEnrichFilter] = useLocalStorage<BookEnrichmentLevel | "all">("lib:enrichFilter", "all");
   const [possessionFilter, setPossessionFilter] = useLocalStorage<string>("lib:possessionFilter", "all");
+  const [formatFilter, setFormatFilter] = useLocalStorage<string>("lib:formatFilter", "all");
+  const [showFavoritesOnly, setShowFavoritesOnly] = useLocalStorage<boolean>("lib:showFavoritesOnly", false);
   const [_savedTagSlugs, _setSavedTagSlugs] = useLocalStorage<string[]>("lib:selectedTagSlugs", []);
   // URL search params for shareable tag-filtered views
   const searchString = useSearch();
@@ -208,7 +211,7 @@ export default function Home() {
   }, [_setSelectedCategoriesAndPersist, setEnrichFilter]);
 
   // ── Data ────────────────────────────────────────────────────────────────
-  const data = useLibraryData({ query, selectedCategories, authorSort, bookSort, enrichFilter, possessionFilter, selectedTagSlugs });
+  const data = useLibraryData({ query, selectedCategories, authorSort, bookSort, enrichFilter, possessionFilter, formatFilter, showFavoritesOnly, selectedTagSlugs });
   const {
     authorAvatarMapQuery, authorFavoritesQuery, bookFavoritesQuery, recentlyEnrichedQuery,
     enrichedSet, enrichedTitlesSet, bookCoverMap, amazonUrlMap, goodreadsUrlMap, wikipediaUrlMap,
@@ -222,7 +225,7 @@ export default function Home() {
 
   const recentlyTaggedQuery = trpc.tags.getRecentlyTagged.useQuery(undefined, { staleTime: 30_000 });
 
-  const hasFilters = selectedCategories.size > 0 || query.length > 0 || enrichFilter !== "all" || selectedTagSlugs.size > 0;
+  const hasFilters = selectedCategories.size > 0 || query.length > 0 || enrichFilter !== "all" || selectedTagSlugs.size > 0 || formatFilter !== "all" || showFavoritesOnly;
 
   // Compute category counts for the active tab
   const categoryCounts = activeTab === "authors" ? authorCounts : bookCounts;
@@ -383,6 +386,21 @@ export default function Home() {
                       {enrichFilter === "complete" ? "Best only" : "Show best"}
                     </button>
                   )}
+                  {/* Favorites-only toggle — Authors and Books tabs */}
+                  {isAuthenticated && (activeTab === "authors" || activeTab === "books") && (
+                    <button
+                      onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border transition-all ${
+                        showFavoritesOnly
+                          ? "bg-rose-50 text-rose-600 border-rose-400 dark:bg-rose-900/20 dark:text-rose-400 dark:border-rose-600"
+                          : "bg-transparent text-muted-foreground border-border hover:border-rose-400 hover:text-rose-500"
+                      }`}
+                      title={showFavoritesOnly ? "Showing favorites only — click to show all" : "Show favorites only"}
+                    >
+                      <Heart className={`w-3 h-3 transition-all ${showFavoritesOnly ? "fill-rose-500 stroke-rose-500" : ""}`} />
+                      {showFavoritesOnly ? "Favorites" : "Favorites"}
+                    </button>
+                  )}
                   <ArrowUpDown className="w-3.5 h-3.5 text-muted-foreground" />
                   {activeTab === "authors" ? (
                     <Select value={authorSort} onValueChange={(v) => setAuthorSort(v as AuthorSort)}>
@@ -467,6 +485,40 @@ export default function Home() {
                 })}
                 {possessionFilter !== "all" && (
                   <button onClick={() => setPossessionFilter("all")} className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 ml-1">
+                    Clear
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Format filter chips — Books tab */}
+            {activeTab === "books" && (
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <span className="text-xs text-muted-foreground font-medium">Format:</span>
+                {([
+                  { value: "all",      label: "All Formats",  icon: "📦" },
+                  { value: "physical", label: "Physical",      icon: "📗" },
+                  { value: "digital",  label: "Digital / eBook", icon: "💻" },
+                  { value: "audio",    label: "Audiobook",     icon: "🎧" },
+                ] as const).map(({ value, label, icon }) => {
+                  const isActive = formatFilter === value;
+                  return (
+                    <button
+                      key={value}
+                      onClick={() => setFormatFilter(value)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border transition-all"
+                      style={{
+                        backgroundColor: isActive ? "hsl(var(--primary) / 0.12)" : "transparent",
+                        color: isActive ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))",
+                        borderColor: isActive ? "hsl(var(--primary))" : "hsl(var(--border))",
+                      }}
+                    >
+                      <span>{icon}</span> {label}
+                    </button>
+                  );
+                })}
+                {formatFilter !== "all" && (
+                  <button onClick={() => setFormatFilter("all")} className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 ml-1">
                     Clear
                   </button>
                 )}
@@ -801,15 +853,7 @@ export default function Home() {
                   </>
                 )
               ) : activeTab === "media" ? (
-                /* Media tab — placeholder until content_items table is built */
-                <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
-                  <Film className="w-12 h-12 text-muted-foreground/30" />
-                  <p className="text-lg font-semibold text-muted-foreground">Media Content</p>
-                  <p className="text-sm text-muted-foreground/70 max-w-md">
-                    Articles, papers, podcasts, videos, courses, films, and other non-book content will appear here.
-                    Use the Admin Console to add media content items.
-                  </p>
-                </div>
+                <MediaTab query={query} />
               ) : activeTab === "favorites" ? (
                 !isAuthenticated ? (
                   <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">

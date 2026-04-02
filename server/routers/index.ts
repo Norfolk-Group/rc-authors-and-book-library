@@ -25,6 +25,7 @@ import { authorChatbotRouter } from "./authorChatbot.router";
 import { syncJobsRouter } from "./syncJobs.router";
 import { appSettingsRouter } from "./appSettings.router";
 import { tagsRouter } from "./tags.router";
+import { contentItemsRouter } from "./contentItems.router";
 
 export const appRouter = router({
   system: systemRouter,
@@ -56,6 +57,7 @@ export const appRouter = router({
   syncJobs: syncJobsRouter,
   appSettings: appSettingsRouter,
   tags: tagsRouter,
+  contentItems: contentItemsRouter,
 });
 
 export type AppRouter = typeof appRouter;

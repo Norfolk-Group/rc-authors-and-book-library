@@ -2497,3 +2497,15 @@ Live URL: https://authlib-ehsrgokn.manus.space
 - [x] Persist tag filter selection in URL query params (?tags=slug1,slug2) — shareable/bookmarkable filtered views; initialises from URL on load, syncs to localStorage simultaneously
 - [x] Tag Statistics bar chart in Admin → Tags (TagStatisticsCard with recharts horizontal BarChart; Authors vs Books stacked bars; top 20 tags; summary stats: tags in use / total assignments)
 - [x] Run tests — 492 tests, 34 files, all passing, 0 TypeScript errors
+
+## Session Apr 2, 2026 — Next 3 Tasks
+
+- [x] Add format filter chips (physical / digital / audiobook) to Books tab — wired to useLibraryData formatFilter param, persisted in localStorage
+- [x] Add "Show favorites only" heart toggle to Authors and Books tabs — persisted in localStorage, filters filteredAuthors and filteredBooks
+- [x] Build Media tab UI with sub-filters (All | Written | Audio & Video | Courses | Film & TV | Other) backed by new contentItems tRPC router (contentItems.list + contentItems.getGroupCounts)
+
+## Session Apr 2, 2026 — Next 3 Tasks
+
+- [x] Add format filter chips (physical / digital / audiobook) to Books tab — wired to useLibraryData formatFilter param, persisted in localStorage
+- [x] Add "Show favorites only" heart toggle to Authors and Books tabs — persisted in localStorage, filters filteredAuthors and filteredBooks
+- [x] Build Media tab UI with sub-filters (All | Written | Audio & Video | Courses | Film & TV | Other) backed by new contentItems tRPC router
