@@ -2346,7 +2346,7 @@ Live URL: https://authlib-ehsrgokn.manus.space
 - [ ] Present flagged non-person entries to user for review
 - [ ] Delete confirmed bad records and all linked data (book_profiles, author_rag_profiles, author_interest_scores)
 - [ ] Add server-side guardrail to prevent future false-positive author creation
-- [ ] Run tests and save checkpoint
+- [x] Run tests and save checkpoint (492 tests passing, 34 files)
 
 ## Session Apr 1, 2026 — Author Card Grid Redesign
 - [ ] Redesign FlowbiteAuthorCard with strict 4-zone grid: avatar TL, badges TR, info middle, content shelf bottom
@@ -2356,7 +2356,7 @@ Live URL: https://authlib-ehsrgokn.manus.space
 - [ ] Content shelf: book covers strip — full-width bottom, fixed height
 - [ ] Card background: light theme-aware color (glass/frosted effect)
 - [ ] All cards identical structure regardless of data density
-- [ ] Run tests and save checkpoint
+- [x] Run tests and save checkpoint (492 tests passing, 34 files)
 
 ## Session Apr 1, 2026 — Card Redesign & Data Cleanup (Completed)
 - [x] Redesigned FlowbiteAuthorCard with strict 4-zone grid layout (6 zones total):
@@ -2371,3 +2371,10 @@ Live URL: https://authlib-ehsrgokn.manus.space
 - [x] Removed Charles Duhigg false positive from BOOKS array in libraryData.ts
 - [x] Scanned AUTHORS array — 0 false positives found (all 240 entries are valid person names)
 - [x] 492 tests passing (34 test files), 0 TypeScript errors
+
+## Session Apr 2, 2026 — Four-Task Sprint
+- [x] Fix tRPC JSON parse error (HTTP 414 URI Too Large — switched to httpBatchStreamLink with POST override)
+- [x] DB author audit: classified all 169 DB author names — 0 false positives found (Darrell Huff confirmed as real person)
+- [x] Generate Digital Me RAG profiles for 6 more authors: Malcolm Gladwell (3333w), Daniel Kahneman (4758w), Cal Newport (4441w), Chris Voss (5160w), Seth Godin (6343w), Morgan Housel (3797w) — total now 10 authors
+- [x] Dropbox already connected via static token (ricardo@cidale.com) — UI shows 'Upgrade to Permanent' button for OAuth 2 refresh token
+- [x] Run tests and save checkpoint (492 tests passing, 34 files)
