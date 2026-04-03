@@ -115,10 +115,10 @@ Last cleaned: Apr 2, 2026
 ## Sync / Storage
 
 - [x] `SyncJobsTab` — Dropbox sync trigger, job history, credential status
-- [ ] Implement stream-based S3 → Dropbox transfer (no memory buffering for large audio files)
-- [ ] Add `_metadata.json` sidecar per book folder (title, authors, ISBN, rating, summary, S3 URL)
-- [ ] Add Google Drive sync as secondary option (rclone / gws CLI)
-- [ ] Write vitest tests for sync engine
+- [x] Stream-based S3 → Dropbox transfer: `syncEngine.ts` uses Dropbox Upload Session API (chunked, 50MB chunks) for audio files; simple upload for small files — no full-buffer OOM risk
+- [x] `_metadata.json` sidecar per book folder: `generateBookMetadata()` + `uploadMetadataSidecarToDropbox()` + `uploadMetadataSidecarToDrive()` in `syncEngine.ts`; Admin → Sync tab has "Generate Sidecars" button with target/scope controls
+- [x] Google Drive sync as secondary option: `getOrCreateDriveFolder()` + `uploadToDrive()` (resumable upload API) in `syncEngine.ts`; `getDriveAccessToken()` uses gws CLI in sandbox, falls back to `GOOGLE_DRIVE_ACCESS_TOKEN` env var in production; Admin Sync tab shows Drive connection status
+- [x] Vitest tests for sync engine: `server/syncEngine.test.ts` (31 tests) covering slugify, generateBookMetadata, openS3Stream, fetchS3Buffer, dropboxSimpleUpload, uploadMetadataSidecarToDropbox, getOrCreateDriveFolder, uploadMetadataSidecarToDrive, uploadToDropbox routing
 
 ---
 

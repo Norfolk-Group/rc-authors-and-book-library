@@ -31,15 +31,19 @@ import {
   Image,
   Brain,
   BookOpen,
+  HardDrive,
+  FileJson,
+  Zap,
+  Headphones,
 } from "lucide-react";
 
 type SyncTarget = "dropbox" | "google_drive" | "both";
 type ContentType = "avatars" | "books" | "audio" | "rag_files";
 
-const CONTENT_TYPE_OPTIONS: { value: ContentType; label: string; icon: React.ReactNode }[] = [
+const CONTENT_TYPE_OPTIONS: { value: ContentType; label: string; icon: React.ReactNode; streaming?: boolean }[] = [
   { value: "avatars", label: "Author Avatars", icon: <Image className="w-3.5 h-3.5" /> },
   { value: "books", label: "Book Covers", icon: <BookOpen className="w-3.5 h-3.5" /> },
-  { value: "audio", label: "Audio Files", icon: <FileText className="w-3.5 h-3.5" /> },
+  { value: "audio", label: "Audio Files", icon: <Headphones className="w-3.5 h-3.5" />, streaming: true },
   { value: "rag_files", label: "Digital Me Files", icon: <Brain className="w-3.5 h-3.5" /> },
 ];
 
@@ -60,16 +64,18 @@ function formatBytes(bytes: number): string {
 export function SyncJobsTab() {
   const [target, setTarget] = useState<SyncTarget>("dropbox");
   const [scope, setScope] = useState("all");
-  const [contentTypes, setContentTypes] = useState<ContentType[]>(["avatars", "rag_files"]);
+  const [contentTypes, setContentTypes] = useState<ContentType[]>(["avatars", "books", "rag_files"]);
   const [overwrite, setOverwrite] = useState(false);
+  const [generateSidecars, setGenerateSidecars] = useState(true);
   const [triggering, setTriggering] = useState(false);
+  const [generatingSidecars, setGeneratingSidecars] = useState(false);
 
   const { data: jobs = [], refetch: refetchJobs } = trpc.syncJobs.listJobs.useQuery({ limit: 30 });
   const { data: dropboxStatus, refetch: refetchDropboxStatus } = trpc.syncJobs.getDropboxStatus.useQuery(undefined, { refetchInterval: 10000 });
+  const { data: driveStatus, refetch: refetchDriveStatus } = trpc.syncJobs.getDriveStatus.useQuery();
   const triggerMutation = trpc.syncJobs.triggerSync.useMutation();
   const cancelMutation = trpc.syncJobs.cancelJob.useMutation();
-
-  const hasDrive = !!import.meta.env.VITE_HAS_DRIVE;
+  const sidecarMutation = trpc.syncJobs.generateSidecars.useMutation();
 
   async function handleConnectDropbox() {
     // Open the OAuth flow in a new tab; the callback will redirect back to /admin?tab=sync
@@ -94,11 +100,29 @@ export function SyncJobsTab() {
     );
   }
 
+  async function handleGenerateSidecars() {
+    setGeneratingSidecars(true);
+    try {
+      const result = await sidecarMutation.mutateAsync({ target, scope, overwrite: true });
+      if (result.success) {
+        const failedCount = ('failed' in result ? result.failed : undefined) ?? 0;
+        const syncedCount = ('synced' in result ? result.synced : undefined) ?? 0;
+        toast.success(`Generated ${syncedCount} sidecars${failedCount > 0 ? `, ${failedCount} failed` : ""}`);
+      } else {
+        toast.error((result as { message?: string }).message ?? "Sidecar generation failed");
+      }
+    } catch (err) {
+      toast.error(`Failed: ${String(err)}`);
+    } finally {
+      setGeneratingSidecars(false);
+    }
+  }
+
   async function handleTrigger() {
     if (contentTypes.length === 0) { toast.error("Select at least one content type"); return; }
     setTriggering(true);
     try {
-      const result = await triggerMutation.mutateAsync({ target, scope, contentTypes, overwrite });
+      const result = await triggerMutation.mutateAsync({ target, scope, contentTypes, overwrite, generateSidecars });
       if (result.success) {
         toast.success(`Sync job #${result.jobId} started`);
         await refetchJobs();
@@ -123,10 +147,12 @@ export function SyncJobsTab() {
   }
 
   const runningJob = jobs.find((j) => j.status === "running");
+  const hasAudio = contentTypes.includes("audio");
 
   return (
     <div className="space-y-4">
-      {/* Dropbox connection status */}
+      {/* Connection status cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm flex items-center gap-2">
@@ -184,13 +210,60 @@ export function SyncJobsTab() {
         </CardContent>
       </Card>
 
-      {/* Google Drive status */}
-      <div className="flex gap-2 flex-wrap">
-        <div className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border ${hasDrive ? "border-emerald-300 text-emerald-700 bg-emerald-50" : "border-orange-300 text-orange-700 bg-orange-50"}`}>
-          <FolderOpen className="w-3 h-3" />
-          Google Drive: {hasDrive ? "Folder ID configured" : "GOOGLE_DRIVE_PARENT_FOLDER_ID not set"}
-        </div>
+      {/* Google Drive status card */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <HardDrive className="w-4 h-4" />
+              Google Drive Connection
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Resumable upload API — streams files to Drive. Set GOOGLE_DRIVE_ACCESS_TOKEN + GOOGLE_DRIVE_PARENT_FOLDER_ID in secrets.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  {driveStatus?.connected ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 text-orange-500" />
+                  )}
+                  <span className={`text-sm font-medium ${driveStatus?.connected ? "text-emerald-700" : "text-muted-foreground"}`}>
+                    {driveStatus?.connected ? "Configured" : "Not configured"}
+                  </span>
+                  {driveStatus?.connected && (
+                    <Badge className="text-xs bg-emerald-100 text-emerald-700 border-emerald-200">Ready</Badge>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground ml-6">
+                  {driveStatus?.connected
+                    ? `Parent folder: ${driveStatus.parentFolderId}`
+                    : !driveStatus?.hasParentFolderId
+                    ? "GOOGLE_DRIVE_PARENT_FOLDER_ID not set in secrets"
+                    : "GOOGLE_DRIVE_ACCESS_TOKEN not available"}
+                </p>
+              </div>
+              <Button size="sm" variant="outline" className="text-xs h-7 gap-1.5" onClick={() => refetchDriveStatus()}>
+                <RefreshCw className="w-3 h-3" />
+                Recheck
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Streaming upload info banner */}
+      {hasAudio && (
+        <div className="flex items-start gap-2 p-3 rounded-lg border border-blue-200 bg-blue-50 text-blue-800 text-xs">
+          <Zap className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+          <div>
+            <strong>Streaming upload enabled</strong> — Audio files use the Dropbox Upload Session API (50 MB chunks) and Google Drive Resumable Upload API.
+            Large audiobooks are piped directly from S3 without loading the full file into memory.
+          </div>
+        </div>
+      )}
 
       {/* Trigger form */}
       <Card>
@@ -267,15 +340,44 @@ export function SyncJobsTab() {
             </label>
           </div>
 
-          <Button
-            size="sm"
-            onClick={handleTrigger}
-            disabled={triggering || !!runningJob || contentTypes.length === 0}
-            className="gap-1.5"
-          >
-            {triggering ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
-            {triggering ? "Starting…" : runningJob ? "Job Running…" : "Start Sync"}
-          </Button>
+          {/* Sidecar toggle */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setGenerateSidecars(!generateSidecars)}
+              className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                generateSidecars ? "bg-primary border-primary" : "border-border"
+              }`}
+            >
+              {generateSidecars && <span className="text-primary-foreground text-xs">✓</span>}
+            </button>
+            <label className="text-xs text-muted-foreground cursor-pointer flex items-center gap-1" onClick={() => setGenerateSidecars(!generateSidecars)}>
+              <FileJson className="w-3 h-3" />
+              Generate _metadata.json sidecars for books
+            </label>
+          </div>
+
+          <div className="flex gap-2 flex-wrap">
+            <Button
+              size="sm"
+              onClick={handleTrigger}
+              disabled={triggering || !!runningJob || contentTypes.length === 0}
+              className="gap-1.5"
+            >
+              {triggering ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
+              {triggering ? "Starting…" : runningJob ? "Job Running…" : "Start Sync"}
+            </Button>
+
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleGenerateSidecars}
+              disabled={generatingSidecars || !!runningJob}
+              className="gap-1.5 text-xs"
+            >
+              {generatingSidecars ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileJson className="w-3.5 h-3.5" />}
+              Generate Sidecars Only
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
