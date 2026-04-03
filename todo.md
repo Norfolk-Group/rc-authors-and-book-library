@@ -94,6 +94,7 @@ Last cleaned: Apr 2, 2026
 - [x] Substack post enrichment (individual post stats via Substack public API + OG fallback)
 - [x] Support multi-author content items (many-to-many via `authorContentLinks` — schema + router + BulkUrlImportPanel author field)
 - [x] Migrate existing `book_profiles` rows into `content_items` (idempotent batch migration with dry-run + progress UI in Admin → Content Items)
+- [x] Seed sample non-book content items (19 items: 8 TED talks, 4 podcasts, 3 papers, 2 articles, 2 YouTube videos) for top authors (Adam Grant, Simon Sinek, Carol Dweck, Dan Pink, Amy Cuddy, Shawn Achor, James Clear, Tim Ferriss, Shane Parrish, Daniel Kahneman, Charles Duhigg)
 
 ---
 
@@ -140,4 +141,4 @@ Last cleaned: Apr 2, 2026
 - [x] S3 file storage helpers
 - [x] LLM integration (`invokeLLM`)
 - [x] RAG pipeline for Digital Me chat
-- [x] Vitest test suite (492 tests passing)
+- [x] Vitest test suite (568 tests passing)
