@@ -156,3 +156,15 @@ Last cleaned: Apr 2, 2026
 - [x] Apply subtle warm amber tint to Admin Console sidebar header background (matching gradient)
 - [x] Roll back amber tint from sidebar headers
 - [x] Redesign main library sidebar header: centered 64px logo above wordmark + user identity row (clean, no background tint)
+
+## Legal Pages
+
+- [x] Write Terms of Service content
+- [x] Write Cookie Policy content
+- [x] Build TermsOfService.tsx page component (/terms)
+- [x] Build CookiePolicy.tsx page component (/cookies)
+- [x] Register /terms and /cookies routes in App.tsx
+- [x] Add Terms and Cookie Policy links to sidebar footer alongside Privacy Policy
+- [x] Move user avatar + name from sidebar header to sidebar footer (with "Library Owner" subtitle)
+- [x] Sidebar header: logo (80px) + "Ricardo Cidale's Library" two-line wordmark, centered, no tint
+- [x] Add Terms of Service and Cookie Policy links to sidebar footer (Privacy · Terms · Cookies)

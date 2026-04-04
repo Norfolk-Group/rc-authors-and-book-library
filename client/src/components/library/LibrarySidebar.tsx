@@ -111,36 +111,30 @@ export function LibrarySidebar({
 
   return (
     <Sidebar collapsible="offcanvas" className="border-r border-sidebar-border">
-      <SidebarHeader className="px-4 pt-5 pb-4 border-b border-sidebar-border">
-        {/* Expanded: centered logo + wordmark + user identity */}
-        <div className="group-data-[collapsible=icon]:hidden flex flex-col items-center gap-1 mb-3">
+      <SidebarHeader className="px-4 pt-6 pb-5 border-b border-sidebar-border">
+        {/* Expanded: centered logo + app name */}
+        <div className="group-data-[collapsible=icon]:hidden flex flex-col items-center gap-2">
           <img
             src="https://d2xsxph8kpxj0f.cloudfront.net/310519663270229297/ehSrGoKN2NYhXg8UYLtWGw/Logo04256x256_4ba6138d.png"
-            alt="Library Logo"
-            className="w-16 h-16 object-contain"
+            alt="Ricardo Cidale's Library"
+            className="w-20 h-20 object-contain"
           />
-          <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-foreground/60 leading-none mt-0.5">
-            Personal Library
-          </p>
+          <div className="text-center">
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-foreground/70 leading-tight">
+              Ricardo Cidale's
+            </p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-foreground/70 leading-tight">
+              Library
+            </p>
+          </div>
         </div>
-        {/* Collapsed: centered small logo icon */}
-        <div className="hidden group-data-[collapsible=icon]:flex justify-center mb-3">
+        {/* Collapsed: centered logo icon only */}
+        <div className="hidden group-data-[collapsible=icon]:flex justify-center py-1">
           <img
             src="https://d2xsxph8kpxj0f.cloudfront.net/310519663270229297/ehSrGoKN2NYhXg8UYLtWGw/Logo0464x64_b5df2d76.png"
             alt="Library Logo"
             className="w-8 h-8 object-contain"
           />
-        </div>
-        {/* User identity */}
-        <div className="flex items-center gap-2.5">
-          <img
-            src="https://d2xsxph8kpxj0f.cloudfront.net/310519663270229297/ehSrGoKN2NYhXg8UYLtWGw/ricardocidalecartoon_330eb604.png"
-            alt="Ricardo Cidale"
-            className="w-9 h-9 rounded-full object-cover flex-shrink-0 ring-2 ring-primary/20 avatar-bob"
-          />
-          <div className="group-data-[collapsible=icon]:hidden">
-            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Ricardo Cidale</p>
-          </div>
         </div>
       </SidebarHeader>
 
@@ -319,10 +313,31 @@ export function LibrarySidebar({
           </div>
         </div>
 
+        {/* User identity */}
+        <div className="mt-3 pt-3 border-t border-border/50 flex items-center gap-2.5 px-1">
+          <img
+            src="https://d2xsxph8kpxj0f.cloudfront.net/310519663270229297/ehSrGoKN2NYhXg8UYLtWGw/ricardocidalecartoon_330eb604.png"
+            alt="Ricardo Cidale"
+            className="w-8 h-8 rounded-full object-cover flex-shrink-0 ring-2 ring-primary/20 avatar-bob"
+          />
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-foreground/80 truncate">Ricardo Cidale</p>
+            <p className="text-[10px] text-muted-foreground truncate">Library Owner</p>
+          </div>
+        </div>
+
         {/* Legal links */}
-        <div className="mt-2 flex items-center justify-center">
-          <a href="/privacy" className="text-[10px] text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2">
-            Privacy Policy
+        <div className="mt-2 flex items-center justify-center gap-3">
+          <a href="/privacy" className="text-[10px] text-muted-foreground hover:text-foreground transition-colors">
+            Privacy
+          </a>
+          <span className="text-[10px] text-muted-foreground/40">·</span>
+          <a href="/terms" className="text-[10px] text-muted-foreground hover:text-foreground transition-colors">
+            Terms
+          </a>
+          <span className="text-[10px] text-muted-foreground/40">·</span>
+          <a href="/cookies" className="text-[10px] text-muted-foreground hover:text-foreground transition-colors">
+            Cookies
           </a>
         </div>
 
