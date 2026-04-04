@@ -195,3 +195,45 @@ Last cleaned: Apr 2, 2026
 - [ ] Global keyboard shortcut (Cmd/Ctrl+K) command palette for fast author/book search and navigation — deferred
 - [ ] Author "In the News" section on AuthorDetail page (CNBC articles) — deferred
 - [ ] Book ISBN barcode display on BookDetail page — deferred
+
+---
+
+## Premium News Enrichment (Apr 4, 2026)
+
+- [ ] Research and test RapidAPI access to NYT, Bloomberg, WSJ, BBC, CNN, Atlantic, MSNBC, WashPost APIs
+- [ ] Build unified `server/enrichment/newsOutlets.ts` helper with typed per-outlet fetchers
+- [ ] Add `fetchAuthorNews` tRPC procedure returning articles across all 8 outlets
+- [ ] Add "In the News" section to AuthorDetail page (article cards with outlet badge, headline, date, link)
+- [ ] Add news article count badge to FlowbiteAuthorCard
+- [ ] Cache news results in `author_profiles.socialStatsJson` to avoid redundant API calls
+- [ ] Write vitest tests for newsOutlets helper
+
+## Library Catalog APIs (Apr 4, 2026)
+
+- [ ] Test and integrate Open Library API (free, no key) — book metadata, ISBNs, cover images, availability
+- [ ] Test and integrate WorldCat Search API (OCLC) — public library holdings across 10,000+ libraries
+- [ ] Test and integrate HathiTrust Data API — university library full-text availability and digital copies
+- [ ] Test and integrate DPLA (Digital Public Library of America) API — free digital collections
+- [ ] Test and integrate JSTOR API (if available) — academic citations and university library access
+- [ ] Add "Library Availability" section to BookDetail page (which public/university libraries hold this book)
+- [ ] Add "Free Digital Copy" badge to BookDetail when HathiTrust/DPLA has a free version
+- [ ] Add Apple Podcasts, Instagram, Spotify server-side helpers
+- [ ] Add Apple News, NYT, BBC, CNN server-side helpers (test which are accessible with RAPIDAPI_KEY)
+
+---
+
+## External API Helpers — Server-Side Tools (Apr 4, 2026)
+
+- [x] server/enrichment/openLibrary.ts — searchBooks, getBookByISBN, searchAuthors, getAuthorWorks, enrichBookFromOpenLibrary, getCoverUrl (Open Library — free, no key)
+- [x] server/enrichment/applePodcasts.ts — searchPodcasts, searchPodcastEpisodes, lookupPodcast, getAuthorPodcasts, getArtworkUrl (iTunes Search API — free, no key)
+- [x] server/enrichment/hathiTrust.ts — getVolumesByISBN, checkDigitalAvailability, getAvailabilitySummary, getReadUrl (HathiTrust — free, no key)
+- [x] server/enrichment/newsSearch.ts — searchAuthorNews (CNBC RapidAPI + Google News RSS fallback), searchBookNews, getCNBCAuthorMentions
+- [x] server/routers/enrichment.router.ts — unified tRPC router: enrichment.openLibrary.*, enrichment.applePodcasts.*, enrichment.hathiTrust.*, enrichment.news.*
+- [x] server/enrichment.test.ts — 19 vitest tests, all passing (including live API calls to Open Library, HathiTrust, Google News RSS)
+- [x] 587 total tests passing across 37 test files
+- [ ] Wire enrichment.hathiTrust.checkAvailability into BookDetail page (show "Free Digital Copy" badge when available)
+- [ ] Wire enrichment.applePodcasts.getAuthorPodcasts into AuthorDetail page
+- [ ] Wire enrichment.news.searchAuthorNews into AuthorDetail "In the News" section
+- [ ] Test RapidAPI access to NYT, Bloomberg, WSJ, BBC, CNN, Atlantic, MSNBC, WashPost (premium news outlets)
+- [ ] Test Spotify API via RapidAPI for author audiobook/podcast data
+- [ ] Test Instagram API via RapidAPI for author follower counts and recent posts
