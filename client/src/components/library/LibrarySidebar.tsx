@@ -112,6 +112,26 @@ export function LibrarySidebar({
   return (
     <Sidebar collapsible="offcanvas" className="border-r border-sidebar-border">
       <SidebarHeader className="px-4 py-4 border-b border-sidebar-border">
+        {/* App logo — shown when sidebar is expanded */}
+        <div className="flex items-center gap-2 mb-3 group-data-[collapsible=icon]:hidden">
+          <img
+            src="https://d2xsxph8kpxj0f.cloudfront.net/310519663270229297/ehSrGoKN2NYhXg8UYLtWGw/Logo04256x256_4ba6138d.png"
+            alt="Library Logo"
+            className="w-8 h-8 object-contain flex-shrink-0"
+          />
+          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-foreground/80 leading-none">
+            Personal Library
+          </p>
+        </div>
+        {/* App logo icon — shown when sidebar is collapsed */}
+        <div className="hidden group-data-[collapsible=icon]:flex justify-center mb-2">
+          <img
+            src="https://d2xsxph8kpxj0f.cloudfront.net/310519663270229297/ehSrGoKN2NYhXg8UYLtWGw/Logo0464x64_b5df2d76.png"
+            alt="Library Logo"
+            className="w-7 h-7 object-contain"
+          />
+        </div>
+        {/* User identity */}
         <div className="flex items-center gap-2.5">
           <img
             src="https://d2xsxph8kpxj0f.cloudfront.net/310519663270229297/ehSrGoKN2NYhXg8UYLtWGw/ricardocidalecartoon_330eb604.png"
@@ -120,9 +140,6 @@ export function LibrarySidebar({
           />
           <div className="group-data-[collapsible=icon]:hidden">
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Ricardo Cidale</p>
-            <p className="text-sm font-bold font-display leading-tight tracking-tight">
-              Personal Library
-            </p>
           </div>
         </div>
       </SidebarHeader>

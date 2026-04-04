@@ -201,8 +201,12 @@ export default function Admin() {
               <SidebarMenuItem>
                 <SidebarMenuButton size="lg" asChild>
                   <div className="flex items-center gap-3 cursor-default">
-                    <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                      <Gear className="size-4" weight="bold" />
+                    <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-background border border-border/60 overflow-hidden">
+                      <img
+                        src="https://d2xsxph8kpxj0f.cloudfront.net/310519663270229297/ehSrGoKN2NYhXg8UYLtWGw/Logo0464x64_b5df2d76.png"
+                        alt="Library Logo"
+                        className="w-6 h-6 object-contain"
+                      />
                     </div>
                     <div className="flex flex-col gap-0.5 leading-none">
                       <span className="font-semibold text-sm">Admin Console</span>

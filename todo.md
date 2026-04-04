@@ -130,7 +130,7 @@ Last cleaned: Apr 2, 2026
 - [x] Split `bookProfiles.router.ts` — extracted book CRUD (createBook, updateBook, deleteBook) into `bookCrud.router.ts` (52L); bookProfiles.router.ts now 203L
 - [x] Split `Home.tsx` further — extracted `AuthorsTabContent` and `BooksTabContent` (969L → 734L); recently-enriched/tagged strips moved into AuthorsTabContent; books grid + audiobooks moved into BooksTabContent
 - [x] Updated `claude.md` and `manus.md` dependency contracts table with all new components, router splits, and line counts; manus.md synced as copy of claude.md
-- [ ] Commit and push all changes to GitHub (via Management UI → Settings → GitHub)
+- [x] Commit and push all changes to GitHub (pushed directly via gh CLI — all 15 checkpoints, latest: 4a3f131)
 
 ---
 
@@ -142,3 +142,13 @@ Last cleaned: Apr 2, 2026
 - [x] LLM integration (`invokeLLM`)
 - [x] RAG pipeline for Digital Me chat
 - [x] Vitest test suite (568 tests passing)
+
+---
+
+## Branding
+
+- [x] Upload book logo (Logo04) to CDN (64x64, 256x256, full-res versions)
+- [x] Set browser favicon to Logo0464x64.png (64x64 + 256x256 + apple-touch-icon in index.html)
+- [x] Display logo in main library sidebar header (above user identity row, with "Personal Library" wordmark)
+- [x] Display logo in Admin Console sidebar header (replacing gear icon with book logo)
+- [ ] Set VITE_APP_LOGO in Management UI → Settings → General (manual step — paste CDN URL: https://d2xsxph8kpxj0f.cloudfront.net/310519663270229297/ehSrGoKN2NYhXg8UYLtWGw/Logo04256x256_4ba6138d.png)
