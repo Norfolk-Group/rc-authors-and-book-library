@@ -350,3 +350,10 @@ Last cleaned: Apr 2, 2026
 - [x] Pass onNavigateAuthor / onNavigateBook callbacks from Home.tsx to LibraryHeader
 - [x] Fix pre-existing magazine.test.ts failures (wrong export names: MAGAZINE_SOURCES → PUBLICATIONS, normalizeAuthorName → normalizeName)
 - [x] Write suggestions.test.ts — 11 tests covering all 3 features (schema, router shape, pure logic)
+
+## Implement All Suggestions (Round 2)
+
+- [x] Add Substack post-count badge to FlowbiteAuthorCard (orange pill with Substack icon, shows post count from socialStatsJson, links to newsletter)
+- [x] Add Keyword / AI search mode toggle to LibraryHeader (persisted to localStorage, pill toggle with Keyboard/Sparkles icons)
+- [x] SemanticSearchDropdown only fires in AI mode (keyword mode does instant local filter, AI mode uses Pinecone)
+- [x] Write suggestions2.test.ts with 15 passing tests covering all three features

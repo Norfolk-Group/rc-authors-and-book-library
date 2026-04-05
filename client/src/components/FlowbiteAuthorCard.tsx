@@ -133,6 +133,8 @@ export interface FlowbiteAuthorCardProps {
     newsletterUrl?: string | null;
     speakingUrl?: string | null;
     blogUrl?: string | null;
+    /** Raw JSON string from socialStatsJson column — parsed for Substack post count */
+    socialStatsJson?: string | null;
   } | null;
 }
 
@@ -251,6 +253,21 @@ export function FlowbiteAuthorCard({
     { staleTime: 60_000 }
   );
   const hasDigitalMe = ragStatus?.ragStatus === "ready";
+
+  // Substack badge — show post count when substackUrl is set
+  const substackBadge = useMemo(() => {
+    if (!platformLinks?.substackUrl) return null;
+    let postCount: number | null = null;
+    if (platformLinks.socialStatsJson) {
+      try {
+        const stats = JSON.parse(platformLinks.socialStatsJson as string);
+        postCount = stats?.substack?.postCount ?? null;
+      } catch {
+        // ignore parse errors
+      }
+    }
+    return { url: platformLinks.substackUrl, postCount };
+  }, [platformLinks]);
 
   // Hex to rgba helper for category tint
   const hexToRgba = useCallback((hex: string, alpha: number) => {
@@ -447,6 +464,30 @@ export function FlowbiteAuthorCard({
                     </TooltipTrigger>
                     <TooltipContent side="top" className="text-xs max-w-[180px]">
                       AI persona ready — chat with this author
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+                {substackBadge && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <a
+                        href={substackBadge.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold ring-1 bg-orange-500/10 text-orange-700 dark:text-orange-400 ring-orange-500/30 hover:bg-orange-500/20 transition-colors"
+                      >
+                        {/* Substack S-stack icon */}
+                        <svg viewBox="0 0 24 24" className="w-2.5 h-2.5 fill-current flex-shrink-0" aria-hidden="true">
+                          <path d="M22.539 8.242H1.46V5.406h21.08v2.836zM1.46 10.812V24L12 18.11 22.54 24V10.812H1.46zM22.54 0H1.46v2.836h21.08V0z" />
+                        </svg>
+                        {substackBadge.postCount ? `${substackBadge.postCount} posts` : "Substack"}
+                      </a>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs max-w-[200px]">
+                      {substackBadge.postCount
+                        ? `${substackBadge.postCount} Substack posts — click to open newsletter`
+                        : "Has a Substack newsletter — click to open"}
                     </TooltipContent>
                   </Tooltip>
                 )}
