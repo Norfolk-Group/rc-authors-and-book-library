@@ -59,6 +59,7 @@ import type { SocialStatsResult } from "../../../server/enrichment/socialStats";
 import type { RichBioResult, ProfessionalEntry } from "../../../server/enrichment/richBio";
 import AcademicResearchPanel from "@/components/AcademicResearchPanel";
 import { MagazineArticlesPanel } from "@/components/library/MagazineArticlesPanel";
+import { SubstackPostsPanel } from "@/components/library/SubstackPostsPanel";
 
 // ── Author Media Section ─────────────────────────────────────────────────────
 
@@ -866,6 +867,14 @@ export default function AuthorDetail() {
 
         {/* ── Magazine Articles (Atlantic, New Yorker, Wired, NYT, WaPo) ── */}
         <MagazineArticlesPanel authorName={displayName} />
+
+        {/* ── Substack Newsletter Posts ── */}
+        {profile && (
+          <SubstackPostsPanel
+            authorId={profile.id}
+            substackUrl={profile.substackUrl}
+          />
+        )}
 
         {/* ── Books ── */}
         {author && author.books.length > 0 && (

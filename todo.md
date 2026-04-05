@@ -284,15 +284,15 @@ Last cleaned: Apr 2, 2026
 
 ## Bug Fixes (Apr 5, 2026)
 
-- [ ] Fix Admin sidebar overlapping breadcrumb bar and page content (copy layout fix from home page)
+- [x] Fix Admin sidebar overlapping breadcrumb bar and page content (copy layout fix from home page)
 
 ## Substack RSS Integration (Apr 5, 2026)
 
-- [ ] Install rss-parser and @aws-sdk/client-s3
-- [ ] Build server-side Substack RSS helper (fetch author's Substack feed by URL)
-- [ ] Add tRPC procedure: `author.getSubstackFeed(authorId)` 
-- [ ] Wire Substack feed panel into AuthorDetail page (latest 5 posts, publication name, subscribe link)
-- [ ] Write vitest tests for Substack helper
+- [x] Install rss-parser and @aws-sdk/client-s3
+- [x] Build server-side Substack RSS helper (fetch author's Substack feed by URL)
+- [x] Add tRPC procedure: `substack.getPostsByAuthor(authorId)` 
+- [x] Wire SubstackPostsPanel into AuthorDetail page (latest 5 posts, publication name, subscribe link)
+- [x] Write vitest tests for Substack helper
 
 ## The Atlantic RSS Integration (Apr 5, 2026)
 
@@ -311,20 +311,31 @@ Last cleaned: Apr 2, 2026
 
 ## Magazine Article Pipeline — Atlantic, New Yorker, Wired (Apr 5, 2026)
 
-- [ ] Add shared `magazine_articles` table to drizzle schema (source: 'atlantic'|'new-yorker'|'wired', articleId, title, url, authorName, authorNameNormalized, publishedAt, summaryText, fullText, categoriesJson, feedUrl, scrapedAt, scrapeAttempted)
+- [x] Add shared `magazine_articles` table to drizzle schema (source: 'atlantic'|'new-yorker'|'wired', articleId, title, url, authorName, authorNameNormalized, publishedAt, summaryText, fullText, categoriesJson, feedUrl, scrapedAt, scrapeAttempted)
 - [ ] Run pnpm db:push to migrate
-- [ ] Build `server/services/magazine.service.ts` with RSS configs for all 3 sources
-- [ ] Build `server/routers/magazine.router.ts` with procedures: syncFeed, scrapeArticle, getByAuthor, getBySource
-- [ ] Wire magazine articles panel into AuthorDetail page (grouped by source, title, date, summary, expandable full text, link)
-- [ ] Write vitest tests for magazine router
+- [x] Build `server/services/magazine.service.ts` with RSS configs for all 3 sources
+- [x] Build `server/routers/magazine.router.ts` with procedures: syncFeed, scrapeArticle, getByAuthor, getBySource
+- [x] Wire MagazineArticlesPanel into AuthorDetail page (grouped by source, title, date, summary, expandable full text, link)
+- [x] Write vitest tests for magazine router
 
-- [ ] Add NYT and Washington Post RSS feeds to magazine pipeline (5 total sources)
+- [x] Add NYT and Washington Post RSS feeds to magazine pipeline (5 total sources)
 
 ## Pinecone RAG Integration (Apr 5, 2026)
 
-- [ ] Install @pinecone-database/pinecone SDK
-- [ ] Add PINECONE_API_KEY secret
-- [ ] Build server/services/pinecone.service.ts (upsert vectors, query by similarity)
-- [ ] Build RAG pipeline: chunk text (articles/books), embed via Gemini text-embedding-004, upsert to Pinecone
-- [ ] Add tRPC procedure: ragPipeline.indexArticle, ragPipeline.indexBook, ragPipeline.semanticSearch
-- [ ] Wire semantic search into author chatbot and author detail page
+- [x] Install @pinecone-database/pinecone SDK
+- [x] Add PINECONE_API_KEY secret
+- [x] Build server/services/pinecone.service.ts (upsert vectors, query by similarity)
+- [x] Build RAG pipeline: chunk text (articles/books), embed via Gemini text-embedding-004, upsert to Pinecone
+- [x] Add tRPC procedures: vectorSearch.indexAuthor, vectorSearch.indexBook, vectorSearch.semanticSearch, ragPipeline.indexBook, ragPipeline.semanticSearch
+- [ ] Wire semantic search into author chatbot (next step) and author detail page
+
+## Substack Integration (Apr 5, 2026)
+
+- [x] substackUrl already exists in author_profiles schema
+- [x] Run `pnpm db:push` to migrate
+- [x] Build `server/services/substack.service.ts` — fetch RSS feed via rss-parser, return posts
+- [x] Build `substack` tRPC procedure: `getPostsByAuthor(authorId)` — reads subdomain from DB, fetches RSS
+- [x] Add Substack URL inline editor in SubstackPostsPanel to AuthorDetail admin edit controls
+- [x] Build `SubstackPostsPanel` component — shows latest 5 posts with title, date, excerpt, and link
+- [x] Wire `SubstackPostsPanel` into AuthorDetail page
+- [x] Write vitest tests for substack service

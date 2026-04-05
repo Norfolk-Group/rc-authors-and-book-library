@@ -30,6 +30,7 @@ import { enrichmentRouter } from "./enrichment.router";
 import { apiRegistryRouter } from "./apiRegistry.router";
 import { magazineRouter } from "./magazine.router";
 import { vectorSearchRouter } from "./vectorSearch.router";
+import { substackRouter } from "./substack.router";
 
 export const appRouter = router({
   system: systemRouter,
@@ -68,6 +69,8 @@ export const appRouter = router({
   magazine: magazineRouter,
   // ── Pinecone vector search + RAG indexing ─────────────────────────────────
   vectorSearch: vectorSearchRouter,
+  // ── Substack RSS feeds ─────────────────────────────────────────────────────
+  substack: substackRouter,
 });
 
 export type AppRouter = typeof appRouter;
