@@ -12,11 +12,11 @@ Last cleaned: Apr 5, 2026
 
 ## Deferred Features
 
-- [ ] CNBC "In the News" badge on author cards (show article count from socialStatsJson.cnbc if > 0)
-- [ ] LinkedIn follower count display on author cards
-- [ ] Global keyboard shortcut (Cmd/Ctrl+K) command palette for fast author/book search and navigation
-- [ ] Author "In the News" section on AuthorDetail page (CNBC articles)
-- [ ] Book ISBN barcode display on BookDetail page
+- [x] CNBC "In the News" badge on author cards (show article count from socialStatsJson.cnbc if > 0)
+- [x] LinkedIn follower count display on author cards
+- [x] Global keyboard shortcut (Cmd/Ctrl+K) command palette for fast author/book search and navigation
+- [x] Author "In the News" section on AuthorDetail page (CNBC articles)
+- [x] Book ISBN barcode display on BookDetail page
 
 ---
 
@@ -25,7 +25,7 @@ Last cleaned: Apr 5, 2026
 - [ ] Research and test RapidAPI access to NYT, Bloomberg, WSJ, BBC, CNN, Atlantic, MSNBC, WashPost APIs
 - [ ] Build unified `server/enrichment/newsOutlets.ts` helper with typed per-outlet fetchers
 - [ ] Add `fetchAuthorNews` tRPC procedure returning articles across all 8 outlets
-- [ ] Add "In the News" section to AuthorDetail page (article cards with outlet badge, headline, date, link)
+- [x] Add "In the News" section to AuthorDetail page (article cards with outlet badge, headline, date, link)
 - [ ] Add news article count badge to FlowbiteAuthorCard
 - [ ] Cache news results in `author_profiles.socialStatsJson` to avoid redundant API calls
 - [ ] Write vitest tests for newsOutlets helper
@@ -57,8 +57,8 @@ Last cleaned: Apr 5, 2026
 
 ### AuthorDetail Page
 - [ ] Wire enrichment.applePodcasts.getAuthorPodcasts into AuthorDetail page
-- [ ] Wire enrichment.news.searchAuthorNews into AuthorDetail "In the News" section
-- [ ] "In the News" section: top 10 recent articles mentioning the author (CNBC + Google News RSS)
+- [x] Wire enrichment.news.searchAuthorNews into AuthorDetail "In the News" section
+- [x] "In the News" section: top 10 recent articles mentioning the author (CNBC + Google News RSS)
 - [ ] Apple Podcasts section: author's podcasts from iTunes — supplement existing content items
 - [ ] LinkedIn stats panel: follower count, headline, connection count (from socialStatsJson.linkedin if enriched)
 - [ ] Wikipedia quick-facts panel: birth date, nationality, alma mater, awards (from socialStatsJson.wikipedia)

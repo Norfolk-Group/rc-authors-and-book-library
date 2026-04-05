@@ -1,5 +1,6 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { CommandPalette } from "@/components/CommandPalette";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import { lazy, Suspense } from "react";
@@ -109,6 +110,8 @@ function App() {
     <ErrorBoundary>
       <TooltipProvider>
         <Toaster />
+        {/* Global Cmd+K command palette — available on all pages */}
+        <CommandPalette />
         <Router />
       </TooltipProvider>
     </ErrorBoundary>

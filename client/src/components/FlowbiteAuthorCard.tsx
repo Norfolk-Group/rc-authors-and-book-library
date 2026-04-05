@@ -269,6 +269,33 @@ export function FlowbiteAuthorCard({
     return { url: platformLinks.substackUrl, postCount };
   }, [platformLinks]);
 
+  // LinkedIn follower count badge — show when socialStatsJson has linkedin.followerCount
+  const linkedinBadge = useMemo(() => {
+    if (!platformLinks?.socialStatsJson) return null;
+    try {
+      const stats = JSON.parse(platformLinks.socialStatsJson as string);
+      const count = stats?.linkedin?.followerCount;
+      if (!count || count <= 0) return null;
+      const fmt = count >= 1_000_000
+        ? `${(count / 1_000_000).toFixed(1)}M`
+        : count >= 1_000
+        ? `${Math.round(count / 1_000)}K`
+        : `${count}`;
+      return { count: fmt, url: platformLinks.linkedinUrl ?? null };
+    } catch { return null; }
+  }, [platformLinks]);
+
+  // CNBC article count badge — show when socialStatsJson has cnbc.articleCount > 0
+  const cnbcBadge = useMemo(() => {
+    if (!platformLinks?.socialStatsJson) return null;
+    try {
+      const stats = JSON.parse(platformLinks.socialStatsJson as string);
+      const count = stats?.cnbc?.articleCount;
+      if (!count || count <= 0) return null;
+      return { count };
+    } catch { return null; }
+  }, [platformLinks]);
+
   // Hex to rgba helper for category tint
   const hexToRgba = useCallback((hex: string, alpha: number) => {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -488,6 +515,51 @@ export function FlowbiteAuthorCard({
                       {substackBadge.postCount
                         ? `${substackBadge.postCount} Substack posts — click to open newsletter`
                         : "Has a Substack newsletter — click to open"}
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+                {linkedinBadge && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      {linkedinBadge.url ? (
+                        <a
+                          href={linkedinBadge.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold ring-1 bg-blue-500/10 text-blue-700 dark:text-blue-400 ring-blue-500/30 hover:bg-blue-500/20 transition-colors"
+                        >
+                          {/* LinkedIn icon */}
+                          <svg viewBox="0 0 24 24" className="w-2.5 h-2.5 fill-current flex-shrink-0" aria-hidden="true">
+                            <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                          </svg>
+                          {linkedinBadge.count} followers
+                        </a>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold ring-1 bg-blue-500/10 text-blue-700 dark:text-blue-400 ring-blue-500/30">
+                          <svg viewBox="0 0 24 24" className="w-2.5 h-2.5 fill-current flex-shrink-0" aria-hidden="true">
+                            <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                          </svg>
+                          {linkedinBadge.count} followers
+                        </span>
+                      )}
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs max-w-[200px]">
+                      {linkedinBadge.count} LinkedIn followers
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+                {cnbcBadge && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold ring-1 bg-red-500/10 text-red-700 dark:text-red-400 ring-red-500/30">
+                        {/* CNBC text badge */}
+                        <span className="font-black text-[8px] tracking-tight leading-none">CNBC</span>
+                        {cnbcBadge.count} articles
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs max-w-[200px]">
+                      {cnbcBadge.count} articles mentioning this author on CNBC
                     </TooltipContent>
                   </Tooltip>
                 )}

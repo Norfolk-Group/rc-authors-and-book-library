@@ -43,6 +43,7 @@ import {
 } from "lucide-react";
 import { BOOKS, CATEGORY_COLORS, CATEGORY_ICONS, CONTENT_TYPE_ICONS } from "@/lib/libraryData";
 import { ICON_MAP, CT_ICON_MAP, normalizeContentTypes } from "@/components/library/libraryConstants";
+import { ISBNBarcode } from "@/components/library/ISBNBarcode";
 import { toast } from "sonner";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -311,7 +312,11 @@ export default function BookDetail() {
             <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
               {profile?.publisher && <span className="font-medium">{profile.publisher}</span>}
               {profile?.publishedDate && <span>{profile.publishedDate}</span>}
-              {profile?.isbn && <span>ISBN: {profile.isbn}</span>}
+              {profile?.isbn && (
+                <div className="w-full mt-2">
+                  <ISBNBarcode isbn={profile.isbn} />
+                </div>
+              )}
             </div>
 
             {/* Content types in library */}

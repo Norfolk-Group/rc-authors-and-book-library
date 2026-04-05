@@ -60,6 +60,7 @@ import type { RichBioResult, ProfessionalEntry } from "../../../server/enrichmen
 import AcademicResearchPanel from "@/components/AcademicResearchPanel";
 import { MagazineArticlesPanel } from "@/components/library/MagazineArticlesPanel";
 import { SubstackPostsPanel } from "@/components/library/SubstackPostsPanel";
+import { AuthorInTheNewsSection } from "@/components/library/AuthorInTheNewsSection";
 
 // ── Author Media Section ─────────────────────────────────────────────────────
 
@@ -876,6 +877,8 @@ export default function AuthorDetail() {
           />
         )}
 
+        {/* ── In the News ── */}
+        <AuthorInTheNewsSection authorName={displayName} />
         {/* ── Books ── */}
         {author && author.books.length > 0 && (
           <section>
