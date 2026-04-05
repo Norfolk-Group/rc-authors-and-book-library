@@ -27,6 +27,7 @@ import { appSettingsRouter } from "./appSettings.router";
 import { tagsRouter } from "./tags.router";
 import { contentItemsRouter } from "./contentItems.router";
 import { enrichmentRouter } from "./enrichment.router";
+import { apiRegistryRouter } from "./apiRegistry.router";
 
 export const appRouter = router({
   system: systemRouter,
@@ -60,6 +61,7 @@ export const appRouter = router({
   tags: tagsRouter,
   contentItems: contentItemsRouter,
   enrichment: enrichmentRouter,
+  apiRegistry: apiRegistryRouter,
 });
 
 export type AppRouter = typeof appRouter;

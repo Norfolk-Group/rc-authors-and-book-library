@@ -237,3 +237,47 @@ Last cleaned: Apr 2, 2026
 - [ ] Test RapidAPI access to NYT, Bloomberg, WSJ, BBC, CNN, Atlantic, MSNBC, WashPost (premium news outlets)
 - [ ] Test Spotify API via RapidAPI for author audiobook/podcast data
 - [ ] Test Instagram API via RapidAPI for author follower counts and recent posts
+
+---
+
+## Full API Wiring — Author & Book Research Dashboard (Apr 4, 2026)
+
+### BookDetail Page Enrichment
+- [ ] Open Library panel: show ISBN-13, publisher, publish date, page count, subjects from OL enrichment
+- [ ] HathiTrust availability badge: "Free Digital Copy" button when full-view copy exists (links to HathiTrust reader)
+- [ ] Open Library cover fallback: if no S3 cover, fetch cover from Open Library by ISBN
+- [ ] "Also available at" library count: show how many HathiTrust copies exist (search-only + full-view)
+
+### AuthorDetail Page Enrichment
+- [ ] "In the News" section: top 10 recent articles mentioning the author (CNBC + Google News RSS via enrichment.news.searchAuthorNews)
+- [ ] Apple Podcasts section: author's podcasts from iTunes (enrichment.applePodcasts.getAuthorPodcasts) — supplement existing content items
+- [ ] LinkedIn stats panel: follower count, headline, connection count (from socialStatsJson.linkedin if enriched)
+- [ ] Wikipedia quick-facts panel: birth date, nationality, alma mater, awards (from socialStatsJson.wikipedia)
+- [ ] Yahoo Finance panel: show company/stock data for author-linked companies (from socialStatsJson.yahooFinance)
+- [ ] Substack subscriber count badge on author cards (from socialStatsJson.substack if available)
+
+### Author Cards (Home page)
+- [ ] "In the News" count badge on FlowbiteAuthorCard (article count from news search cache)
+- [ ] LinkedIn follower count display on author cards
+- [ ] Substack subscriber count on author cards
+
+### Caching & Performance
+- [ ] Cache news search results in author_profiles.socialStatsJson (TTL: 24h) to avoid redundant API calls
+- [ ] Cache Open Library enrichment in book_profiles (ISBN, publisher, OL cover URL) after first fetch
+- [ ] Cache HathiTrust availability in book_profiles (htAvailability field) after first check
+
+---
+
+## Admin — API Management Page (Apr 4, 2026)
+
+- [x] Add `api_registry` table to schema (id, key, name, description, source, sourceUrl, category, host, enabled, statusColor, lastCheckedAt, lastStatus, lastStatusCode, notes)
+- [x] Run `pnpm db:push` to migrate the new table
+- [x] Seed `api_registry` with all known APIs (RapidAPI subscriptions + free APIs used in the app)
+- [x] Build `server/routers/apiRegistry.router.ts` — list, toggle enabled, update status, ping/check
+- [x] Build `client/src/components/admin/ApiManagementTab.tsx` — 3-column responsive card grid
+  - [x] Each card: API name, source badge, status dot (green/yellow/red), description, enable/disable switch
+  - [x] Status dot colors: green = working, yellow = subscribed but endpoint issues, red = not subscribed / down
+  - [x] Cards grouped by category (Books, News, Social, Finance, Travel, Utilities)
+  - [x] "Check All" button to ping all APIs and refresh status
+- [x] Register `ApiManagementTab` in Admin Console tabs
+- [x] Write vitest tests for apiRegistry router

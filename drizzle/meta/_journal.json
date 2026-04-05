@@ -246,6 +246,13 @@
       "when": 1775341247707,
       "tag": "0034_graceful_kabuki",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "5",
+      "when": 1775352490432,
+      "tag": "0035_gifted_mentallo",
+      "breakpoints": true
     }
   ]
 }

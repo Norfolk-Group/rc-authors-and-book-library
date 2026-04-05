@@ -88,6 +88,7 @@ import { AdminInfoToolsTab } from "@/components/admin/AdminInfoToolsTab";
 // Configuration
 import { AdminAppSettingsTab } from "@/components/admin/AdminAppSettingsTab";
 import { AdminAboutTab } from "@/components/admin/AdminAboutTab";
+import { ApiManagementTab } from "@/components/admin/ApiManagementTab";
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
 import { useAdminActions } from "@/hooks/useAdminActions";
@@ -150,6 +151,7 @@ const NAV_GROUPS: NavGroup[] = [
     icon: Gear,
     items: [
       { id: "settings", label: "App Settings", icon: Gear },
+      { id: "api-management", label: "API Management", icon: Globe },
       { id: "about", label: "About", icon: Info },
     ],
   },
@@ -440,6 +442,7 @@ export default function Admin() {
 
               {/* ── Configuration ── */}
               {activeSection === "settings" && <AdminAppSettingsTab />}
+              {activeSection === "api-management" && <ApiManagementTab />}
               {activeSection === "about" && <AdminAboutTab />}
 
             </div>
