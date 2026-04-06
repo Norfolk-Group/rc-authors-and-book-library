@@ -1069,3 +1069,133 @@
 .theme-noir-dark button:active:not(:disabled) {
   box-shadow: inset 0 1px 2px rgba(0,0,0,0.08);
 }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   NOTION THEME — Editorial Intelligence Design System
+   Source: awesome-design-md/design-md/notion/DESIGN.md
+   ══════════════════════════════════════════════════════════════════════════════ */
+.theme-notion {
+  /* ── Surfaces ── */
+  --background: 30 8% 96%;            /* #F6F5F4 warm off-white page */
+  --foreground: 0 0% 10%;             /* #1A1A1A near-black text */
+  --card: 0 0% 100%;                  /* #FFFFFF pure white cards */
+  --card-foreground: 0 0% 10%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 10%;
+
+  /* ── Primary = Notion Blue ── */
+  --primary: 210 100% 44%;            /* #0075DE */
+  --primary-foreground: 0 0% 100%;
+
+  /* ── Secondary = warm hover surface ── */
+  --secondary: 60 4% 94%;             /* #EFEFED */
+  --secondary-foreground: 0 0% 10%;
+
+  /* ── Muted ── */
+  --muted: 60 4% 94%;                 /* #EFEFED */
+  --muted-foreground: 30 3% 47%;      /* #787774 warm grey */
+
+  /* ── Accent = light blue tint ── */
+  --accent: 210 100% 96%;             /* #EBF5FF very light blue */
+  --accent-foreground: 210 100% 44%;  /* Notion Blue text */
+
+  --destructive: 0 72% 50%;
+  --destructive-foreground: 0 0% 100%;
+
+  /* ── Borders ── */
+  --border: 30 5% 88%;                /* #E3E2E0 warm divider */
+  --input: 30 5% 88%;
+  --ring: 210 100% 44%;               /* Notion Blue focus ring */
+  --radius: 0.375rem;                 /* 6px — Notion tight radius */
+
+  /* ── Accent pops ── */
+  --accent-pop: 210 100% 44%;
+  --accent-pop-foreground: 0 0% 100%;
+  --accent-pop-2: 30 3% 47%;
+  --accent-pop-2-foreground: 0 0% 100%;
+
+  /* ── Charts ── */
+  --chart-1: 210 100% 44%;
+  --chart-2: 150 60% 40%;
+  --chart-3: 35 90% 55%;
+  --chart-4: 0 65% 55%;
+  --chart-5: 270 50% 55%;
+
+  /* ── Sidebar = warm grey bg ── */
+  --sidebar: 60 5% 97%;               /* #F7F7F5 */
+  --sidebar-foreground: 0 0% 10%;
+  --sidebar-primary: 0 0% 10%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 60 4% 94%;
+  --sidebar-accent-foreground: 0 0% 10%;
+  --sidebar-border: 30 5% 88%;
+  --sidebar-ring: 210 100% 44%;
+}
+
+/* ── Notion Theme — Component overrides ── */
+
+/* Cards: white bg, warm border, Notion 4-layer shadow */
+.theme-notion .card-lift:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.04);
+  transform: scale(1.015) translateY(-1px);
+}
+.theme-notion .stat-card-3d {
+  border: 1px solid hsl(30 5% 88%);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03);
+}
+.theme-notion .stat-card-3d:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.04);
+}
+
+/* Search glow: Notion Blue ring */
+.theme-notion .search-glow:focus-within {
+  box-shadow: 0 0 0 2px rgba(0, 117, 222, 0.20);
+  border-color: rgba(0, 117, 222, 0.50);
+}
+
+/* Hover effects */
+.theme-notion .hover-lift:hover {
+  box-shadow: 0 6px 20px rgba(0,0,0,0.07), 0 2px 8px rgba(0,0,0,0.04);
+}
+.theme-notion .hover-glow:hover {
+  box-shadow: 0 0 16px rgba(0, 117, 222, 0.10);
+}
+
+/* Sidebar active item: near-black pill */
+.theme-notion [data-sidebar="menu-button"][data-active="true"] {
+  background-color: hsl(0 0% 10%) !important;
+  color: hsl(0 0% 100%) !important;
+}
+.theme-notion [data-sidebar="menu-button"][data-active="true"] svg {
+  color: hsl(0 0% 100%) !important;
+}
+.theme-notion [data-sidebar="menu-button"]:not([data-active="true"]):hover {
+  background-color: hsl(60 4% 94%) !important;
+}
+
+/* Count badge in sidebar */
+.theme-notion [data-sidebar="menu-button"][data-active="true"] .font-mono {
+  background-color: rgba(255,255,255,0.18) !important;
+  color: hsl(0 0% 100%) !important;
+}
+.theme-notion [data-sidebar="menu-button"]:not([data-active="true"]) .font-mono {
+  background-color: hsl(30 5% 88%) !important;
+  color: hsl(30 3% 47%) !important;
+}
+
+/* Modals/Dialogs */
+.theme-notion [role="dialog"] {
+  border: 1px solid hsl(30 5% 88%);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04);
+}
+
+/* Tabs: Notion Blue active indicator */
+.theme-notion [role="tablist"] [data-state="active"] {
+  border-color: hsl(210 100% 44%) !important;
+  color: hsl(210 100% 44%) !important;
+}
+
+/* Book cover hover */
+.theme-notion .book-cover-3d:hover {
+  box-shadow: 6px 12px 32px -6px rgba(0,0,0,0.18), 2px 4px 10px -2px rgba(0,0,0,0.10);
+}

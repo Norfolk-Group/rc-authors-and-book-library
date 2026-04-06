@@ -29,7 +29,7 @@ import React, {
 
 // -- Types ---------------------------------------------------------------------
 
-export type ThemeName = "manus" | "norfolk-ai" | "noir-dark";
+export type ThemeName = "manus" | "norfolk-ai" | "noir-dark" | "notion";
 export type ColorMode = "light" | "dark";
 export type IconSetId = "phosphor-regular" | "phosphor-duotone";
 
@@ -218,14 +218,14 @@ export function AppSettingsProvider({ children }: { children: React.ReactNode })
     const root = document.documentElement;
     // Remove all known theme and color-mode classes
     root.classList.remove(
-      "theme-manus", "theme-norfolk-ai", "theme-noir-dark",
+      "theme-manus", "theme-norfolk-ai", "theme-noir-dark", "theme-notion",
       "dark", "light", "norfolk-ai", "noir-dark"
     );
     // Apply named theme class
     root.classList.add(`theme-${settings.theme}`);
     // Noir Dark is a light-background monochrome theme - never add .dark
     // Adding .dark would activate Flowbite's dark:bg-gray-800 and break the white bg
-    const effectiveColorMode = settings.theme === "noir-dark" ? "light" : settings.colorMode;
+    const effectiveColorMode = (settings.theme === "noir-dark" || settings.theme === "notion") ? "light" : settings.colorMode;
     if (effectiveColorMode === "dark") {
       root.classList.add("dark");
     }

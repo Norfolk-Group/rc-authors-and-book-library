@@ -32,6 +32,12 @@ const THEMES = [
     desc: "Monochrome executive — white + black",
     preview: { bg: "#FFFFFF", card: "#FFFFFF", sidebar: "#FFFFFF", accent: "#111111" },
   },
+  {
+    id: "notion" as const,
+    label: "Notion",
+    desc: "Warm editorial — off-white + Notion Blue",
+    preview: { bg: "#F6F5F4", card: "#FFFFFF", sidebar: "#F7F7F5", accent: "#0075DE" },
+  },
 ];
 
 // ── Norfolk AI palette swatches for avatar backgrounds ────────────────────────
@@ -84,7 +90,7 @@ export function SettingsTab({ settings, updateSettings }: SettingsTabProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {THEMES.map((t) => (
               <button
                 key={t.id}
