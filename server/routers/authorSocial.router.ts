@@ -32,6 +32,7 @@ export const authorSocialRouter = router({
         podcastUrl: authorProfiles.podcastUrl,
         blogUrl: authorProfiles.blogUrl,
         socialStatsJson: authorProfiles.socialStatsJson,
+        newsCacheJson: authorProfiles.newsCacheJson,
       })
       .from(authorProfiles);
     return rows.filter((r) =>

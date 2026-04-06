@@ -137,6 +137,8 @@ export interface FlowbiteAuthorCardProps {
     blogUrl?: string | null;
     /** Raw JSON string from socialStatsJson column — parsed for Substack post count */
     socialStatsJson?: string | null;
+    /** Raw JSON string from newsCacheJson column — parsed for news article count */
+    newsCacheJson?: string | null;
   } | null;
 }
 
@@ -339,6 +341,16 @@ export function FlowbiteAuthorCard({
         ? `${Math.round(count / 1_000)}K`
         : `${count}`;
       return { count: fmt, url: platformLinks.linkedinUrl ?? null };
+    } catch { return null; }
+  }, [platformLinks]);
+
+  // News article count badge (from newsCacheJson)
+  const newsBadge = useMemo(() => {
+    if (!platformLinks?.newsCacheJson) return null;
+    try {
+      const articles = JSON.parse(platformLinks.newsCacheJson as string);
+      if (!Array.isArray(articles) || articles.length === 0) return null;
+      return { count: articles.length };
     } catch { return null; }
   }, [platformLinks]);
 
@@ -660,6 +672,17 @@ export function FlowbiteAuthorCard({
                               </span>
                             </TooltipTrigger>
                             <TooltipContent side="top" className="text-xs max-w-[200px]">{cnbcBadge.count} articles on CNBC</TooltipContent>
+                          </Tooltip>
+                        )}
+                        {newsBadge && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold ring-1 bg-sky-500/10 text-sky-700 dark:text-sky-400 ring-sky-500/30">
+                                <svg viewBox="0 0 24 24" className="w-2.5 h-2.5 fill-current flex-shrink-0" aria-hidden="true"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                                {newsBadge.count} news
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="text-xs max-w-[200px]">{newsBadge.count} news articles cached</TooltipContent>
                           </Tooltip>
                         )}
                       </div>

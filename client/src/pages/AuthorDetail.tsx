@@ -62,6 +62,9 @@ import { MagazineArticlesPanel } from "@/components/library/MagazineArticlesPane
 import { SubstackPostsPanel } from "@/components/library/SubstackPostsPanel";
 import { AuthorInTheNewsSection } from "@/components/library/AuthorInTheNewsSection";
 import { LazyImage } from "@/components/ui/LazyImage";
+import { LinkedInStatsPanel } from "@/components/author/LinkedInStatsPanel";
+import { WikipediaQuickFactsPanel } from "@/components/author/WikipediaQuickFactsPanel";
+import { YahooFinancePanel } from "@/components/author/YahooFinancePanel";
 
 // ── Author Media Section ─────────────────────────────────────────────────────
 
@@ -479,6 +482,15 @@ export default function AuthorDetail() {
   const wiki = socialStats?.wikipedia;
   const wikiViews = formatCount(wiki?.avgMonthlyViews);
 
+  // Parse business profile (Yahoo Finance)
+  const businessProfile: { yahooFinance?: { ticker: string; shortName: string; regularMarketPrice: number | null; marketCap: number | null; currency: string | null; exchange: string | null; fiftyTwoWeekHigh: number | null; fiftyTwoWeekLow: number | null; fetchedAt?: string } } | null = useMemo(() => {
+    try {
+      return profile?.businessProfileJson ? JSON.parse(profile.businessProfileJson) : null;
+    } catch {
+      return null;
+    }
+  }, [profile?.businessProfileJson]);
+
   const platformLinks = profile
     ? {
         websiteUrl: profile.websiteUrl,
@@ -862,6 +874,38 @@ export default function AuthorDetail() {
             </section>
           );
         })()}
+
+        {/* ── LinkedIn Stats ── */}
+        {(socialStats?.linkedin || profile?.linkedinUrl) && (
+          <LinkedInStatsPanel
+            linkedin={socialStats?.linkedin as any}
+            linkedinUrl={profile?.linkedinUrl}
+          />
+        )}
+
+        {/* ── Wikipedia Quick Facts ── */}
+        {wiki && wiki.pageUrl && (
+          <WikipediaQuickFactsPanel
+            wikipedia={{
+              pageTitle: wiki.pageTitle ?? displayName,
+              pageUrl: wiki.pageUrl,
+              description: wiki.description ?? null,
+              extract: wiki.extract ?? null,
+              thumbnailUrl: wiki.thumbnailUrl ?? null,
+              avgMonthlyViews: wiki.avgMonthlyViews ?? 0,
+              fetchedAt: (wiki as any).fetchedAt,
+            }}
+            authorName={displayName}
+          />
+        )}
+
+        {/* ── Yahoo Finance / Company Stock ── */}
+        {(businessProfile?.yahooFinance || profile?.stockTicker) && (
+          <YahooFinancePanel
+            yahooFinance={businessProfile?.yahooFinance as any}
+            stockTicker={profile?.stockTicker}
+          />
+        )}
 
         {/* ── Academic Research Foundation ── */}
         <AcademicResearchPanel authorName={displayName} isAdmin={isAdmin} />

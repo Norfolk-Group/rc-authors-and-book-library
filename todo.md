@@ -60,9 +60,9 @@ Last cleaned: Apr 5, 2026
 - [x] Wire enrichment.news.searchAuthorNews into AuthorDetail "In the News" section
 - [x] "In the News" section: top 10 recent articles mentioning the author (CNBC + Google News RSS)
 - [x] Apple Podcasts section: author's podcasts from iTunes — supplement existing content items
-- [ ] LinkedIn stats panel: follower count, headline, connection count (from socialStatsJson.linkedin if enriched)
-- [ ] Wikipedia quick-facts panel: birth date, nationality, alma mater, awards (from socialStatsJson.wikipedia)
-- [ ] Yahoo Finance panel: show company/stock data for author-linked companies (from socialStatsJson.yahooFinance)
+- [x] LinkedIn stats panel: follower count, headline, connection count (from socialStatsJson.linkedin if enriched)
+- [x] Wikipedia quick-facts panel: birth date, nationality, alma mater, awards (from socialStatsJson.wikipedia)
+- [x] Yahoo Finance panel: show company/stock data for author-linked companies (from businessProfileJson.yahooFinance)
 - [ ] Wire semantic search into author chatbot and author detail page
 
 ### Caching & Performance
