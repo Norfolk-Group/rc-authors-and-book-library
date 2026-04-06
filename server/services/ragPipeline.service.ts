@@ -1,7 +1,7 @@
 /**
  * ragPipeline.service.ts
  *
- * RAG pipeline: embed text chunks via Gemini text-embedding-004,
+ * RAG pipeline: embed text chunks via Gemini gemini-embedding-001,
  * upsert to Pinecone, and query for semantic search.
  *
  * Supported content types:
@@ -39,17 +39,17 @@ async function getGenAI() {
   return _genai;
 }
 
-const EMBEDDING_MODEL = "text-embedding-004";
+const EMBEDDING_MODEL = "models/gemini-embedding-001";
 
 /**
- * Embed a single text string using Gemini text-embedding-004.
- * Returns a 768-dimensional float array.
+ * Embed a single text string using Gemini gemini-embedding-001.
+ * Returns a 3072-dimensional float array.
  */
 export async function embedText(text: string): Promise<number[]> {
   const genai = await getGenAI();
   const result = await genai.models.embedContent({
     model: EMBEDDING_MODEL,
-    contents: text.slice(0, 8192), // Gemini max input
+    contents: [{ parts: [{ text: text.slice(0, 8192) }] }], // Gemini API v1beta format
   });
   const values = result.embeddings?.[0]?.values;
   if (!values || values.length === 0) {

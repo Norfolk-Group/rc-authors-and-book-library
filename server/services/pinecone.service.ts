@@ -4,7 +4,7 @@
  * Pinecone vector database service for the library RAG pipeline.
  *
  * Index: "library-rag"
- *   - Dimension: 768 (Gemini text-embedding-004 output)
+ *   - Dimension: 3072 (Gemini gemini-embedding-001 output)
  *   - Metric: cosine
  *   - Serverless: AWS us-east-1
  *
@@ -24,7 +24,7 @@ import { Pinecone } from "@pinecone-database/pinecone";
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 export const PINECONE_INDEX_NAME = "library-rag";
-export const EMBEDDING_DIMENSION = 768; // Gemini text-embedding-004
+export const EMBEDDING_DIMENSION = 3072; // Gemini gemini-embedding-001
 
 export type ContentNamespace = "articles" | "books" | "authors" | "content_items" | "rag_files";
 
