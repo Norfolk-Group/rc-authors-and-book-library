@@ -48,6 +48,8 @@ import {
   LibraryAvailabilitySection,
   FreeDigitalCopyBadge,
 } from "@/components/library/LibraryAvailabilitySection";
+import { SimilarBooksSection } from "@/components/library/SimilarBooksSection";
+import { RelatedContentSection } from "@/components/library/RelatedContentSection";
 import { toast } from "sonner";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -708,6 +710,16 @@ export default function BookDetail() {
             )}
           </div>
         </section>
+
+        {/* ── AI-Powered Similar Books ──────────────────────────────────── */}
+        {profile?.id && (
+          <SimilarBooksSection bookId={profile.id} accentColor={color} />
+        )}
+
+        {/* ── AI-Powered Related Media ─────────────────────────────────────── */}
+        {profile?.id && (
+          <RelatedContentSection bookId={profile.id} accentColor={color} />
+        )}
 
         {/* ── Library Content ──────────────────────────────────────────────── */}
         <section className="space-y-4">

@@ -20,6 +20,7 @@ const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const CookiePolicy = lazy(() => import("./pages/CookiePolicy"));
 const ReadingStats = lazy(() => import("./pages/ReadingStats"));
 const Login = lazy(() => import("./pages/Login"));
+const ThematicSearch = lazy(() => import("./pages/ThematicSearch"));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center h-screen text-muted-foreground">
@@ -92,6 +93,11 @@ function Router() {
       <Route path={"/stats"}>
         <Suspense fallback={<PageLoader />}>
           <ReadingStats />
+        </Suspense>
+      </Route>
+      <Route path={"/discover"}>
+        <Suspense fallback={<PageLoader />}>
+          <ThematicSearch />
         </Suspense>
       </Route>
       <Route path={"/admin"}>

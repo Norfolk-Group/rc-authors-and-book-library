@@ -59,6 +59,7 @@ import type { SocialStatsResult } from "../../../server/enrichment/socialStats";
 import type { RichBioResult, ProfessionalEntry } from "../../../server/enrichment/richBio";
 import AcademicResearchPanel from "@/components/AcademicResearchPanel";
 import { MagazineArticlesPanel } from "@/components/library/MagazineArticlesPanel";
+import { SimilarAuthorsSection } from "@/components/library/SimilarAuthorsSection";
 import { SubstackPostsPanel } from "@/components/library/SubstackPostsPanel";
 import { AuthorInTheNewsSection } from "@/components/library/AuthorInTheNewsSection";
 import { LazyImage } from "@/components/ui/LazyImage";
@@ -944,6 +945,9 @@ export default function AuthorDetail() {
 
         {/* ── Media & Resources ── */}
         <AuthorMediaSection authorName={displayName} />
+
+        {/* ── AI-Powered Similar Authors ── */}
+        <SimilarAuthorsSection authorName={displayName} accentColor={color} />
 
         {/* ── Footer ── */}
         <div className="flex gap-3 pt-2 pb-8">

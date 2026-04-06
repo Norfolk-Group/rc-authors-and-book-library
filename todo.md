@@ -197,3 +197,21 @@ Last cleaned: Apr 5, 2026
 - [x] Add Admin UI panel for reviewing flagged duplicates: side-by-side comparison, merge/keep/discard actions
 - [x] Write vitest tests for duplicate detection service (all 4 detection layers)
 - [x] Add duplicate detection summary to AdminDropboxTab scan results
+
+---
+## Pinecone Maximization (Gemini 2.5 Pro Strategy)
+
+### P1 Features
+- [x] Chatbot RAG Upgrade: semantic chunk retrieval from rag_files namespace instead of loading full file
+- [x] Book Recommendations: "Readers Also Liked" via vector similarity in books namespace (BookDetail page)
+- [x] Similar Authors: vector similarity in authors namespace (AuthorDetail page)
+
+### P2 Features
+- [x] Cross-Content Discovery: find podcasts/videos related to a book via content_items namespace
+- [x] Thematic/Conceptual Search: search by concept not keyword (e.g. "books about resilience")
+- [x] Personalized "What to Read Next": average user favorites vectors → query books namespace
+
+### P3 Features
+- [ ] Near-Duplicate Detection: check new content against Pinecone before saving
+- [ ] Semantic Interest Heatmap: cluster authors/books by vector similarity with UMAP
+- [ ] Curated Reading Paths: guided learning sequences from a starting book

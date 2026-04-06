@@ -49,6 +49,7 @@ import { LibrarySidebar, type TabType } from "@/components/library/LibrarySideba
 import { LibraryHeader } from "@/components/library/LibraryHeader";
 import { TagGroupHeader, groupByFirstTag } from "@/components/library/TagGroupHeader";
 import { MediaTab } from "@/components/library/MediaTab";
+import { PersonalizedNextSection } from "@/components/library/PersonalizedNextSection";
 import { AuthorsTabContent } from "@/components/library/AuthorsTabContent";
 import { BooksTabContent } from "@/components/library/BooksTabContent";
 import { BookFilterBar } from "@/components/library/BookFilterBar";
@@ -684,6 +685,9 @@ export default function Home() {
                         </div>
                       ) : null;
                     })()}
+                    {/* AI-Powered Personalized Recommendations */}
+                    <PersonalizedNextSection />
+
                     {Object.values(authorFavoritesQuery.data ?? {}).filter(Boolean).length === 0 &&
                      Object.values(bookFavoritesQuery.data ?? {}).filter(Boolean).length === 0 && (
                       <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">

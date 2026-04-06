@@ -35,6 +35,7 @@ import { dropboxRouter } from "./dropbox.router";
 import { duplicateDetectionRouter } from "./duplicateDetection.router";
 import { s3AuditRouter } from "./s3Audit.router";
 import { libraryCacheRouter } from "./libraryCache.router";
+import { recommendationsRouter } from "./recommendations.router";
 
 export const appRouter = router({
   system: systemRouter,
@@ -82,6 +83,8 @@ export const appRouter = router({
   // ── S3 CDN audit & migration ───────────────────────────────────────────────
   s3Audit: s3AuditRouter,
   libraryCache: libraryCacheRouter,
+  // ── Pinecone-powered recommendations & discovery ───────────────────────────
+  recommendations: recommendationsRouter,
 });
 
 export type AppRouter = typeof appRouter;
