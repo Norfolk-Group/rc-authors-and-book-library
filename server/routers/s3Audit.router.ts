@@ -24,6 +24,7 @@ function isS3Url(url: string | null | undefined): boolean {
     url.includes("forge-api") ||
     url.includes("manus.space") ||
     url.includes("amazonaws.com") ||
+    url.includes("cloudfront.net") ||
     url.includes("s3.") ||
     url.includes("cdn.")
   );
