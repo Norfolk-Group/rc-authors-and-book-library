@@ -249,6 +249,31 @@ export const orchestratorRouter = router({
     }),
 
   /**
+   * Trigger ALL registered pipelines in sequence (one job per pipeline).
+   * Returns the list of job IDs created. Pipelines run in parallel fire-and-forget.
+   */
+  runAllPipelines: adminProcedure
+    .input(
+      z.object({
+        batchSize: z.number().min(1).max(1000).default(20),
+        concurrency: z.number().min(1).max(10).default(2),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const pipelines = getRegisteredPipelines();
+      const jobIds: number[] = [];
+      for (const pipelineKey of pipelines) {
+        try {
+          const jobId = await triggerPipeline(pipelineKey, input.batchSize, input.concurrency);
+          jobIds.push(jobId);
+        } catch {
+          // skip pipelines that fail to start
+        }
+      }
+      return { triggered: jobIds.length, total: pipelines.length, jobIds };
+    }),
+
+  /**
    * Get recent job activity for the last 24 hours (for sparkline charts).
    */
   getJobActivity: adminProcedure.query(async () => {

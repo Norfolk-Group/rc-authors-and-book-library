@@ -23,6 +23,7 @@ import {
   listDropboxInbox,
   DROPBOX_FOLDERS,
   sanitizeFilename,
+  getDropboxAccessToken,
 } from "../dropbox.service";
 import {
   extractPdfMetadata,
@@ -305,6 +306,115 @@ export const dropboxRouter = router({
       const failed = results.filter((r) => r.status === "error").length;
       return { total: pdfs.length, succeeded, skipped, failed, results };
     }),
+
+  /**
+   * Browse a Dropbox folder and return rich file metadata (name, size, modified, extension).
+   * Supports both backup subfolders and the inbox.
+   */
+  browseFolderContents: protectedProcedure
+    .input(
+      z.object({
+        folderPath: z.string(),
+        includeSubfolders: z.boolean().default(false),
+      })
+    )
+    .query(async ({ input }) => {
+      const DROPBOX_API_URL = "https://api.dropboxapi.com/2";
+      const token = await getDropboxAccessToken();
+      const res = await fetch(`${DROPBOX_API_URL}/files/list_folder`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ path: input.folderPath, limit: 2000 }),
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        // Return empty on path_not_found so UI shows 0 files instead of crashing
+        if (res.status === 409) return { folderPath: input.folderPath, files: [], subfolders: [], totalFiles: 0, totalSize: 0, lastModified: null };
+        throw new Error(`Dropbox list_folder failed (${res.status}): ${text}`);
+      }
+      const data = (await res.json()) as {
+        entries: Array<{
+          ".tag": string;
+          name: string;
+          path_display: string;
+          size?: number;
+          server_modified?: string;
+          client_modified?: string;
+        }>;
+      };
+      const files = data.entries
+        .filter((e) => e[".tag"] === "file")
+        .map((e) => ({
+          name: e.name,
+          path: e.path_display,
+          size: e.size ?? 0,
+          serverModified: e.server_modified ?? null,
+          extension: e.name.split(".").pop()?.toLowerCase() ?? "",
+        }))
+        .sort((a, b) => (b.serverModified ?? "").localeCompare(a.serverModified ?? ""));
+      const subfolders = data.entries
+        .filter((e) => e[".tag"] === "folder")
+        .map((e) => ({ name: e.name, path: e.path_display }));
+      const totalSize = files.reduce((sum, f) => sum + f.size, 0);
+      const lastModified = files[0]?.serverModified ?? null;
+      return { folderPath: input.folderPath, files, subfolders, totalFiles: files.length, totalSize, lastModified };
+    }),
+
+  /**
+   * Get a summary of all backup subfolders (Avatars, Book Covers, PDFs) with file counts,
+   * total sizes, and last-modified timestamps. Used for the backup verification dashboard.
+   */
+  getBackupFolderStats: protectedProcedure.query(async () => {
+    const DROPBOX_API_URL = "https://api.dropboxapi.com/2";
+    const token = await getDropboxAccessToken();
+
+    async function getFolderStats(folderPath: string) {
+      const res = await fetch(`${DROPBOX_API_URL}/files/list_folder`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ path: folderPath, limit: 2000 }),
+      });
+      if (!res.ok) return { count: 0, totalSize: 0, lastModified: null, exists: false };
+      const data = (await res.json()) as {
+        entries: Array<{ ".tag": string; size?: number; server_modified?: string }>;
+      };
+      const files = data.entries.filter((e) => e[".tag"] === "file");
+      const totalSize = files.reduce((sum, f) => sum + (f.size ?? 0), 0);
+      const sorted = files
+        .filter((f) => f.server_modified)
+        .sort((a, b) => (b.server_modified ?? "").localeCompare(a.server_modified ?? ""));
+      return {
+        count: files.length,
+        totalSize,
+        lastModified: sorted[0]?.server_modified ?? null,
+        exists: true,
+      };
+    }
+
+    const [avatars, bookCovers, pdfs, inbox] = await Promise.all([
+      getFolderStats(DROPBOX_FOLDERS.avatars),
+      getFolderStats(DROPBOX_FOLDERS.bookCovers),
+      getFolderStats(DROPBOX_FOLDERS.pdfs),
+      getFolderStats(DROPBOX_FOLDERS.inbox),
+    ]);
+
+    return {
+      backupRoot: DROPBOX_FOLDERS.root,
+      inboxRoot: DROPBOX_FOLDERS.inbox,
+      subfolders: {
+        avatars: { path: DROPBOX_FOLDERS.avatars, label: "Avatars", ...avatars },
+        bookCovers: { path: DROPBOX_FOLDERS.bookCovers, label: "Book Covers", ...bookCovers },
+        pdfs: { path: DROPBOX_FOLDERS.pdfs, label: "PDFs", ...pdfs },
+        inbox: { path: DROPBOX_FOLDERS.inbox, label: "Inbox", ...inbox },
+      },
+    };
+  }),
 
   /** Run a full backup of all assets (avatars + covers + PDFs) */
   backupAll: protectedProcedure

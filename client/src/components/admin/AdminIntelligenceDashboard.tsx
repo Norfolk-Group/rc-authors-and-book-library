@@ -355,6 +355,15 @@ export default function AdminIntelligenceDashboard() {
     onError: (err) => toast.error(err.message),
   });
 
+  const runAllMutation = trpc.orchestrator.runAllPipelines.useMutation({
+    onSuccess: (data) => {
+      setPollingEnabled(true);
+      refetchJobs();
+      toast.success(`All pipelines started — ${data.triggered} of ${data.total} jobs queued`);
+    },
+    onError: (err) => toast.error(`Run All failed: ${err.message}`),
+  });
+
   const handleToggle = useCallback(
     (id: number, enabled: boolean) => toggleMutation.mutate({ id, enabled }),
     [toggleMutation]
@@ -399,15 +408,30 @@ export default function AdminIntelligenceDashboard() {
             Autonomous enrichment pipelines — the app does the research, not you.
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => { refetchSchedules(); refetchJobs(); refetchCoverage(); }}
-          className="gap-1.5"
-        >
-          <RefreshCw className="w-3.5 h-3.5" />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => runAllMutation.mutate({ batchSize: 20, concurrency: 2 })}
+            disabled={runAllMutation.isPending || triggerMutation.isPending}
+            className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 transition-all active:scale-95"
+          >
+            {runAllMutation.isPending ? (
+              <><RefreshCw className="w-3.5 h-3.5 animate-spin" />Running All…</>
+            ) : (
+              <><Zap className="w-3.5 h-3.5" />Run All Pipelines</>
+            )}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => { refetchSchedules(); refetchJobs(); refetchCoverage(); }}
+            className="gap-1.5"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* ── Coverage Heatmap ── */}
@@ -566,8 +590,21 @@ export default function AdminIntelligenceDashboard() {
           {(!recentJobs || recentJobs.length === 0) && (
             <div className="text-center py-6 text-muted-foreground">
               <Clock className="w-6 h-6 mx-auto mb-2 opacity-40" />
-              <p className="text-sm">No jobs have run yet.</p>
-              <p className="text-xs mt-1">Trigger a pipeline above to start enriching your library.</p>
+              <p className="text-sm font-medium">No jobs have run yet.</p>
+              <p className="text-xs mt-1 text-muted-foreground">Click <strong>Run All Pipelines</strong> above to start the first autonomous enrichment pass.</p>
+              <Button
+                size="sm"
+                variant="default"
+                className="mt-3 gap-1.5 bg-blue-600 hover:bg-blue-700 text-white"
+                onClick={() => runAllMutation.mutate({ batchSize: 20, concurrency: 2 })}
+                disabled={runAllMutation.isPending}
+              >
+                {runAllMutation.isPending ? (
+                  <><RefreshCw className="w-3.5 h-3.5 animate-spin" />Starting…</>
+                ) : (
+                  <><Zap className="w-3.5 h-3.5" />Run All Pipelines Now</>
+                )}
+              </Button>
             </div>
           )}
         </div>

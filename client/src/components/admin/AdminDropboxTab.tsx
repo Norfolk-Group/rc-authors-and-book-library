@@ -10,6 +10,7 @@
  */
 
 import { useState } from "react";
+import { AdminDropboxFolderBrowser } from "./AdminDropboxFolderBrowser";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -527,28 +528,8 @@ export function AdminDropboxTab() {
         </Card>
       </div>
 
-      {/* ── Folder Structure ── */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <FolderOpen className="w-4 h-4 text-yellow-500" />Dropbox Folder Structure
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <pre className="text-xs font-mono text-muted-foreground bg-muted/50 rounded p-3 leading-relaxed">
-{`📁 Cidale Interests/
-  📁 Company/
-    📁 Norfolk AI/
-      📁 Apps/
-        📁 RC Library/
-          📁 Avatars/        ← author headshots
-          📁 Book Covers/    ← book cover images
-          📁 PDFs/           ← book & resource PDFs
-          📁 Inbox/          ← drop new PDFs here
-          📁 Inbox/Processed ← processed PDFs moved here`}
-          </pre>
-        </CardContent>
-      </Card>
+      {/* ── Live Folder Browser ── */}
+      <AdminDropboxFolderBrowser />
 
     </div>
   );

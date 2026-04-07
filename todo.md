@@ -260,3 +260,24 @@ Last cleaned: Apr 5, 2026
 
 - [x] Update DROPBOX_BACKUP_FOLDER secret to /Cidale Interests/Company/Norfolk AI/Apps/RC Library/backup
 - [x] Update all hardcoded backup path references in server code (dropbox.service.ts, env.ts, dropbox.test.ts)
+
+---
+## Suggested Features Implementation (Session: Apr 7 2026)
+
+- [ ] Add Dropbox folder browser tRPC procedures: listFolderContents, getFolderStats (file count, total size, last modified per subfolder)
+- [ ] Build AdminDropboxFolderBrowser UI component (file tree, subfolder drill-down, file counts, last-modified dates, backup verification)
+- [ ] Wire Dropbox folder browser into Admin Console → Dropbox tab
+- [ ] Add "Run All Pipelines Now" button to AdminIntelligenceDashboard (triggers all 13 pipelines in sequence)
+- [ ] Add orchestrator first-run guidance card (shows when no jobs have run yet)
+- [ ] Write vitest tests for new Dropbox folder browser procedures
+
+---
+## Dropbox Folder Browser + Run All Pipelines (Apr 7, 2026)
+- [x] Add `browseFolderContents` tRPC procedure to dropbox router (file list with name, size, extension, serverModified)
+- [x] Add `getBackupFolderStats` tRPC procedure to dropbox router (per-subfolder count, totalSize, lastModified, exists)
+- [x] Build AdminDropboxFolderBrowser component with summary strip (4 counters), expandable subfolder rows, and drill-down file list
+- [x] Replace static folder structure card in AdminDropboxTab with live AdminDropboxFolderBrowser
+- [x] Add `runAllPipelines` tRPC procedure to orchestrator router (triggers all registered pipelines in sequence)
+- [x] Add "Run All Pipelines" button to Intelligence Dashboard header (blue CTA with Zap icon)
+- [x] Add "Run All Pipelines Now" button to empty-state job monitor (first-run guidance)
+- [x] Fix dropboxIngest.test.ts assertions to match new /backup subfolder path (21 tests pass)
