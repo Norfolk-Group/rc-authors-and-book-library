@@ -233,3 +233,24 @@ Last cleaned: Apr 5, 2026
 - [x] Register AdminReviewQueueTab in Admin.tsx section rendering
 - [x] Write vitest tests for ragReadiness scoring algorithm (13 tests, all passing)
 - [ ] Near-Duplicate Detection: check new content against Pinecone before saving (P3 — wired in incrementalIndex.service, UI in review queue)
+
+---
+## Autonomous N+1 Intelligence Gathering (Session: Apr 7 2026)
+
+- [x] Deep audit: mapped all 22 enrichment modules, 34+ routers, and 6 critical gaps (no background runner, no URL health, no LLM content scoring, no auto Pinecone indexing, no gap detector, no cron runner)
+- [x] Create enrichmentOrchestrator.service.ts — autonomous background job engine (5-min tick loop, 13 pipeline handlers, priority queue, concurrency control)
+- [x] 13 pipeline handlers registered: enrich-social-stats, enrich-bios, discover-platforms, enrich-rich-bios, enrich-book-summaries, enrich-rich-summaries, url-health-check, content-quality-score, pinecone-index-authors, pinecone-index-books, pinecone-index-articles, rag-readiness-scan, chatbot-candidate-scan
+- [x] Wire orchestrator startup into server/_core/index.ts (auto-starts 30s after server boot, seeds default schedules)
+- [x] Seed 12 default enrichment schedules on first boot (configurable intervals: 6h to 7d)
+- [x] Create orchestrator.router.ts — admin tRPC procedures (triggerPipeline, pausePipeline, resumePipeline, getStatus, getCoverageStats, getJobActivity, cancelJob, reseedSchedules, listPipelineKeys)
+- [x] Register orchestrator router in server/routers/index.ts
+- [x] Create contentIntelligence.service.ts — URL health check (HTTP HEAD) + LLM quality scoring (relevance 40%, authority 25%, freshness 15%, depth 20%) + content type detection (YouTube, Spotify, Apple Podcasts, TED, Substack, PDF, Amazon, Twitter, Medium, LinkedIn)
+- [x] Add 11 quality scoring columns to content_items schema: qualityScore, relevanceScore, authorityScore, freshnessScore, depthScore, isAlive, qualityRecommendation, qualityReason, qualityScoredAt, extractedTitle, extractedSummary
+- [x] Run db:push to migrate new content_items columns
+- [x] Update runContentQualityScoring pipeline to use contentIntelligence.service (dedicated columns, not metadataJson)
+- [x] Update orchestrator router content stats to use new dedicated columns (deadLinks, aliveLinks, avgQualityScore)
+- [x] Create AdminIntelligenceDashboard.tsx — command center UI (live job monitor, pipeline controls, coverage heatmap, review queue stats, job activity log)
+- [x] Add dead links and avg quality score metrics to content coverage section
+- [x] Wire AdminIntelligenceDashboard into Admin.tsx (Intelligence nav group, "intelligence-dashboard" section)
+- [x] Write 24 vitest tests for contentIntelligence service (URL type detection, score structure, weighted formula, batch result shape) — all passing
+- [x] Full test suite: 941 tests passing, 17 skipped, 0 failures from our code

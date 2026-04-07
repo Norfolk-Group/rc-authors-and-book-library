@@ -37,6 +37,7 @@ import { s3AuditRouter } from "./s3Audit.router";
 import { libraryCacheRouter } from "./libraryCache.router";
 import { recommendationsRouter } from "./recommendations.router";
 import { humanReviewQueueRouter } from "./humanReviewQueue.router";
+import { orchestratorRouter } from "./orchestrator.router";
 
 export const appRouter = router({
   system: systemRouter,
@@ -88,6 +89,8 @@ export const appRouter = router({
   recommendations: recommendationsRouter,
   // ── AI-to-human review queue ──────────────────────────────────────────────
   humanReviewQueue: humanReviewQueueRouter,
+  // ── Autonomous enrichment orchestrator (background pipeline engine) ────────
+  orchestrator: orchestratorRouter,
 });
 
 export type AppRouter = typeof appRouter;

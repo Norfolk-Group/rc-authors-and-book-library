@@ -8,6 +8,7 @@ import { registerDropboxOAuthRoutes } from "../dropboxOAuthRoutes";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
+import { startOrchestrator, seedDefaultSchedules } from "../services/enrichmentOrchestrator.service";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -64,6 +65,15 @@ async function startServer() {
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
   });
+
+  // Seed default pipeline schedules (idempotent — skips existing rows)
+  seedDefaultSchedules().catch((err: Error) =>
+    console.warn("[Orchestrator] Schedule seed failed:", err)
+  );
+
+  // Start the autonomous enrichment background engine
+  // Pipelines are OFF by default — admin must enable each one in the Intelligence Dashboard
+  startOrchestrator();
 }
 
 startServer().catch(console.error);

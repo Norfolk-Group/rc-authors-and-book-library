@@ -281,6 +281,13 @@
       "when": 1775519469839,
       "tag": "0039_big_maelstrom",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "5",
+      "when": 1775569140282,
+      "tag": "0040_awesome_beast",
+      "breakpoints": true
     }
   ]
 }

@@ -755,12 +755,39 @@ export const contentItems = mysqlTable("content_items", {
   readingNotesJson: text("readingNotesJson"),
   /** When the record was last enriched */
   enrichedAt: timestamp("enrichedAt"),
+  // ── AI Quality Scoring columns (populated by contentIntelligence.service) ──
+  /** Composite quality score 0-100 */
+  qualityScore: int("qualityScore"),
+  /** Relevance score 0-100 */
+  relevanceScore: int("relevanceScore"),
+  /** Authority score 0-100 */
+  authorityScore: int("authorityScore"),
+  /** Freshness score 0-100 */
+  freshnessScore: int("freshnessScore"),
+  /** Depth score 0-100 */
+  depthScore: int("depthScore"),
+  /** 1 = URL is alive, 0 = dead link */
+  isAlive: int("isAlive"),
+  /** AI-detected content type (may differ from contentType enum) */
+  contentTypeDetected: varchar("contentTypeDetected", { length: 64 }),
+  /** When quality scoring was last run */
+  qualityScoredAt: timestamp("qualityScoredAt"),
+  /** AI-extracted title */
+  aiExtractedTitle: varchar("aiExtractedTitle", { length: 512 }),
+  /** AI-extracted summary */
+  aiExtractedSummary: text("aiExtractedSummary"),
+  /** JSON array of key topics */
+  aiKeyTopics: text("aiKeyTopics"),
+  /** LLM scoring rationale */
+  aiScoringRationale: text("aiScoringRationale"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, (table) => ({
   contentTypeIdx: index("content_items_contentType_idx").on(table.contentType),
   titleIdx: index("content_items_title_idx").on(table.title),
   includedIdx: index("content_items_included_idx").on(table.includedInLibrary),
+  qualityScoreIdx: index("content_items_qualityScore_idx").on(table.qualityScore),
+  isAliveIdx: index("content_items_isAlive_idx").on(table.isAlive),
 }));
 
 export type ContentItem = typeof contentItems.$inferSelect;
