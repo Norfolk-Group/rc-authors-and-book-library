@@ -293,3 +293,8 @@ Last cleaned: Apr 5, 2026
 - [x] Build shared InfoTip component (Info icon + Tooltip from shadcn/ui, plus LabelWithTip variant)
 - [x] Add infotips to all Admin sidebar nav items (hover-reveal, side=right, descriptive text for all 24 items)
 - [ ] Add infotips to all Admin tab content: buttons, stat cards, configuration fields (in progress — deferred to next session)
+
+---
+## Backup Verification Toast + Auto-Refresh (Apr 7, 2026)
+- [x] After successful backup, auto-refresh AdminDropboxFolderBrowser (refreshTrigger prop + useEffect)
+- [x] Show toast with per-subfolder file counts (Avatars uploaded/skipped, Book Covers, PDFs) — rich description on backupAll, concise on individual backups

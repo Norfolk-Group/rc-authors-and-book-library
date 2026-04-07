@@ -114,6 +114,8 @@ export function AdminDropboxTab() {
     pdfs: BackupResult;
     summary: { totalAssets: number; totalUploaded: number; totalSkipped: number; totalFailed: number };
   } | null>(null);
+  // Incrementing this triggers AdminDropboxFolderBrowser to re-fetch its stats
+  const [folderBrowserRefreshKey, setFolderBrowserRefreshKey] = useState(0);
 
   // Ingest state
   const [ingestingFile, setIngestingFile] = useState<string | null>(null);
@@ -132,17 +134,44 @@ export function AdminDropboxTab() {
   // ── Backup Mutations ──────────────────────────────────────────────────────────
 
   const backupAvatarsMutation = trpc.dropbox.backupAvatars.useMutation({
-    onSuccess: (data) => { setAvatarResult(data); toast.success(`Avatars: ${data.uploaded} uploaded, ${data.skipped} skipped`); },
+    onSuccess: (data) => {
+      setAvatarResult(data);
+      setFolderBrowserRefreshKey((k) => k + 1);
+      toast.success(
+        `Avatars backed up — ${data.uploaded} uploaded, ${data.skipped} skipped${
+          data.failed > 0 ? `, ${data.failed} failed` : ""
+        }`,
+        { description: "Folder Browser has been refreshed." }
+      );
+    },
     onError: (err) => toast.error(`Avatar backup failed: ${err.message}`),
   });
 
   const backupCoversMutation = trpc.dropbox.backupBookCovers.useMutation({
-    onSuccess: (data) => { setCoverResult(data); toast.success(`Book covers: ${data.uploaded} uploaded, ${data.skipped} skipped`); },
+    onSuccess: (data) => {
+      setCoverResult(data);
+      setFolderBrowserRefreshKey((k) => k + 1);
+      toast.success(
+        `Book Covers backed up — ${data.uploaded} uploaded, ${data.skipped} skipped${
+          data.failed > 0 ? `, ${data.failed} failed` : ""
+        }`,
+        { description: "Folder Browser has been refreshed." }
+      );
+    },
     onError: (err) => toast.error(`Cover backup failed: ${err.message}`),
   });
 
   const backupPdfsMutation = trpc.dropbox.backupPdfs.useMutation({
-    onSuccess: (data) => { setPdfResult(data); toast.success(`PDFs: ${data.uploaded} uploaded, ${data.skipped} skipped`); },
+    onSuccess: (data) => {
+      setPdfResult(data);
+      setFolderBrowserRefreshKey((k) => k + 1);
+      toast.success(
+        `PDFs backed up — ${data.uploaded} uploaded, ${data.skipped} skipped${
+          data.failed > 0 ? `, ${data.failed} failed` : ""
+        }`,
+        { description: "Folder Browser has been refreshed." }
+      );
+    },
     onError: (err) => toast.error(`PDF backup failed: ${err.message}`),
   });
 
@@ -152,7 +181,19 @@ export function AdminDropboxTab() {
       setAvatarResult(data.avatars);
       setCoverResult(data.bookCovers);
       setPdfResult(data.pdfs);
-      toast.success(`Full backup: ${data.summary.totalUploaded} uploaded, ${data.summary.totalSkipped} skipped`);
+      setFolderBrowserRefreshKey((k) => k + 1);
+      toast.success(
+        `Full backup complete — ${data.summary.totalUploaded} files uploaded, ${data.summary.totalSkipped} skipped${
+          data.summary.totalFailed > 0 ? `, ${data.summary.totalFailed} failed` : ""
+        }`,
+        {
+          description: [
+            `Avatars: ${data.avatars.uploaded} uploaded / ${data.avatars.skipped} skipped`,
+            `Book Covers: ${data.bookCovers.uploaded} uploaded / ${data.bookCovers.skipped} skipped`,
+            `PDFs: ${data.pdfs.uploaded} uploaded / ${data.pdfs.skipped} skipped`,
+          ].join(" · "),
+        }
+      );
     },
     onError: (err) => toast.error(`Full backup failed: ${err.message}`),
   });
@@ -529,7 +570,7 @@ export function AdminDropboxTab() {
       </div>
 
       {/* ── Live Folder Browser ── */}
-      <AdminDropboxFolderBrowser />
+      <AdminDropboxFolderBrowser refreshTrigger={folderBrowserRefreshKey} />
 
     </div>
   );

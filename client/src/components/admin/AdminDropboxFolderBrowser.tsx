@@ -6,7 +6,7 @@
  * - Drill-down file list for each subfolder (Avatars, Book Covers, PDFs, Inbox)
  * - Refresh button to re-fetch live data
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -150,11 +150,24 @@ function SubfolderRow({ folderKey, label, path, count, totalSize, lastModified, 
 }
 
 // ── Main Component ────────────────────────────────────────────────────────────
-export function AdminDropboxFolderBrowser() {
+interface AdminDropboxFolderBrowserProps {
+  /** Increment this value to force a refresh of the folder stats (e.g. after a backup completes) */
+  refreshTrigger?: number;
+}
+
+export function AdminDropboxFolderBrowser({ refreshTrigger }: AdminDropboxFolderBrowserProps = {}) {
   const statsQuery = trpc.dropbox.getBackupFolderStats.useQuery(undefined, {
     staleTime: 60_000,
     refetchOnWindowFocus: false,
   });
+
+  // Re-fetch whenever the parent signals a refresh (e.g. after backup completes)
+  useEffect(() => {
+    if (refreshTrigger !== undefined && refreshTrigger > 0) {
+      statsQuery.refetch();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshTrigger]);
 
   const handleRefresh = () => {
     statsQuery.refetch();
