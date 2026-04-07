@@ -95,8 +95,7 @@ export function LazyImage({
         alt={alt}
         loading={eager || priority ? "eager" : "lazy"}
         decoding={priority ? "sync" : "async"}
-        // @ts-ignore — fetchpriority is a valid HTML attribute not yet in React types
-        fetchpriority={priority ? "high" : undefined}
+        fetchPriority={priority ? "high" : undefined}
         onLoad={() => setLoaded(true)}
         onError={() => setError(true)}
         className={cn(
@@ -184,8 +183,7 @@ export function CircularLazyImage({
         alt={alt}
         loading={eager || priority ? "eager" : "lazy"}
         decoding={priority ? "sync" : "async"}
-        // @ts-ignore — fetchpriority is a valid HTML attribute not yet in React types
-        fetchpriority={priority ? "high" : undefined}
+        fetchPriority={priority ? "high" : undefined}
         onLoad={() => setLoaded(true)}
         onError={() => setError(true)}
         className={cn(
