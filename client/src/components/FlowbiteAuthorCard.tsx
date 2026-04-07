@@ -750,6 +750,65 @@ export function FlowbiteAuthorCard({
                     </div>
                   </div>
 
+                  {/* ── ZONE B2: Book cover mini-strip (always visible on Info tab) ── */}
+                  {hasBooks && (
+                    <div
+                      className="px-3 py-1.5 flex-shrink-0 border-t border-border/40"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="flex gap-1.5 overflow-x-auto scrollbar-none items-end" style={{ height: 72 }}>
+                        {dedupedBooks.slice(0, 6).map((book) => {
+                          const rawTitle = book.name.includes(" - ")
+                            ? book.name.slice(0, book.name.lastIndexOf(" - "))
+                            : book.name;
+                          const titleKey = rawTitle.trim().toLowerCase();
+                          const coverUrl = coverMap?.get(titleKey);
+                          return (
+                            <motion.div
+                              key={book.id}
+                              className="relative h-[64px] w-[44px] flex-shrink-0 cursor-pointer rounded overflow-hidden shadow ring-1 ring-border/60 group/minicover"
+                              whileHover={{ scale: 1.12, y: -3 }}
+                              whileTap={{ scale: 0.94 }}
+                              transition={{ type: "spring", stiffness: 400, damping: 22 }}
+                              title={rawTitle.trim()}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onNavigateToBook?.(titleKey);
+                              }}
+                            >
+                              {coverUrl ? (
+                                <LazyImage src={coverUrl} alt={rawTitle.trim()} className="h-full w-full object-cover" />
+                              ) : (
+                                <div
+                                  className="h-full w-full flex flex-col items-center justify-center gap-0.5 px-0.5"
+                                  style={{ background: `linear-gradient(160deg, ${hexToRgba(categoryColor, 0.15)} 0%, ${hexToRgba(categoryColor, 0.07)} 100%)` }}
+                                >
+                                  <BookOpen className="w-3 h-3" style={{ color: categoryColor }} />
+                                  <p className="text-[6px] font-medium text-center leading-tight line-clamp-3" style={{ color: categoryColor }}>
+                                    {rawTitle.trim()}
+                                  </p>
+                                </div>
+                              )}
+                              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-0.5 py-0.5 opacity-0 group-hover/minicover:opacity-100 transition-opacity duration-150 pointer-events-none">
+                                <p className="text-white text-[6px] font-medium leading-tight line-clamp-2">{rawTitle.trim()}</p>
+                              </div>
+                            </motion.div>
+                          );
+                        })}
+                        {dedupedBooks.length > 6 && (
+                          <button
+                            type="button"
+                            className="h-[64px] w-[44px] flex-shrink-0 rounded border border-dashed border-border/50 flex flex-col items-center justify-center gap-0.5 text-muted-foreground hover:text-foreground hover:border-border transition-colors"
+                            onClick={(e) => { e.stopPropagation(); setActiveTab("books"); }}
+                          >
+                            <span className="text-[9px] font-bold">+{dedupedBooks.length - 6}</span>
+                            <span className="text-[7px]">more</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {/* ── ZONE C: Tags + Interest Alignment ── */}
                   <div
                     className="px-3 h-[36px] flex-shrink-0 flex items-center gap-2 border-t border-border/40"
@@ -787,7 +846,7 @@ export function FlowbiteAuthorCard({
                           {bookCount}
                         </span>
                       </div>
-                      <div className="flex gap-2 overflow-x-auto scrollbar-none items-end flex-shrink-0" style={{ height: 96 }}>
+                      <div className="flex gap-2 overflow-x-auto scrollbar-none items-end flex-shrink-0" style={{ height: 110 }}>
                         {dedupedBooks.map((book) => {
                           const rawTitle = book.name.includes(" - ")
                             ? book.name.slice(0, book.name.lastIndexOf(" - "))
@@ -808,7 +867,7 @@ export function FlowbiteAuthorCard({
                           const coverEl = (
                             <motion.div
                               key={book.id}
-                              className="relative h-[80px] w-[56px] flex-shrink-0 cursor-pointer rounded-md overflow-hidden shadow-sm ring-1 ring-border/70 group/cover"
+                              className="relative h-[96px] w-[66px] flex-shrink-0 cursor-pointer rounded-md overflow-hidden shadow-sm ring-1 ring-border/70 group/cover"
                               whileHover={{ scale: 1.1, y: -3 }}
                               whileTap={{ scale: 0.94 }}
                               transition={{ type: "spring", stiffness: 400, damping: 22 }}

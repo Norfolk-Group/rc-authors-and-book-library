@@ -328,3 +328,11 @@ Last cleaned: Apr 5, 2026
 - [x] Add missing authors and books to DB without overwriting existing good data (1 new book added)
 - [ ] Generate missing avatars and covers for new entries via enrichment pipeline (deferred)
 - [ ] Run orchestrator "Run All Pipelines" to enrich new entries (deferred — manual step)
+
+---
+## Author Card Book Cover Display (Apr 7, 2026 — Session 3)
+- [x] Audit FlowbiteAuthorCard Books tab — covers were only visible on Books tab, not Info tab
+- [x] Fix cover image fallback chain: s3CoverUrl → coverImageUrl → placeholder (already correct)
+- [x] Add book cover mini-strip to Info tab (always visible, no tab switch needed, up to 6 covers + overflow button)
+- [x] Make book covers larger on the Books tab (96px tall × 66px wide, was 80×56)
+- [x] Verify covers load correctly: Aaron Ross (2 covers), Adam Grant (1), Al Ries (1) confirmed working
