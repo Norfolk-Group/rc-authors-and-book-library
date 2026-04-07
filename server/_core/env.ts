@@ -30,6 +30,6 @@ export const ENV = {
   DROPBOX_APP_KEY: process.env.DROPBOX_APP_KEY ?? "",
   DROPBOX_APP_SECRET: process.env.DROPBOX_APP_SECRET ?? "",
   DROPBOX_REFRESH_TOKEN: process.env.DROPBOX_REFRESH_TOKEN ?? "",
-  DROPBOX_BACKUP_FOLDER: process.env.DROPBOX_BACKUP_FOLDER ?? "/Cidale Interests/Company/Norfolk AI/Apps/RC Library",
+  DROPBOX_BACKUP_FOLDER: process.env.DROPBOX_BACKUP_FOLDER ?? "/Cidale Interests/Company/Norfolk AI/Apps/RC Library/backup",
   DROPBOX_INBOX_FOLDER: process.env.DROPBOX_INBOX_FOLDER ?? "/Cidale Interests/Company/Norfolk AI/Apps/RC Library/Inbox",
 };

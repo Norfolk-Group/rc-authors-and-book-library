@@ -254,3 +254,9 @@ Last cleaned: Apr 5, 2026
 - [x] Wire AdminIntelligenceDashboard into Admin.tsx (Intelligence nav group, "intelligence-dashboard" section)
 - [x] Write 24 vitest tests for contentIntelligence service (URL type detection, score structure, weighted formula, batch result shape) — all passing
 - [x] Full test suite: 941 tests passing, 17 skipped, 0 failures from our code
+
+---
+## Dropbox Backup Path Update
+
+- [x] Update DROPBOX_BACKUP_FOLDER secret to /Cidale Interests/Company/Norfolk AI/Apps/RC Library/backup
+- [x] Update all hardcoded backup path references in server code (dropbox.service.ts, env.ts, dropbox.test.ts)
