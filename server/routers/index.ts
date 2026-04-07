@@ -38,6 +38,7 @@ import { libraryCacheRouter } from "./libraryCache.router";
 import { recommendationsRouter } from "./recommendations.router";
 import { humanReviewQueueRouter } from "./humanReviewQueue.router";
 import { orchestratorRouter } from "./orchestrator.router";
+import { authorAvatarRouter } from "./authorAvatar.router";
 
 export const appRouter = router({
   system: systemRouter,
@@ -91,6 +92,8 @@ export const appRouter = router({
   humanReviewQueue: humanReviewQueueRouter,
   // ── Autonomous enrichment orchestrator (background pipeline engine) ────────
   orchestrator: orchestratorRouter,
+  // ── Author avatar waterfall (mirror + AI generation) ──────────────────────
+  authorAvatar: authorAvatarRouter,
 });
 
 export type AppRouter = typeof appRouter;

@@ -298,3 +298,33 @@ Last cleaned: Apr 5, 2026
 ## Backup Verification Toast + Auto-Refresh (Apr 7, 2026)
 - [x] After successful backup, auto-refresh AdminDropboxFolderBrowser (refreshTrigger prop + useEffect)
 - [x] Show toast with per-subfolder file counts (Avatars uploaded/skipped, Book Covers, PDFs) — rich description on backupAll, concise on individual backups
+
+---
+## S3 Media Migration (Apr 7, 2026)
+- [ ] Audit all asset URL columns: avatarUrl, s3AvatarUrl, coverImageUrl, s3CoverUrl, pdfUrl, s3PdfUrl, fileUrl
+- [ ] Build S3 migration service: fetch from current URL → re-upload to S3 → update DB column
+- [ ] Migrate author avatars (avatarUrl → s3AvatarUrl)
+- [ ] Migrate book covers (coverImageUrl → s3CoverUrl)
+- [ ] Migrate book PDFs / files (pdfUrl → s3PdfUrl)
+- [ ] Add Admin S3 Migration UI with progress tracker and per-type controls
+- [ ] Ensure all future uploads (avatar, cover, PDF ingest) write directly to S3
+- [ ] Verify all CDN URLs are live and update DB columns
+
+---
+## Dropbox Backup Import (Apr 7, 2026)
+- [x] Scan /Cidale Interests/01_Companies/Norfolk AI/Apps/RC Library App/Authors and Books Backup/ folder structure
+- [x] Compare Dropbox inventory against database (authors, books, covers, avatars, files)
+- [x] Import missing authors into database (1 new book added: "To Know a Person" by David Brooks)
+- [x] Import missing books into database (163 total books in DB)
+- [ ] Mirror missing covers and avatars to S3 CDN (deferred — covered by enrichment pipeline)
+- [x] Import missing book files (PDFs, audio) to S3 CDN — 111 books now have S3 PDFs
+
+---
+## Dropbox Supplementary Source Import (Apr 7, 2026 — Session 2)
+- [x] Deep-scan /Cidale Interests/01_Companies/Norfolk AI/Apps/RC Library App/Authors and Books Backup/ via Dropbox API — built full inventory (115 author folders, 214 book folders)
+- [x] Compare inventory against DB — identified 71 books in Dropbox not in DB (most were already in DB under different titles)
+- [x] Upload missing PDFs to S3 CDN — 111 books now have S3-hosted PDFs (110 uploaded in main run + 1 Scaling Lean fix)
+- [ ] Upload missing book covers to S3 CDN (deferred — use enrichment pipeline)
+- [x] Add missing authors and books to DB without overwriting existing good data (1 new book added)
+- [ ] Generate missing avatars and covers for new entries via enrichment pipeline (deferred)
+- [ ] Run orchestrator "Run All Pipelines" to enrich new entries (deferred — manual step)
