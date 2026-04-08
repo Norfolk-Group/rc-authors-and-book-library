@@ -288,6 +288,20 @@
       "when": 1775569140282,
       "tag": "0040_awesome_beast",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "5",
+      "when": 1775658120148,
+      "tag": "0041_special_catseye",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "5",
+      "when": 1775659203712,
+      "tag": "0042_workable_skaar",
+      "breakpoints": true
     }
   ]
 }

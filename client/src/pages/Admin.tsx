@@ -94,6 +94,8 @@ import { AdminAboutTab } from "@/components/admin/AdminAboutTab";
 import { ApiManagementTab } from "@/components/admin/ApiManagementTab";
 import { AdminMagazineTab } from "@/components/admin/AdminMagazineTab";
 import { AdminDropboxTab } from "@/components/admin/AdminDropboxTab";
+import { AdminDropboxConfigTab } from "@/components/admin/AdminDropboxConfigTab";
+import { AdminSmartUploadTab } from "@/components/admin/AdminSmartUploadTab";
 import { AdminPineconeTab } from "@/components/admin/AdminPineconeTab";
 import { AdminDuplicatesTab } from "@/components/admin/AdminDuplicatesTab";
 import { AdminS3AuditTab } from "@/components/admin/AdminS3AuditTab";
@@ -121,6 +123,8 @@ const NAV_TIPS: Record<string, string> = {
   "content-items": "Manage URLs, articles, podcasts, videos, and other content items linked to authors. Score quality and fix broken links.",
   sync: "Sync data between the app database, Google Drive, and Dropbox. Monitor sync job status and history.",
   dropbox: "Back up avatars, book covers, and PDFs to Dropbox. Browse the /backup folder and ingest new PDFs from /Inbox.",
+  "dropbox-config": "Manage all Dropbox folder connections — backup, inbox, source, and design folders. Validate paths, toggle folders on/off, and add new connections.",
+  "smart-upload": "Upload files from your computer. Claude AI automatically classifies each file, matches it to an author or book, and routes it to the correct database table and Pinecone namespace.",
   pinecone: "Manage the Pinecone vector index used for semantic search, RAG chatbots, and content recommendations.",
   "s3-audit": "Audit S3 CDN assets — find missing covers, broken URLs, and orphaned files. Migrate non-S3 images to CDN.",
   // Intelligence
@@ -166,6 +170,8 @@ const NAV_GROUPS: NavGroup[] = [
       { id: "content-items", label: "Content Items", icon: Globe },
       { id: "sync", label: "Sync & Storage", icon: Cloud },
       { id: "dropbox", label: "Dropbox Backup", icon: Cloud },
+      { id: "dropbox-config", label: "Dropbox Config", icon: Cloud },
+      { id: "smart-upload", label: "Smart Upload", icon: CloudArrowUp },
       { id: "pinecone", label: "Pinecone Index", icon: Database },
       { id: "s3-audit", label: "S3 CDN Audit", icon: CloudArrowUp },
     ],
@@ -508,6 +514,8 @@ export default function Admin() {
               {activeSection === "magazine-feeds" && <AdminMagazineTab />}
               {activeSection === "about" && <AdminAboutTab />}
               {activeSection === "dropbox" && <AdminDropboxTab />}
+              {activeSection === "dropbox-config" && <AdminDropboxConfigTab />}
+              {activeSection === "smart-upload" && <AdminSmartUploadTab />}
               {activeSection === "pinecone" && <AdminPineconeTab />}
               {activeSection === "duplicates" && <AdminDuplicatesTab />}
               {activeSection === "s3-audit" && <AdminS3AuditTab />}

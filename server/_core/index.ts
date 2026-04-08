@@ -5,6 +5,7 @@ import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { registerDropboxOAuthRoutes } from "../dropboxOAuthRoutes";
+import { registerSmartUploadRoutes } from "../smartUploadRoutes";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
@@ -39,6 +40,8 @@ async function startServer() {
   registerOAuthRoutes(app);
   // Dropbox OAuth 2 flow: /api/dropbox/connect, /api/dropbox/callback, /api/dropbox/status
   registerDropboxOAuthRoutes(app);
+  // Smart Upload: POST /api/upload/smart
+  registerSmartUploadRoutes(app);
   // tRPC API
   app.use(
     "/api/trpc",

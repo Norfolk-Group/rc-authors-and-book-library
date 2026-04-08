@@ -345,3 +345,42 @@ Last cleaned: Apr 5, 2026
   - 2 failed: apostrophe in Dropbox path (A Therapist's Guide, Founder's Pocket Guide) — known API limitation
   - Remaining 35 without PDFs are duplicates, summaries, or not in Dropbox backup
 - [x] Verified: avatarsMissing=0, coversMissing=0, pdfsMissing=35 (all duplicates or not in backup)
+
+---
+## Enrichment Orchestrator Run (Apr 7, 2026 — Session 5)
+- [ ] Trigger all 13 enrichment pipelines via orchestrator runAllPipelines
+- [ ] Verify Pinecone index populated (authors, books, articles namespaces)
+- [ ] Verify Substack post counts updated on author badges
+
+## Dropbox Configuration Admin Section
+
+- [x] Create `dropbox_folder_configs` table in schema with all 7 Dropbox folder connections
+- [x] Seed table with correct online Dropbox paths (RC Library App Data root, Authors and Books Backup, Books Content Entry Folder, Authors Content Entry Folder, Graphics and Design, etc.)
+- [x] Build `dropboxConfig.router.ts` with list, update, toggleEnabled, validatePath, add, delete procedures
+- [x] Build `AdminDropboxConfigTab.tsx` — professional folder management UI with toggle switches, validate, open-in-Dropbox, edit, delete per row; stats row (Total/Enabled/Validated/Issues); Add Folder dialog
+- [x] Register `dropbox-config` section in Admin sidebar under Media group
+- [x] Remove Google Drive references from architecture
+
+## Smart Upload Admin Section
+
+- [x] Create `smart_uploads` table in schema (id, filename, s3Key, s3Url, mimeType, fileSize, status, aiClassification, authorId, bookId, targetTable, notes, committedAt, createdAt)
+- [x] Build `aiFileClassifier.service.ts` — Claude AI classifies uploaded files (PDF/image/audio/video/doc), matches to author/book, determines target DB table and Pinecone namespace
+- [x] Build `smartUpload.router.ts` with list, stats, classify, updateOverride, commit, reject, delete, listAuthors, listBooks procedures
+- [x] Build `smartUploadRoutes.ts` — multer REST endpoint for file uploads (100 MB limit, 10 files at once)
+- [x] Build `AdminSmartUploadTab.tsx` — drag-and-drop file picker, stats row, Upload Files / Review Queue / History tabs
+- [x] Register `smart-upload` section in Admin sidebar under Media group
+- [x] Wire both new sections into Admin.tsx render block
+
+## Pinecone Bulk Indexing (Completed Apr 8, 2026)
+
+- [x] Write bulk-index-pinecone.mjs script to index all authors and books without manual UI clicks
+- [x] Index 183 authors into Pinecone authors namespace (4 skipped — insufficient bio text)
+- [x] Run book summaries enrichment pipeline to fill 25 books missing summaries
+- [x] Index all 163 books into Pinecone books namespace
+- [x] Total vectors: 1,160 (up from 810)
+
+## Substack Post Counts (Completed Apr 8, 2026)
+
+- [x] Write update-substack-counts.mjs to fetch live post counts from Substack API
+- [x] Populate substackPostCount for 9 authors with actual Substack publications
+- [x] Sync substackPostCount into socialStatsJson for badge display consistency

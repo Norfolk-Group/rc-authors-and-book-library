@@ -39,6 +39,8 @@ import { recommendationsRouter } from "./recommendations.router";
 import { humanReviewQueueRouter } from "./humanReviewQueue.router";
 import { orchestratorRouter } from "./orchestrator.router";
 import { authorAvatarRouter } from "./authorAvatar.router";
+import { dropboxConfigRouter } from "./dropboxConfig.router";
+import { smartUploadRouter } from "./smartUpload.router";
 
 export const appRouter = router({
   system: systemRouter,
@@ -94,6 +96,10 @@ export const appRouter = router({
   orchestrator: orchestratorRouter,
   // ── Author avatar waterfall (mirror + AI generation) ──────────────────────
   authorAvatar: authorAvatarRouter,
+  // ── Dropbox folder configuration management ──────────────────────────────
+  dropboxConfig: dropboxConfigRouter,
+  // ── Smart Upload + AI file classifier ────────────────────────────────────
+  smartUpload: smartUploadRouter,
 });
 
 export type AppRouter = typeof appRouter;
