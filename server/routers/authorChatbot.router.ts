@@ -3,9 +3,12 @@
  *
  * Author Impersonation Chatbot — powered by Digital Me RAG file.
  *
- * The chatbot injects the author's RAG file as the system prompt and responds
- * as the author would, drawing on their published body of work, known voice,
- * personality, and worldview.
+ * The chatbot uses semantic chunk retrieval from the rag_files Pinecone namespace
+ * to surface the most relevant sections of the author's knowledge file for each
+ * user message, rather than injecting the entire file as a wall of text.
+ *
+ * Fallback: if no rag_files vectors exist for the author, falls back to full-file
+ * injection from S3 (legacy behaviour) so the chatbot always works.
  *
  * Default model: claude-opus-4-5 (best impersonation quality)
  */
@@ -17,18 +20,25 @@ import { authorRagProfiles, authorProfiles } from "../../drizzle/schema";
 import { eq, and } from "drizzle-orm";
 import { invokeLLM } from "../_core/llm";
 import { logger } from "../lib/logger";
-import { semanticSearch } from "../services/ragPipeline.service";
+import { semanticSearch, embedText } from "../services/ragPipeline.service";
+import { queryVectors } from "../services/pinecone.service";
 
 const DEFAULT_CHAT_MODEL = "claude-opus-4-5";
+// How many RAG chunks to retrieve per user message turn
+const RAG_CHUNKS_PER_TURN = 6;
+// How many content_item hits to inject as supplementary context
+const CONTENT_HITS_PER_TURN = 3;
+// Max chars of fallback full-file content to inject when no chunks exist
+const FALLBACK_RAG_CHARS = 8000;
 
 // ── System Prompt Builder ─────────────────────────────────────────────────────
 
-function buildSystemPrompt(authorName: string, ragContent: string): string {
+function buildSystemPrompt(authorName: string, ragContext: string): string {
   return `You are ${authorName}. You are not an AI assistant — you ARE ${authorName} themselves, responding as they would based on their published works, known views, personal style, and life experiences.
 
-Use the following comprehensive knowledge file to ground every response:
+Use the following knowledge excerpts — drawn from your comprehensive Digital Me profile — to ground every response:
 
-${ragContent}
+${ragContext}
 
 ---
 
@@ -43,18 +53,70 @@ CORE RULES:
 8. If asked whether you are an AI, acknowledge it once per conversation: "I am an AI simulation of ${authorName} based on their published works and public record. I am not the real person — but I will do my best to think and respond as they would."
 
 STYLE GUIDANCE:
-- Use the vocabulary, sentence length, and rhetorical devices documented in Section 5 of your knowledge file.
+- Use the vocabulary, sentence length, and rhetorical devices documented in your knowledge file.
 - Reference your own books and frameworks naturally, as the author would in conversation.
-- Show the personality traits documented in Section 7 — warmth, directness, intellectual curiosity, humor (if applicable).
-- When uncertain, say so in the author's voice rather than fabricating.`;
+- Show your personality traits — warmth, directness, intellectual curiosity, humor (if applicable).
+- When uncertain, say so in your own voice rather than fabricating.`;
+}
+
+// ── RAG Context Retrieval ─────────────────────────────────────────────────────
+
+/**
+ * Retrieve the most relevant chunks from the rag_files namespace for a given query.
+ * Falls back to full-file injection if no chunks are indexed for this author.
+ */
+async function retrieveRagContext(
+  authorName: string,
+  query: string,
+  ragFileUrl: string | null
+): Promise<string> {
+  // 1. Try semantic chunk retrieval from rag_files namespace
+  try {
+    const queryEmbedding = await embedText(query);
+    const ragChunks = await queryVectors(queryEmbedding, "rag_files", {
+      topK: RAG_CHUNKS_PER_TURN,
+      filter: { authorName: { $eq: authorName } },
+    });
+
+    if (ragChunks.length > 0) {
+      // Sort by chunk index to preserve narrative flow
+      const sorted = [...ragChunks].sort((a, b) =>
+        (a.metadata.chunkIndex ?? 0) - (b.metadata.chunkIndex ?? 0)
+      );
+      const context = sorted
+        .map((c, i) => `[Excerpt ${i + 1}]\n${c.metadata.text}`)
+        .join("\n\n");
+      logger.info(`[authorChatbot] Retrieved ${ragChunks.length} RAG chunks from Pinecone for "${authorName}"`);
+      return context;
+    }
+  } catch (err) {
+    logger.warn(`[authorChatbot] rag_files chunk retrieval failed, falling back to full file:`, err);
+  }
+
+  // 2. Fallback: fetch full RAG file from S3 and truncate
+  if (ragFileUrl) {
+    try {
+      const resp = await fetch(ragFileUrl);
+      if (resp.ok) {
+        const fullText = await resp.text();
+        const truncated = fullText.slice(0, FALLBACK_RAG_CHARS);
+        logger.info(`[authorChatbot] Fallback: injecting ${truncated.length} chars from S3 RAG file for "${authorName}"`);
+        return truncated;
+      }
+    } catch (err) {
+      logger.error(`[authorChatbot] Failed to fetch fallback RAG file for "${authorName}":`, err);
+    }
+  }
+
+  return "";
 }
 
 // ── Router ────────────────────────────────────────────────────────────────────
-
 export const authorChatbotRouter = router({
   /**
    * Send a message to the author chatbot.
-   * Returns the author's response grounded in their RAG file.
+   * Uses semantic chunk retrieval from rag_files namespace (P0 fix).
+   * Also injects relevant content_items as supplementary context.
    */
   chat: protectedProcedure
     .input(z.object({
@@ -69,7 +131,7 @@ export const authorChatbotRouter = router({
       const db = await getDb();
       if (!db) throw new Error("Database unavailable");
 
-      // Fetch RAG file
+      // Check RAG profile exists
       const ragRows = await db
         .select({ ragFileUrl: authorRagProfiles.ragFileUrl, ragStatus: authorRagProfiles.ragStatus })
         .from(authorRagProfiles)
@@ -79,7 +141,7 @@ export const authorChatbotRouter = router({
         ))
         .limit(1);
 
-      if (!ragRows[0]?.ragFileUrl) {
+      if (!ragRows[0]) {
         return {
           success: false,
           message: `The Digital Me for ${input.authorName} has not been generated yet. Please generate it in the Admin Console first.`,
@@ -87,43 +149,47 @@ export const authorChatbotRouter = router({
         };
       }
 
-      // Fetch RAG content
-      let ragContent: string;
-      try {
-        const resp = await fetch(ragRows[0].ragFileUrl);
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        ragContent = await resp.text();
-      } catch (err) {
-        logger.error(`[authorChatbot] Failed to fetch RAG file for "${input.authorName}":`, err);
+      // Get the last user message to use as the retrieval query
+      const lastUserMsg = [...input.messages].reverse().find(m => m.role === "user");
+      const retrievalQuery = lastUserMsg?.content ?? input.authorName;
+
+      // Retrieve relevant RAG chunks (P0 fix: chunk retrieval instead of full-file injection)
+      const ragContext = await retrieveRagContext(
+        input.authorName,
+        retrievalQuery,
+        ragRows[0].ragFileUrl ?? null
+      );
+
+      if (!ragContext) {
         return {
           success: false,
-          message: "Failed to load author knowledge file. Please try again.",
+          message: "Failed to load author knowledge. Please try again.",
           reply: null,
         };
       }
 
-      // Fetch semantic context from Pinecone for the last user message (RAG augmentation)
-      let semanticContext = "";
+      // Supplementary context: content_items for this author (articles, podcasts, etc.)
+      let supplementaryContext = "";
       try {
-        const lastUserMsg = [...input.messages].reverse().find(m => m.role === "user");
         if (lastUserMsg && typeof lastUserMsg.content === "string") {
-          const hits = await semanticSearch({
+          const contentHits = await semanticSearch({
             query: lastUserMsg.content,
+            namespace: "content_items",
             filterAuthor: input.authorName,
-            topK: 5,
+            topK: CONTENT_HITS_PER_TURN,
           });
-          if (hits.length > 0) {
-            semanticContext = "\n\n---\nRELEVANT CONTEXT FROM INDEXED ARTICLES AND CONTENT:\n" +
-              hits.map((h, i) => `[${i + 1}] ${h.snippet}`).join("\n");
-            logger.info(`[authorChatbot] Injected ${hits.length} semantic hits for "${input.authorName}"`);
+          if (contentHits.length > 0) {
+            supplementaryContext = "\n\n---\nSUPPLEMENTARY CONTENT (articles, podcasts, talks):\n" +
+              contentHits.map((h, i) => `[${i + 1}] ${h.snippet}`).join("\n");
+            logger.info(`[authorChatbot] Injected ${contentHits.length} content_items hits for "${input.authorName}"`);
           }
         }
       } catch (err) {
-        logger.warn(`[authorChatbot] Semantic search failed (non-fatal):`, err);
+        logger.warn(`[authorChatbot] Content items search failed (non-fatal):`, err);
       }
 
-      // Build system prompt
-      const systemPrompt = buildSystemPrompt(input.authorName, ragContent + semanticContext);
+      // Build system prompt with retrieved chunks + supplementary context
+      const systemPrompt = buildSystemPrompt(input.authorName, ragContext + supplementaryContext);
 
       // Call LLM
       const response = await invokeLLM({
@@ -136,9 +202,7 @@ export const authorChatbotRouter = router({
 
       const content = response?.choices?.[0]?.message?.content;
       const reply = typeof content === "string" ? content : "I'm unable to respond right now. Please try again.";
-
       logger.info(`[authorChatbot] Chat response for "${input.authorName}": ${reply.length} chars`);
-
       return { success: true, reply, authorName: input.authorName };
     }),
 
@@ -150,7 +214,6 @@ export const authorChatbotRouter = router({
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) return null;
-
       const [profileRow, ragRow] = await Promise.all([
         db
           .select({
@@ -173,9 +236,7 @@ export const authorChatbotRouter = router({
           .where(eq(authorRagProfiles.authorName, input.authorName))
           .limit(1),
       ]);
-
       if (!profileRow[0]) return null;
-
       return {
         authorName: profileRow[0].authorName,
         bio: profileRow[0].bio,
@@ -190,6 +251,7 @@ export const authorChatbotRouter = router({
 
   /**
    * Get the opening message from the author (used when chat is first opened).
+   * Uses chunk retrieval for the opening greeting context.
    */
   getOpeningMessage: protectedProcedure
     .input(z.object({
@@ -213,16 +275,15 @@ export const authorChatbotRouter = router({
         return { reply: `Hello. I'm ${input.authorName}. My Digital Me profile hasn't been generated yet — please ask an admin to generate it first.` };
       }
 
-      let ragContent: string;
-      try {
-        const resp = await fetch(ragRows[0].ragFileUrl);
-        ragContent = resp.ok ? await resp.text() : "";
-      } catch {
-        ragContent = "";
-      }
+      // For the opening message, retrieve chunks about the author's identity and key ideas
+      const openingQuery = `${input.authorName} identity key ideas books personality introduction`;
+      const ragContext = await retrieveRagContext(
+        input.authorName,
+        openingQuery,
+        ragRows[0].ragFileUrl ?? null
+      );
 
-      const systemPrompt = buildSystemPrompt(input.authorName, ragContent);
-
+      const systemPrompt = buildSystemPrompt(input.authorName, ragContext);
       const response = await invokeLLM({
         model: input.model,
         messages: [

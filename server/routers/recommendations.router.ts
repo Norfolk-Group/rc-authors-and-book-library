@@ -33,11 +33,48 @@ import {
 import { Pinecone } from "@pinecone-database/pinecone";
 import type { VectorMetadata } from "../services/pinecone.service";
 
+import { logger } from "../lib/logger";
+
 // ── Pinecone client helper ────────────────────────────────────────────────────
 function getPinecone() {
   const apiKey = process.env.PINECONE_API_KEY;
   if (!apiKey) throw new Error("PINECONE_API_KEY not set");
   return new Pinecone({ apiKey });
+}
+
+// ── Reranking helper ─────────────────────────────────────────────────────────
+/**
+ * Rerank a list of hits using Pinecone's bge-reranker-v2-m3 model.
+ * Each hit must have a text snippet to rerank against the query.
+ * Returns hits in reranked order. Falls back to original order on error.
+ */
+async function rerankHits<T extends { id: string; score: number; metadata: { text: string } }>(
+  query: string,
+  hits: T[],
+  topN?: number
+): Promise<T[]> {
+  if (hits.length <= 1) return hits;
+  try {
+    const pc = getPinecone();
+    const documents = hits.map(h => ({ text: h.metadata.text.slice(0, 512) }));
+    const result = await pc.inference.rerank({
+      model: "bge-reranker-v2-m3",
+      query,
+      documents,
+      topN: topN ?? hits.length,
+      returnDocuments: false,
+    });
+    // Map reranked indices back to original hits
+    const reranked = (result.data ?? []).map(r => ({
+      ...hits[r.index],
+      score: r.score,
+    }));
+    logger.info(`[rerank] Reranked ${hits.length} hits → top ${reranked.length} for query: "${query.slice(0, 60)}"`);
+    return reranked;
+  } catch (err) {
+    logger.warn(`[rerank] Reranking failed (falling back to cosine order):`, err);
+    return hits;
+  }
 }
 
 // ── Router ────────────────────────────────────────────────────────────────────
@@ -94,15 +131,19 @@ export const recommendationsRouter = router({
       const sourceVectorId = `book-${input.bookId}-`;
       const filteredHits = hits.filter(h => !h.id.startsWith(sourceVectorId));
 
-      // 5. Deduplicate by sourceId and take top K
+      // 5. Deduplicate by sourceId
       const seen = new Set<string>();
-      const uniqueHits = filteredHits.filter(h => {
+      const deduped = filteredHits.filter(h => {
         if (seen.has(h.metadata.sourceId)) return false;
         seen.add(h.metadata.sourceId);
         return true;
-      }).slice(0, input.topK);
+      });
 
-      if (uniqueHits.length === 0) return { books: [] };
+      if (deduped.length === 0) return { books: [] };
+
+      // 5b. Rerank with bge-reranker-v2-m3 for better relevance ordering
+      const rerankedHits = await rerankHits(queryText.slice(0, 500), deduped, input.topK);
+      const uniqueHits = rerankedHits.slice(0, input.topK);
 
       // 6. Fetch full book data from DB
       const bookIds = uniqueHits.map(h => parseInt(h.metadata.sourceId, 10)).filter(id => !isNaN(id));
@@ -122,7 +163,7 @@ export const recommendationsRouter = router({
         .from(bookProfiles)
         .where(inArray(bookProfiles.id, bookIds));
 
-      // 7. Merge scores and sort
+      // 7. Merge reranked scores and sort
       const scoreMap = new Map(uniqueHits.map(h => [parseInt(h.metadata.sourceId, 10), h.score]));
       const result = bookRows
         .map(b => ({ ...b, score: scoreMap.get(b.id) ?? 0 }))
@@ -168,14 +209,18 @@ export const recommendationsRouter = router({
         h.metadata.authorName?.toLowerCase() !== input.authorName.toLowerCase()
       );
       const seen = new Set<string>();
-      const uniqueHits = filteredHits.filter(h => {
+      const deduped = filteredHits.filter(h => {
         const key = h.metadata.authorName ?? h.metadata.sourceId;
         if (seen.has(key)) return false;
         seen.add(key);
         return true;
-      }).slice(0, input.topK);
+      });
 
-      if (uniqueHits.length === 0) return { authors: [] };
+      if (deduped.length === 0) return { authors: [] };
+
+      // 3b. Rerank with bge-reranker-v2-m3
+      const rerankedHits = await rerankHits((source.bio ?? "").slice(0, 500), deduped, input.topK);
+      const uniqueHits = rerankedHits.slice(0, input.topK);
 
       // 4. Fetch full author data from DB
       const authorNames = uniqueHits.map(h => h.metadata.authorName).filter(Boolean) as string[];
@@ -193,7 +238,7 @@ export const recommendationsRouter = router({
         .from(authorProfiles)
         .where(inArray(authorProfiles.authorName, authorNames));
 
-      // 5. Merge scores
+      // 5. Merge reranked scores
       const scoreMap = new Map(uniqueHits.map(h => [h.metadata.authorName, h.score]));
       const result = authorRows
         .map(a => ({ ...a, score: scoreMap.get(a.authorName) ?? 0 }))
@@ -311,12 +356,16 @@ export const recommendationsRouter = router({
 
       // Deduplicate by sourceId + contentType
       const seen = new Set<string>();
-      const uniqueHits = rawHits.filter(h => {
+      const deduped = rawHits.filter(h => {
         const key = `${h.metadata.contentType}:${h.metadata.sourceId}`;
         if (seen.has(key)) return false;
         seen.add(key);
         return true;
       });
+
+      // Rerank with bge-reranker-v2-m3 for better relevance ordering
+      const rerankedResults = await rerankHits(input.query, deduped, input.topK);
+      const uniqueHits = rerankedResults.slice(0, input.topK);
 
       // Enrich with DB data
       const bookIds = uniqueHits
