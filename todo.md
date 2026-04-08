@@ -387,6 +387,23 @@ Last cleaned: Apr 5, 2026
 
 ---
 
+## Substack URL Fixes (Apr 8, 2026)
+
+- [x] Fix Ben Horowitz: a16z newsletter post → benhorowitz.substack.com
+- [x] Fix Dan Harris: personal website → danharris.substack.com
+- [x] Fix Scott Galloway: personal website → profgmedia.com (actual Substack)
+- [x] Fix Todd Herman: profile page → thetoddhermanshow.substack.com
+- [x] Clear James Clear: uses own platform (jamesclear.com), not Substack
+- [x] Clear Ryan Holiday: uses ryanholiday.net, not Substack
+- [x] Clear Seth Godin: uses seths.blog, not Substack
+- [x] Clear Tali Sharot: had Annie Duke's post URL (wrong author)
+- [x] Clear Tim Ferriss: uses tim.blog, not Substack
+- [x] Verify Ezra Klein: substack.com/@ezraklein1 is correct (61K+ subscribers)
+- [x] Verify Sean Ellis: substack.com/@seanellis is a valid profile URL
+- [x] Verify Shankar Vedantam: news.hiddenbrain.org IS on Substack (62K+ subscribers)
+
+---
+
 ## Agent Skills Compliance (Apr 8, 2026)
 
 - [x] Create `.agents/skills/pinecone-rag/SKILL.md` — Pinecone indexing, search, reranking, chatbot RAG

@@ -23,6 +23,8 @@ import { userInterests, authorInterestScores, authorRagProfiles } from "../../dr
 import { eq, and, inArray, desc } from "drizzle-orm";
 import { invokeLLM } from "../_core/llm";
 import { logger } from "../lib/logger";
+import { embedText } from "../services/ragPipeline.service";
+import { queryVectors } from "../services/pinecone.service";
 
 const DEFAULT_SCORING_MODEL = "claude-opus-4-5";
 
@@ -92,6 +94,58 @@ Return ONLY valid JSON array:
   } catch (err) {
     logger.warn(`[userInterests] Scoring failed for "${authorName}":`, err);
     return interests.map((i) => ({ interestId: i.id, score: 0, rationale: "Scoring failed" }));
+  }
+}
+
+// ── Pinecone Pre-filter ──────────────────────────────────────────────────────
+
+/**
+ * Use Pinecone to pre-filter to the most semantically relevant authors
+ * for a given set of user interests. Returns authorNames sorted by
+ * cosine similarity (best match first).
+ *
+ * This replaces the O(N) full-scan with an O(K) LLM pass where K << N.
+ * Typical: 183 authors → top 30 candidates → ~84% LLM cost reduction.
+ */
+async function getPineconeAuthorCandidates(
+  interests: Array<{ topic: string; description: string | null; weight: string }>,
+  topK = 30
+): Promise<string[]> {
+  try {
+    // Build a composite query string from all interests (weighted by importance)
+    const weightMultiplier: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1 };
+    const queryParts: string[] = [];
+    for (const interest of interests) {
+      const repeat = weightMultiplier[interest.weight] ?? 2;
+      const phrase = interest.description
+        ? `${interest.topic}: ${interest.description}`
+        : interest.topic;
+      for (let i = 0; i < repeat; i++) queryParts.push(phrase);
+    }
+    const queryText = queryParts.join(". ");
+
+    // Embed the composite interest query
+    const queryEmbedding = await embedText(queryText);
+
+    // Query the authors namespace
+    const hits = await queryVectors(queryEmbedding, "authors", { topK });
+
+    // Extract unique authorNames from metadata
+    const seen = new Set<string>();
+    const candidates: string[] = [];
+    for (const hit of hits) {
+      const name = hit.metadata?.authorName;
+      if (name && !seen.has(name)) {
+        seen.add(name);
+        candidates.push(name);
+      }
+    }
+
+    logger.info(`[userInterests] Pinecone pre-filter: ${candidates.length} candidates from ${hits.length} hits (topK=${topK})`);
+    return candidates;
+  } catch (err) {
+    logger.warn("[userInterests] Pinecone pre-filter failed, falling back to full scan:", err);
+    return []; // empty = caller falls back to full scan
   }
 }
 
@@ -431,16 +485,28 @@ Be specific — cite actual books, frameworks, and ideas from each author.`,
 
   /**
    * Batch score all authors with ready RAG files against all user interests.
+   *
+   * P2 Optimization: Pinecone-first pre-filter.
+   * Instead of running LLM scoring on ALL authors (O(N) LLM calls), we:
+   *   1. Embed the composite interest query via Gemini
+   *   2. Query Pinecone authors namespace → top-K candidates
+   *   3. Only run LLM scoring on those K candidates
+   * Typical reduction: 183 authors → 30 candidates → ~84% LLM cost savings.
+   * Falls back to full scan if Pinecone is unavailable.
    */
   scoreAllAuthors: protectedProcedure
     .input(z.object({
       model: z.string().optional().default(DEFAULT_SCORING_MODEL),
+      pineconeTopK: z.number().int().min(5).max(183).optional().default(30),
+      skipPineconeFilter: z.boolean().optional().default(false),
     }).optional())
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database unavailable");
 
       const model = input?.model ?? DEFAULT_SCORING_MODEL;
+      const pineconeTopK = input?.pineconeTopK ?? 30;
+      const skipPineconeFilter = input?.skipPineconeFilter ?? false;
 
       const interests = await db
         .select()
@@ -451,12 +517,32 @@ Be specific — cite actual books, frameworks, and ideas from each author.`,
         return { success: false, scored: 0, message: "No interests defined." };
       }
 
-      // Get all authors with ready RAG files
-      const ragRows = await db
+      // ── Step 1: Pinecone pre-filter ──────────────────────────────────────────
+      let candidateNames: string[] = [];
+      let usedPineconeFilter = false;
+
+      if (!skipPineconeFilter) {
+        candidateNames = await getPineconeAuthorCandidates(
+          interests.map((i) => ({ topic: i.topic, description: i.description, weight: i.weight })),
+          pineconeTopK
+        );
+        usedPineconeFilter = candidateNames.length > 0;
+      }
+
+      // ── Step 2: Fetch RAG rows (filtered or full) ────────────────────────────
+      const allRagRows = await db
         .select({ authorName: authorRagProfiles.authorName, ragFileUrl: authorRagProfiles.ragFileUrl, ragVersion: authorRagProfiles.ragVersion })
         .from(authorRagProfiles)
         .where(eq(authorRagProfiles.ragStatus, "ready"));
 
+      // If Pinecone returned candidates, restrict to those authors only
+      const ragRows = usedPineconeFilter
+        ? allRagRows.filter(r => candidateNames.includes(r.authorName))
+        : allRagRows;
+
+      logger.info(`[userInterests] scoreAllAuthors: ${ragRows.length} authors to score (pinecone filter: ${usedPineconeFilter}, total with RAG: ${allRagRows.length})`);
+
+      // ── Step 3: LLM scoring on candidates ───────────────────────────────────
       let scored = 0;
       for (const rag of ragRows) {
         if (!rag.ragFileUrl) continue;
@@ -497,7 +583,16 @@ Be specific — cite actual books, frameworks, and ideas from each author.`,
         } catch { /* skip failed authors */ }
       }
 
-      return { success: true, scored, total: ragRows.length };
+      return {
+        success: true,
+        scored,
+        total: allRagRows.length,
+        candidates: ragRows.length,
+        usedPineconeFilter,
+        message: usedPineconeFilter
+          ? `Scored ${scored} of ${ragRows.length} Pinecone-selected candidates (${allRagRows.length} total with RAG)`
+          : `Scored ${scored} of ${allRagRows.length} authors (full scan — Pinecone filter unavailable)`,
+      };
     }),
 
   /**
