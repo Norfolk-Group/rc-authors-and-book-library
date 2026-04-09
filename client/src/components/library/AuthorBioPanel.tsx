@@ -40,7 +40,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { AUTHORS, CATEGORY_COLORS } from "@/lib/libraryData";
-import { canonicalName } from "@/lib/authorAliases";
+import { useAuthorAliases } from "@/hooks/useAuthorAliases";
 import { getAuthorAvatar } from "@/lib/authorAvatars";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { fireConfetti } from "@/hooks/useConfetti";
@@ -425,6 +425,7 @@ function DigitalMeSection({ authorName }: { authorName: string }) {
 }
 
 // ── Component ──────────────────────────────────────────────────────────────────────────────────────────
+  const { canonicalName } = useAuthorAliases();
 export function AuthorBioPanel({ author, onClose }: AuthorBioPanelProps) {
   const displayName = canonicalName(author.name);
   const specialty = author.name.includes(" - ") ? author.name.slice(author.name.indexOf(" - ") + 3) : "";

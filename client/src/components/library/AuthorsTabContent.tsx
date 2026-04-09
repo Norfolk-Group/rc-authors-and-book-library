@@ -13,7 +13,7 @@ import { LazyImage } from "@/components/ui/LazyImage";
 import { EmptyState } from "@/components/library/LibraryPrimitives";
 import { TagGroupHeader, groupByFirstTag } from "@/components/library/TagGroupHeader";
 import { AUTHORS, type AuthorEntry } from "@/lib/libraryData";
-import { canonicalName } from "@/lib/authorAliases";
+import { useAuthorAliases } from "@/hooks/useAuthorAliases";
 import { Sparkles } from "lucide-react";
 import type { FreshnessDimension } from "@/components/library/FreshnessDot";
 
@@ -121,6 +121,7 @@ export function AuthorsTabContent({
   onEditAuthor,
   onDeleteAuthor,
 }: AuthorsTabContentProps) {
+  const { canonicalName } = useAuthorAliases();
   return (
     <>
       {/* Recently Enriched strip */}

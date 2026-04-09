@@ -19,7 +19,7 @@ import { trpc } from "@/lib/trpc";
 import PageHeader from "@/components/PageHeader";
 import { PlatformPills, countPlatformLinks } from "@/components/library/PlatformPills";
 import { AUTHORS, CATEGORY_COLORS } from "@/lib/libraryData";
-import { canonicalName } from "@/lib/authorAliases";
+import { useAuthorAliases } from "@/hooks/useAuthorAliases";
 import { getAuthorAvatar } from "@/lib/authorAvatars";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -108,6 +108,7 @@ interface AuthorHeaderProps {
   canRemove: boolean;
 }
 function AuthorHeader({ authorName, onRemove, canRemove }: AuthorHeaderProps) {
+  const { canonicalName } = useAuthorAliases();
   const author = AUTHORS.find((a) => canonicalName(a.name) === canonicalName(authorName));
   const avatar = getAuthorAvatar(authorName);
   const catColor = author ? CATEGORY_COLORS[author.category] ?? "#6b7280" : "#6b7280";
@@ -147,6 +148,7 @@ function AuthorHeader({ authorName, onRemove, canRemove }: AuthorHeaderProps) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 export default function AuthorCompare() {
+  const { canonicalName } = useAuthorAliases();
   const [, setLocation] = useLocation();
   const [selectedAuthors, setSelectedAuthors] = useState<string[]>(() => parseQueryParams());
   const [addingAuthor, setAddingAuthor] = useState<string>("");

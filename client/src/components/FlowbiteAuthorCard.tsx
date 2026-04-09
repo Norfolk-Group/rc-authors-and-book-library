@@ -47,7 +47,7 @@ import {
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { LazyImage } from "@/components/ui/LazyImage";
 import { getAuthorAvatar } from "@/lib/authorAvatars";
-import { canonicalName } from "@/lib/authorAliases";
+import { useAuthorAliases } from "@/hooks/useAuthorAliases";
 import {
   CATEGORY_ICONS,
   CATEGORY_COLORS,
@@ -239,6 +239,7 @@ export function FlowbiteAuthorCard({
   currentTagSlugs = [],
   priority = false,
 }: FlowbiteAuthorCardProps) {
+  const { canonicalName } = useAuthorAliases();
   const iconName = CATEGORY_ICONS[author.category] ?? "briefcase";
   const Icon = (ICON_MAP[iconName] ?? Briefcase) as LucideIcon;
   const displayName = canonicalName(author.name);

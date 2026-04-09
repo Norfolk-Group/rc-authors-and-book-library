@@ -70,6 +70,7 @@ import type { Icon as PhosphorIcon } from "@phosphor-icons/react";
 import { AdminAuthorsTab } from "@/components/admin/AdminAuthorsTab";
 import { AdminBooksTab } from "@/components/admin/AdminBooksTab";
 import { AdminTagsTab } from "@/components/admin/AdminTagsTab";
+import { AdminAliasesTab } from "@/components/admin/AdminAliasesTab";
 import { AdminPipelineTab } from "@/components/admin/AdminPipelineTab";
 // Media
 import { AdminMediaTab } from "@/components/admin/AdminMediaTab";
@@ -117,6 +118,7 @@ const NAV_TIPS: Record<string, string> = {
   authors: "Browse, search, and manage all 169 author profiles. Edit bios, avatars, social links, and enrichment data.",
   books: "Browse, search, and manage all book profiles. Edit metadata, covers, summaries, and reading status.",
   tags: "Manage the tag taxonomy used to categorise authors and books. Create, rename, merge, or delete tags.",
+  aliases: "Manage the author alias map: map raw folder names (e.g. 'Adam Grant - Org Psych') to canonical display names (e.g. 'Adam Grant'). Backed by the DB.",
   pipeline: "Run bulk data enrichment pipelines: enrich bios, fetch social stats, source book covers, and more.",
   duplicates: "Review and resolve duplicate author and book entries detected by the fuzzy-match and hash-match algorithms.",
   // Media
@@ -160,6 +162,7 @@ const NAV_GROUPS: NavGroup[] = [
       { id: "authors", label: "Authors", icon: UsersThree },
       { id: "books", label: "Books", icon: Books },
       { id: "tags", label: "Tags", icon: Tag },
+      { id: "aliases", label: "Author Aliases", icon: Tag },
       { id: "pipeline", label: "Data Pipeline", icon: Database },
       { id: "duplicates", label: "Duplicates", icon: CopySimple },
     ],
@@ -441,6 +444,7 @@ export default function Admin() {
                 />
               )}
               {activeSection === "tags" && <AdminTagsTab />}
+              {activeSection === "aliases" && <AdminAliasesTab />}
               {activeSection === "pipeline" && (
                 <AdminPipelineTab
                   anyRunning={actions.anyRunning}

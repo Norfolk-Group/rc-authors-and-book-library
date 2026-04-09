@@ -13,7 +13,7 @@ import {
   type AuthorEntry,
 } from "@/lib/libraryData";
 import { AUDIO_BOOKS } from "@/lib/audioData";
-import { canonicalName } from "@/lib/authorAliases";
+import { useAuthorAliases } from "@/hooks/useAuthorAliases";
 import authorBios from "@/lib/authorBios.json";
 import {
   buildAuthorDimensions,
@@ -74,6 +74,7 @@ export function useLibraryData({
   selectedTagSlugs = new Set<string>(),
 }: UseLibraryDataParams) {
   const { isAuthenticated } = useAuth();
+  const { canonicalName } = useAuthorAliases();
 
   // ── tRPC queries ────────────────────────────────────────────────────────
 

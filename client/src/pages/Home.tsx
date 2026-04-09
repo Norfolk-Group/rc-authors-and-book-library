@@ -36,7 +36,7 @@ import {
 } from "@/lib/libraryData";
 import { AUDIO_BOOKS } from "@/lib/audioData";
 import { FlowbiteAuthorCard } from "@/components/FlowbiteAuthorCard";
-import { canonicalName } from "@/lib/authorAliases";
+import { useAuthorAliases } from "@/hooks/useAuthorAliases";
 
 import { BookCard } from "@/components/library/BookCard";
 import { AudioCard } from "@/components/library/AudioCard";
@@ -84,6 +84,7 @@ const ENRICH_LABELS: Record<string, { label: string; color: string; bg: string }
 };
 
 export default function Home() {
+  const { canonicalName } = useAuthorAliases();
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<TabType>("authors");
   const [_savedCategories, _setSavedCategories] = useLocalStorage<string[]>("lib:selectedCategories", []);

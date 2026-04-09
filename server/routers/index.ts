@@ -42,6 +42,7 @@ import { authorAvatarRouter } from "./authorAvatar.router";
 import { dropboxConfigRouter } from "./dropboxConfig.router";
 import { smartUploadRouter } from "./smartUpload.router";
 import { semanticMapRouter } from "./semanticMap.router";
+import { authorAliasesRouter } from "./authorAliases.router";
 
 export const appRouter = router({
   system: systemRouter,
@@ -103,6 +104,8 @@ export const appRouter = router({
   smartUpload: smartUploadRouter,
   // ── Semantic Interest Heatmap (author cluster visualization) ─────────────
   semanticMap: semanticMapRouter,
+  // ── Author name alias management (DB-backed, replaces hardcoded file) ─────
+  authorAliases: authorAliasesRouter,
 });
 
 export type AppRouter = typeof appRouter;

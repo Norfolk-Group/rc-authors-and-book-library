@@ -23,7 +23,7 @@ import {
   X,
 } from "lucide-react";
 import { AUTHORS, BOOKS, CATEGORY_COLORS, CATEGORY_ICONS } from "@/lib/libraryData";
-import { canonicalName } from "@/lib/authorAliases";
+import { useAuthorAliases } from "@/hooks/useAuthorAliases";
 import { ICON_MAP } from "@/components/library/libraryConstants";
 import { Briefcase } from "lucide-react";
 
@@ -37,6 +37,7 @@ interface CommandPaletteProps {
 }
 
 export function CommandPalette({ onNavigateAuthor, onNavigateBook }: CommandPaletteProps) {
+  const { canonicalName } = useAuthorAliases();
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const [, navigate] = useLocation();

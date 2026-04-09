@@ -19,7 +19,7 @@ import {
   Mic, Rss, Newspaper, ExternalLink, BookOpen,
 } from "lucide-react";
 import { getAuthorAvatar } from "@/lib/authorAvatars";
-import { canonicalName } from "@/lib/authorAliases";
+import { useAuthorAliases } from "@/hooks/useAuthorAliases";
 import { CATEGORY_ICONS, type AuthorEntry } from "@/lib/libraryData";
 import { trpc } from "@/lib/trpc";
 import authorBios from "@/lib/authorBios.json";
@@ -51,6 +51,7 @@ export interface AuthorModalProps {
 
 // -- Component -----------------------------------------------------------------
 export function AuthorModal({ author, avatarUrl: photoOverride, onClose }: AuthorModalProps) {
+  const { canonicalName } = useAuthorAliases();
   const open = !!author;
   const displayName = author ? canonicalName(author.name) : "";
   const specialty = author?.name.includes(" - ")

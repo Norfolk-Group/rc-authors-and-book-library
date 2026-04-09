@@ -48,7 +48,7 @@ import {
   Play,
 } from "lucide-react";
 import { AUTHORS, CATEGORY_COLORS } from "@/lib/libraryData";
-import { canonicalName } from "@/lib/authorAliases";
+import { useAuthorAliases } from "@/hooks/useAuthorAliases";
 import { getAuthorAvatar } from "@/lib/authorAvatars";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { fireConfetti } from "@/hooks/useConfetti";
@@ -392,6 +392,7 @@ function BookCard({ bookName, bookId, authorName }: BookCardProps) {
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function AuthorDetail() {
+  const { canonicalName } = useAuthorAliases();
   const params = useParams<{ slug: string }>();
   const [, setLocation] = useLocation();
   const rawSlug = params.slug ?? "";

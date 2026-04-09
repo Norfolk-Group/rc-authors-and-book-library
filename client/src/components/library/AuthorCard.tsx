@@ -12,7 +12,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 import { BookSubfolderRow } from "@/components/library/LibraryPrimitives";
 import { AuthorCardActions } from "@/components/AuthorCardActions";
 import { getAuthorAvatar } from "@/lib/authorAvatars";
-import { canonicalName } from "@/lib/authorAliases";
+import { useAuthorAliases } from "@/hooks/useAuthorAliases";
 import { isLikelyAuthorName } from "../../../../shared/authorNameValidator";
 import { AlertTriangle } from "lucide-react";
 import {
@@ -74,6 +74,7 @@ function highlight(text: string, query: string) {
 }
 
 export function AuthorCard({ author, query, onBioClick, isEnriched, coverMap, onBookClick, dbAvatarMap }: AuthorCardProps) {
+  const { canonicalName } = useAuthorAliases();
   const color = CATEGORY_COLORS[author.category] ?? "hsl(var(--muted-foreground))";
   const iconName = CATEGORY_ICONS[author.category] ?? "briefcase";
   const Icon = ICON_MAP[iconName] ?? Briefcase;

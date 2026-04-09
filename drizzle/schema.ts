@@ -1394,3 +1394,29 @@ export const smartUploads = mysqlTable("smart_uploads", {
 });
 export type SmartUpload = typeof smartUploads.$inferSelect;
 export type InsertSmartUpload = typeof smartUploads.$inferInsert;
+
+
+// ── Author Aliases ─────────────────────────────────────────────────────────────
+/**
+ * Maps raw author name variants (e.g. from Dropbox folder names) to their
+ * canonical display names. Replaces the hardcoded client/src/lib/authorAliases.ts.
+ *
+ * rawName  = the variant string (e.g. "Matthew Dixon - Sales strategy and customer psychology experts")
+ * canonical = the clean display name (e.g. "Matthew Dixon")
+ */
+export const authorAliases = mysqlTable("author_aliases", {
+  id: int("id").autoincrement().primaryKey(),
+  /** The raw/variant name to normalize */
+  rawName: varchar("rawName", { length: 512 }).notNull().unique(),
+  /** The canonical display name to resolve to */
+  canonical: varchar("canonical", { length: 256 }).notNull(),
+  /** Optional note explaining why this alias exists */
+  note: varchar("note", { length: 512 }),
+  createdAt: timestamp("createdAt_aa").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt_aa").defaultNow().onUpdateNow().notNull(),
+}, (t) => ({
+  rawNameIdx: index("rawName_idx").on(t.rawName),
+  canonicalIdx: index("canonical_idx").on(t.canonical),
+}));
+export type AuthorAlias = typeof authorAliases.$inferSelect;
+export type InsertAuthorAlias = typeof authorAliases.$inferInsert;

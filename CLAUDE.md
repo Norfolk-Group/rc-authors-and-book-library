@@ -466,3 +466,37 @@ CSS variable sets in `client/src/index.css`. Active theme stored in `localStorag
 | `auth.logout.test.ts` | Auth logout flow |
 | `favorites.test.ts` | Favorites toggle, list, checkMany |
 | `lib/parallelBatch.test.ts` | Generic parallel batch executor |
+
+---
+
+## Author Alias System (Session B — Apr 9, 2026)
+
+### Architecture
+
+Author name normalization is now **fully DB-backed** via the `author_aliases` table.
+
+| Layer | File | Role |
+|---|---|---|
+| DB table | `drizzle/schema.ts` → `authorAliases` | Stores `rawName → canonical` mappings |
+| Seed script | `scripts/seed-author-aliases.mjs` | One-time seed of 159 aliases from the old hardcoded file |
+| tRPC router | `server/routers/authorAliases.router.ts` | `getMap`, `getAll`, `upsert`, `delete`, `resolveNames`, `canonicalNameFromDb()` |
+| Client hook | `client/src/hooks/useAuthorAliases.ts` | Fetches alias map from DB; provides `canonicalName()` with hardcoded fallback |
+| Admin UI | `client/src/components/admin/AdminAliasesTab.tsx` | CRUD UI under Admin → Content → Author Aliases |
+| Tests | `server/authorAliases.router.test.ts` | 9 unit tests (all passing) |
+
+### How canonicalName() works
+
+1. **DB map** (from `trpc.authorAliases.getMap`) — checked first
+2. **Dash-suffix stripping** — `"Adam Grant - Org Psych"` → `"Adam Grant"` (generic fallback)
+3. **Hardcoded file fallback** — `client/src/lib/authorAliases.ts` — used while DB map loads
+
+### Deprecation plan
+
+`client/src/lib/authorAliases.ts` is kept as a fallback but should be deleted once all 159 aliases are confirmed in the DB and the app has been running in production for a sprint.
+
+### authorAvatars.ts — No migration needed
+
+`client/src/lib/authorAvatars.ts` is already superseded by the DB-backed avatar system:
+- `author_profiles.avatarUrl` / `s3AvatarUrl` columns hold live avatar URLs
+- `trpc.authorProfiles.getAvatarMap` serves the DB avatar map to all components
+- `getAuthorAvatar()` from the hardcoded file is only a tertiary fallback

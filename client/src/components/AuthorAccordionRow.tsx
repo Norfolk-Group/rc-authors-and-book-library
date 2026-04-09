@@ -29,7 +29,7 @@ import {
   Briefcase,
 } from "lucide-react";
 import { CATEGORY_ICONS, CONTENT_TYPE_ICONS, type AuthorEntry } from "@/lib/libraryData";
-import { canonicalName } from "@/lib/authorAliases";
+import { useAuthorAliases } from "@/hooks/useAuthorAliases";
 import { getAuthorAvatar } from "@/lib/authorAvatars";
 import { AuthorModal } from "@/components/AuthorModal";
 import { BookDetailPanel } from "@/components/library/BookDetailPanel";
@@ -96,6 +96,7 @@ export function AuthorAccordionRow({
   dbAvatarMap,
   onBioClick,
 }: AuthorAccordionRowProps) {
+  const { canonicalName } = useAuthorAliases();
   const [open, setOpen] = useState(false);
 
   // -- HOTSPOT 1: Author modal --

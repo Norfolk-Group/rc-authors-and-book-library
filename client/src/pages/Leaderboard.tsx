@@ -20,7 +20,7 @@ import { trpc } from "@/lib/trpc";
 import PageHeader from "@/components/PageHeader";
 import { PlatformPills, countPlatformLinks } from "@/components/library/PlatformPills";
 import { AUTHORS, CATEGORY_COLORS } from "@/lib/libraryData";
-import { canonicalName } from "@/lib/authorAliases";
+import { useAuthorAliases } from "@/hooks/useAuthorAliases";
 import { getAuthorAvatar } from "@/lib/authorAvatars";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -132,6 +132,7 @@ interface LeaderRowProps {
 }
 
 function LeaderRow({ rank, entry, maxValue, metric, platformLinks, socialStats }: LeaderRowProps) {
+  const { canonicalName } = useAuthorAliases();
   const author = AUTHORS.find((a) => canonicalName(a.name) === canonicalName(entry.authorName));
   const avatar = getAuthorAvatar(entry.authorName);
   const catColor = author ? CATEGORY_COLORS[author.category] ?? "#6b7280" : "#6b7280";
@@ -201,6 +202,7 @@ function LeaderRow({ rank, entry, maxValue, metric, platformLinks, socialStats }
 
 // ── Main component ────────────────────────────────────────────────────────────
 export default function Leaderboard() {
+  const { canonicalName } = useAuthorAliases();
   const [activeMetric, setActiveMetric] = useState<MetricKey>("wikipedia");
 
   // Fetch social stats for all authors

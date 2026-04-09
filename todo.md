@@ -499,3 +499,35 @@ Last cleaned: Apr 5, 2026
 - [x] Update indexAuthorIncremental and indexBookIncremental to accept and forward metadata
 - [x] Update createAuthor and updateAuthor to extract category from tagsJson and pass to indexAuthorIncremental
 - [x] Write 18 vitest tests for S1/S2/S3 metadata logic (all passing)
+
+---
+
+## Session A — Admin Quick Wins (Apr 9, 2026)
+
+- [ ] Trigger seedAllPending via tRPC to create RAG rows for all 177 missing authors
+- [ ] Trigger autoTagAll via tRPC to tag all 169 untagged authors
+- [ ] Trigger scoreAllAuthors via tRPC to re-score all authors with new tag data
+- [ ] Verify: RAG coverage > 90%, tagged authors > 90%
+
+---
+
+## Session B — Data Migration (Apr 9, 2026)
+
+### B1 — authorAliases.ts to Database
+- [x] Add dedicated `author_aliases` table to schema (separate table, not aliasesJson column)
+- [x] Run pnpm db:push to apply migration
+- [x] Write seed script (scripts/seed-author-aliases.mjs) — seeded 159 aliases
+- [x] Add authorAliases tRPC router (server/routers/authorAliases.router.ts) with getMap, getAll, upsert, delete, resolveNames
+- [x] Add useAuthorAliases() hook (client/src/hooks/useAuthorAliases.ts) — DB-backed with hardcoded fallback
+- [x] Update all 12 client callers of canonicalName() to use useAuthorAliases() hook
+- [x] Add Admin UI tab (AdminAliasesTab) under Content > Author Aliases
+- [x] Write vitest tests (server/authorAliases.router.test.ts) — 9 tests all passing
+- [ ] Delete authorAliases.ts after migration verified in production (optional cleanup)
+
+### B2 — authorAvatars.ts to Database
+- [x] ASSESSED: authorAvatars.ts already superseded by DB-backed avatar system
+  - author_profiles table has avatarUrl, s3AvatarUrl columns
+  - getAvatarMap tRPC procedure already serves DB avatars to all components
+  - getAuthorAvatar() from authorAvatars.ts is only a tertiary fallback
+  - No new migration needed — architecture is already correct
+- [ ] Delete authorAvatars.ts after confirming all authors have DB avatars (optional cleanup)
