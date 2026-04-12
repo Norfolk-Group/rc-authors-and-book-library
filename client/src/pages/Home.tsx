@@ -526,6 +526,7 @@ export default function Home() {
               {activeTab === "authors" ? (
                 <AuthorsTabContent
                   query={query}
+                  setQuery={setQuery}
                   selectedCategories={selectedCategories}
                   selectedTagSlugs={selectedTagSlugs}
                   authorSort={authorSort}

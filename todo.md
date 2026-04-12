@@ -565,3 +565,21 @@ Last cleaned: Apr 5, 2026
   - Removed unused imports across 25+ files
   - Prefixed intentionally unused args/vars with _ convention
 - [x] TypeScript: 0 errors, ESLint: 0 errors, 37 warnings (all no-explicit-any — acceptable)
+
+## Feature — Real-time Author Search Bar (Apr 12, 2026)
+
+- [x] Inspect current search/filter implementation on the Authors page
+  - Existing header search bar was small (64px mobile, 256px desktop) and easy to miss
+  - filteredAuthors already computed in useLibraryData via query state
+  - FlowbiteAuthorCard already had Highlight component for matched text
+- [x] Add prominent inline search bar above the author card grid in AuthorsTabContent
+  - Full-width, h-11, rounded-xl with search icon on left and count+clear on right
+  - Transitions: bg-muted/30 → bg-background on focus, icon color primary on focus
+- [x] Debounce input with 200ms delay (localInput state + debounceRef pattern)
+  - localInput updates instantly for UI feedback; parent query updates after 200ms
+  - External query clears (e.g. clearFilters button) sync back to localInput via useEffect
+- [x] Show live match count badge (Users icon + count, primary color when active)
+- [x] Show clear button (X, only visible when there is input, active:scale-95)
+- [x] Show active search feedback text below bar ("Showing N authors matching 'X'")
+- [x] Highlight matched text already working via existing Highlight component in FlowbiteAuthorCard
+- [x] TypeScript: 0 errors, ESLint: 0 new warnings

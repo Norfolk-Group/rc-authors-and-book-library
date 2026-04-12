@@ -8,12 +8,15 @@
  * All data is passed as props from Home.tsx to keep the parent as the
  * single source of truth for state and data fetching.
  */
+import { useRef, useCallback, useEffect, useState } from "react";
 import { FlowbiteAuthorCard } from "@/components/FlowbiteAuthorCard";
 import { LazyImage } from "@/components/ui/LazyImage";
 import { EmptyState } from "@/components/library/LibraryPrimitives";
 import { TagGroupHeader, groupByFirstTag } from "@/components/library/TagGroupHeader";
 import { AUTHORS, type AuthorEntry } from "@/lib/libraryData";
 import { useAuthorAliases } from "@/hooks/useAuthorAliases";
+import { Input } from "@/components/ui/input";
+import { Search, X, Users } from "lucide-react";
 import { Sparkles } from "lucide-react";
 import type { FreshnessDimension } from "@/components/library/FreshnessDot";
 
@@ -59,6 +62,7 @@ type PlatformLinks = {
 export interface AuthorsTabContentProps {
   // Filter state
   query: string;
+  setQuery: (q: string) => void;
   selectedCategories: Set<string>;
   selectedTagSlugs: Set<string>;
   authorSort: string;
@@ -95,6 +99,7 @@ export interface AuthorsTabContentProps {
 
 export function AuthorsTabContent({
   query,
+  setQuery,
   selectedCategories,
   selectedTagSlugs,
   authorSort,
@@ -122,6 +127,42 @@ export function AuthorsTabContent({
   onDeleteAuthor,
 }: AuthorsTabContentProps) {
   const { canonicalName } = useAuthorAliases();
+
+  // Local debounced input state — shows immediate feedback while the parent
+  // query (used for filtering) updates after a short delay.
+  const [localInput, setLocalInput] = useState(query);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Keep local input in sync when parent clears the query externally
+  useEffect(() => {
+    setLocalInput(query);
+  }, [query]);
+
+  const handleInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const val = e.target.value;
+      setLocalInput(val);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        setQuery(val);
+      }, 150);
+    },
+    [setQuery]
+  );
+
+  const handleClear = useCallback(() => {
+    setLocalInput("");
+    setQuery("");
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+  }, [setQuery]);
+
+  // Cleanup debounce on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
+
   return (
     <>
       {/* Recently Enriched strip */}
@@ -223,6 +264,61 @@ export function AuthorsTabContent({
           </div>
         </div>
       )}
+
+      {/* ── Author Search Bar ──────────────────────────────────────────── */}
+      <div className="mb-5">
+        <div className="relative group">
+          {/* Search icon */}
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none transition-colors group-focus-within:text-primary" />
+
+          <Input
+            type="text"
+            value={localInput}
+            onChange={handleInputChange}
+            placeholder="Search authors by name…"
+            className="pl-10 pr-24 h-11 text-sm rounded-xl border-border/60 bg-muted/30 hover:bg-muted/50 focus:bg-background transition-colors shadow-sm focus-visible:ring-1 focus-visible:ring-primary/50"
+            autoComplete="off"
+            spellCheck={false}
+          />
+
+          {/* Right side: match count + clear button */}
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+            {/* Match count badge */}
+            <span
+              className={[
+                "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium transition-all",
+                query
+                  ? "bg-primary/10 text-primary border border-primary/20"
+                  : "bg-muted/60 text-muted-foreground border border-border/40",
+              ].join(" ")}
+            >
+              <Users className="w-3 h-3" />
+              {filteredAuthors.length}
+            </span>
+
+            {/* Clear button — only visible when there's input */}
+            {localInput && (
+              <button
+                onClick={handleClear}
+                className="flex items-center justify-center w-6 h-6 rounded-full bg-muted hover:bg-muted-foreground/20 text-muted-foreground hover:text-foreground transition-all active:scale-95"
+                aria-label="Clear search"
+                type="button"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Active search feedback */}
+        {query && (
+          <p className="mt-1.5 text-xs text-muted-foreground pl-1">
+            {filteredAuthors.length === 0
+              ? `No authors match "${query}"`
+              : `Showing ${filteredAuthors.length} author${filteredAuthors.length !== 1 ? "s" : ""} matching "${query}"`}
+          </p>
+        )}
+      </div>
 
       {/* Author card grid */}
       {filteredAuthors.length === 0 ? (
