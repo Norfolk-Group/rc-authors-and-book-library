@@ -21,7 +21,7 @@ import { eq, and } from "drizzle-orm";
 import { invokeLLM } from "../_core/llm";
 import { logger } from "../lib/logger";
 import { semanticSearch, embedText } from "../services/ragPipeline.service";
-import { queryVectors } from "../services/pinecone.service";
+import { queryVectors } from "../services/neonVector.service";
 
 const DEFAULT_CHAT_MODEL = "claude-opus-4-5";
 // How many RAG chunks to retrieve per user message turn

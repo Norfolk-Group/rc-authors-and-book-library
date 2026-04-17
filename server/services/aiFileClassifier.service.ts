@@ -42,7 +42,7 @@ export interface FileClassification {
   suggestedBookTitle: string | null;
   targetTable: "author_profiles" | "book_profiles" | "content_files" | "content_items" | "rag_files" | null;
   shouldIndexPinecone: boolean;
-  pineconeNamespace: "authors" | "books" | "content_items" | "rag_files" | null;
+  neonNamespace: "authors" | "books" | "content_items" | "rag_files" | null;
   suggestedDropboxPath: string | null;
   extractedText: string | null; // first ~500 chars of extracted text for preview
   tags: string[];
@@ -194,7 +194,7 @@ Respond ONLY with a valid JSON object matching this exact schema:
   "suggestedBookTitle": "<full book title or null>",
   "targetTable": "<table name or null>",
   "shouldIndexPinecone": <true|false>,
-  "pineconeNamespace": "<namespace or null>",
+  "neonNamespace": "<namespace or null>",
   "extractedText": "<first 500 chars of meaningful text or null>",
   "tags": ["<tag1>", "<tag2>"]
 }`;
@@ -256,7 +256,7 @@ ${extractedText ? `\nExtracted text preview:\n${extractedText.slice(0, 2000)}` :
       suggestedBookTitle: null,
       targetTable: null,
       shouldIndexPinecone: false,
-      pineconeNamespace: null,
+      neonNamespace: null,
       suggestedDropboxPath: null,
       extractedText: null,
       tags: [],

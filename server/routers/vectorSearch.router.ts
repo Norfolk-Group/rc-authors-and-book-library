@@ -45,7 +45,7 @@ export const vectorSearchRouter = router({
   getPublicStatus: publicProcedure.query(async () => {
     try {
       const stats = await getIndexStats();
-      const total = stats.totalRecordCount ?? 0;
+      const total = stats.totalVectorCount ?? 0;
       return { isActive: total > 0, totalVectors: total };
     } catch {
       return { isActive: false, totalVectors: 0 };
@@ -57,7 +57,7 @@ export const vectorSearchRouter = router({
     try {
       const stats = await getIndexStats();
       return {
-        totalVectors: stats.totalRecordCount ?? 0,
+        totalVectors: stats.totalVectorCount ?? 0,
         namespaces: stats.namespaces ?? {},
       };
     } catch {

@@ -82,7 +82,7 @@ interface UploadRecord {
   confirmedBookId: number | null;
   targetTable: string | null;
   shouldIndexPinecone: boolean | null;
-  pineconeNamespace: string | null;
+  neonNamespace: string | null;
   shouldMirrorDropbox: boolean | null;
   suggestedDropboxPath: string | null;
   adminNotes: string | null;
@@ -217,7 +217,7 @@ export function AdminSmartUploadTab() {
     confirmedAuthorId: null as number | null,
     confirmedBookId: null as number | null,
     shouldIndexPinecone: true,
-    pineconeNamespace: "",
+    neonNamespace: "",
     shouldMirrorDropbox: true,
     suggestedDropboxPath: "",
     adminNotes: "",
@@ -326,7 +326,7 @@ export function AdminSmartUploadTab() {
       confirmedAuthorId: item.confirmedAuthorId ?? item.matchedAuthorId,
       confirmedBookId: item.confirmedBookId ?? item.matchedBookId,
       shouldIndexPinecone: item.shouldIndexPinecone ?? true,
-      pineconeNamespace: item.pineconeNamespace ?? "",
+      neonNamespace: item.neonNamespace ?? "",
       shouldMirrorDropbox: item.shouldMirrorDropbox ?? true,
       suggestedDropboxPath: item.suggestedDropboxPath ?? "",
       adminNotes: item.adminNotes ?? "",
@@ -341,7 +341,7 @@ export function AdminSmartUploadTab() {
       confirmedAuthorId: overrideForm.confirmedAuthorId,
       confirmedBookId: overrideForm.confirmedBookId,
       shouldIndexPinecone: overrideForm.shouldIndexPinecone,
-      pineconeNamespace: overrideForm.pineconeNamespace || undefined,
+      neonNamespace: overrideForm.neonNamespace || undefined,
       shouldMirrorDropbox: overrideForm.shouldMirrorDropbox,
       suggestedDropboxPath: overrideForm.suggestedDropboxPath || undefined,
       adminNotes: overrideForm.adminNotes || undefined,
@@ -706,13 +706,13 @@ export function AdminSmartUploadTab() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="pineconeNs">Pinecone Namespace</Label>
+                    <Label htmlFor="neonNs">Neon Namespace</Label>
                     <Input
-                      id="pineconeNs"
-                      placeholder={reviewTarget.pineconeNamespace ?? "authors / books / content_items"}
-                      value={overrideForm.pineconeNamespace}
+                      id="neonNs"
+                      placeholder={reviewTarget.neonNamespace ?? "authors / books / content_items"}
+                      value={overrideForm.neonNamespace}
                       onChange={(e) =>
-                        setOverrideForm((p) => ({ ...p, pineconeNamespace: e.target.value }))
+                        setOverrideForm((p) => ({ ...p, neonNamespace: e.target.value }))
                       }
                     />
                   </div>

@@ -1,5 +1,5 @@
 /**
- * Batched Pinecone indexing script
+ * Batched Neon pgvector indexing script
  * Indexes all authors and books in small batches with rate limiting
  * to avoid server crashes and gateway timeouts.
  */
@@ -132,7 +132,7 @@ async function indexAllBooks() {
 }
 
 async function main() {
-  console.log("=== PINECONE BATCHED INDEXING ===");
+  console.log("=== NEON_PGVECTOR BATCHED INDEXING ===");
   console.log(`Batch size: ${BATCH_SIZE}, Delay: ${DELAY_MS}ms`);
   console.log(`Started at: ${new Date().toISOString()}`);
   

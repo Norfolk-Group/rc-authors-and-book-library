@@ -21,7 +21,7 @@ import {
 } from "../../drizzle/schema";
 import { and, eq } from "drizzle-orm";
 import { embedText } from "./ragPipeline.service";
-import { queryVectors } from "./pinecone.service";
+import { queryVectors } from "./neonVector.service";
 
 /** Cosine similarity threshold above which two entities are considered near-duplicates */
 const SIMILARITY_THRESHOLD = 0.92;

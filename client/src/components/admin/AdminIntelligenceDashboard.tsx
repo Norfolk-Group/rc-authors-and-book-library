@@ -94,15 +94,15 @@ const PIPELINE_META: Record<string, PipelineInfo> = {
     category: "content",
     icon: BarChart3,
   },
-  "pinecone-index-books": {
-    key: "pinecone-index-books",
+  "neon-pgvector-books": {
+    key: "neon-pgvector-books",
     label: "Index Books → Pinecone",
     description: "Embed and upsert all books to Pinecone for semantic search",
     category: "index",
     icon: Database,
   },
-  "pinecone-index-authors": {
-    key: "pinecone-index-authors",
+  "neon-pgvector-authors": {
+    key: "neon-pgvector-authors",
     label: "Index Authors → Pinecone",
     description: "Embed and upsert all authors to Pinecone for semantic search",
     category: "index",

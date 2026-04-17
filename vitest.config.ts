@@ -17,7 +17,7 @@ export default defineConfig({
     include: ["server/**/*.test.ts", "server/**/*.spec.ts"],
     // Use forks pool to isolate each test file in its own process.
     // NODE_OPTIONS=--max-old-space-size=4096 must be set when running tests
-    // to prevent OOM crashes in workers that load @google/genai + @pinecone.
+    // to prevent OOM crashes in workers that load @google/genai + @neon.
     // The test script in package.json sets this automatically.
     pool: "forks",
   },

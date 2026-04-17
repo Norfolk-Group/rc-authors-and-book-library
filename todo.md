@@ -596,3 +596,22 @@ Last cleaned: Apr 5, 2026
   - Violet-tinted pill matching Authors tab style for visual consistency
   - Default collapsed; useState(false) inside BooksTabContent function body
 - [x] TypeScript: 0 errors, ESLint: 0 new warnings (still 37 pre-existing no-explicit-any)
+
+## Migration — Pinecone → Neon pgvector (Apr 17, 2026)
+
+- [x] Install @neondatabase/serverless and pg packages
+- [x] Test Neon connection and enable pgvector extension (ensureIndex + getIndexStats confirmed working)
+- [x] Create vector_embeddings table in Neon with pgvector HNSW index (1536 dims)
+- [x] Write neonVector.service.ts replacing pinecone.service.ts (same public API)
+- [x] Switch embedding model: Gemini gemini-embedding-001 (3072d) → text-embedding-004 (1536d)
+- [x] Update all server routers that import from pinecone.service.ts
+- [x] Update ragPipeline.service.ts to use new service
+- [x] Update aiFileClassifier.service.ts to use new service
+- [x] Update enrichmentOrchestrator.service.ts pipeline keys (neon-index-*)
+- [x] Update smartUpload.router.ts, recommendations.router.ts, userInterests.router.ts
+- [x] Update scripts/run_all_pipelines.ts and index_pinecone_batched.ts
+- [x] Rename pineconeNamespace → neonNamespace in schema + DB migration (0045_pale_betty_ross.sql)
+- [x] Update Admin UI labels: Pinecone Index → Neon pgvector Index
+- [x] Write vitest unit tests for neonVector.service (chunkText, makeVectorId, EMBEDDING_DIMENSION)
+- [x] TypeScript: 0 errors
+- [x] Database migration applied successfully

@@ -32,11 +32,11 @@ import {
 
 /**
  * After a commit succeeds, trigger the correct Pinecone indexing function
- * based on the upload's pineconeNamespace and content type.
+ * based on the upload's neonNamespace and content type.
  * Runs fire-and-forget — never throws, so it never blocks the commit response.
  */
-async function triggerPineconeIndexing(upload: {
-  pineconeNamespace: string | null;
+async function triggerNeonIndexing(upload: {
+  neonNamespace: string | null;
   shouldIndexPinecone: boolean | null;
   aiContentType: string | null;
   overrideContentType: string | null;
@@ -49,11 +49,11 @@ async function triggerPineconeIndexing(upload: {
   aiSuggestedAuthorName: string | null;
   aiSuggestedBookTitle: string | null;
 }): Promise<{ indexed: boolean; namespace: string | null; vectorCount: number }> {
-  if (!upload.shouldIndexPinecone || !upload.pineconeNamespace) {
+  if (!upload.shouldIndexPinecone || !upload.neonNamespace) {
     return { indexed: false, namespace: null, vectorCount: 0 };
   }
 
-  const namespace = upload.pineconeNamespace;
+  const namespace = upload.neonNamespace;
   const authorId = upload.confirmedAuthorId ?? upload.matchedAuthorId;
   const bookId = upload.confirmedBookId ?? upload.matchedBookId;
   const contentType = upload.overrideContentType ?? upload.aiContentType;
@@ -298,7 +298,7 @@ export const smartUploadRouter = router({
             matchedBookId,
             targetTable: classification.targetTable,
             shouldIndexPinecone: classification.shouldIndexPinecone,
-            pineconeNamespace: classification.pineconeNamespace,
+            neonNamespace: classification.neonNamespace,
             shouldMirrorDropbox: true,
             suggestedDropboxPath: classification.suggestedDropboxPath,
             classifiedAt: new Date(),
@@ -327,7 +327,7 @@ export const smartUploadRouter = router({
         confirmedAuthorId: z.number().nullable().optional(),
         confirmedBookId: z.number().nullable().optional(),
         shouldIndexPinecone: z.boolean().optional(),
-        pineconeNamespace: z.string().nullable().optional(),
+        neonNamespace: z.string().nullable().optional(),
         shouldMirrorDropbox: z.boolean().optional(),
         suggestedDropboxPath: z.string().nullable().optional(),
         adminNotes: z.string().optional(),
@@ -412,8 +412,8 @@ export const smartUploadRouter = router({
           .where(eq(smartUploads.id, input.id));
 
         // ── Step 3: Auto-index to Pinecone (fire-and-forget, never blocks) ───
-        const pineconeResult = await triggerPineconeIndexing({
-          pineconeNamespace: upload.pineconeNamespace,
+        const neonResult = await triggerNeonIndexing({
+          neonNamespace: upload.neonNamespace,
           shouldIndexPinecone: upload.shouldIndexPinecone,
           aiContentType: upload.aiContentType,
           overrideContentType: upload.overrideContentType,
@@ -430,7 +430,7 @@ export const smartUploadRouter = router({
         return {
           success: true,
           committedRecordId,
-          pinecone: pineconeResult,
+          neon: neonResult,
         };
       } catch (err) {
         await db

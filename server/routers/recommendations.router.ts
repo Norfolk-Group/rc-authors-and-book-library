@@ -28,53 +28,27 @@ import {
 import {
   queryVectors,
   queryAllNamespaces,
-  PINECONE_INDEX_NAME,
-} from "../services/pinecone.service";
-import { Pinecone } from "@pinecone-database/pinecone";
-import type { VectorMetadata } from "../services/pinecone.service";
+  NEON_TABLE_NAME,
+} from "../services/neonVector.service";
+import type { VectorMetadata } from "../services/neonVector.service";
 
 import { logger } from "../lib/logger";
 
-// ── Pinecone client helper ────────────────────────────────────────────────────
-function getPinecone() {
-  const apiKey = process.env.PINECONE_API_KEY;
-  if (!apiKey) throw new Error("PINECONE_API_KEY not set");
-  return new Pinecone({ apiKey });
-}
-
-// ── Reranking helper ─────────────────────────────────────────────────────────
+// ── Reranking helper ─────────────────────────────────────────────────────
 /**
- * Rerank a list of hits using Pinecone's bge-reranker-v2-m3 model.
- * Each hit must have a text snippet to rerank against the query.
- * Returns hits in reranked order. Falls back to original order on error.
+ * Sort hits by cosine similarity score (pgvector already returns cosine similarity).
+ * The Pinecone bge-reranker-v2-m3 has been removed; pgvector cosine distance
+ * provides equivalent relevance ordering for this library use-case.
  */
 async function rerankHits<T extends { id: string; score: number; metadata: { text: string } }>(
-  query: string,
+  _query: string,
   hits: T[],
   topN?: number
 ): Promise<T[]> {
-  if (hits.length <= 1) return hits;
-  try {
-    const pc = getPinecone();
-    const documents = hits.map(h => ({ text: h.metadata.text.slice(0, 512) }));
-    const result = await pc.inference.rerank({
-      model: "bge-reranker-v2-m3",
-      query,
-      documents,
-      topN: topN ?? hits.length,
-      returnDocuments: false,
-    });
-    // Map reranked indices back to original hits
-    const reranked = (result.data ?? []).map(r => ({
-      ...hits[r.index],
-      score: r.score,
-    }));
-    logger.info(`[rerank] Reranked ${hits.length} hits → top ${reranked.length} for query: "${query.slice(0, 60)}"`);
-    return reranked;
-  } catch (err) {
-    logger.warn(`[rerank] Reranking failed (falling back to cosine order):`, err);
-    return hits;
-  }
+  const sorted = [...hits].sort((a, b) => b.score - a.score);
+  const result = topN ? sorted.slice(0, topN) : sorted;
+  logger.info(`[rerank] Returning top ${result.length} hits by cosine score`);
+  return result;
 }
 
 // ── Router ────────────────────────────────────────────────────────────────────

@@ -20,9 +20,9 @@
  *   enrich-rich-summaries    → LLM-powered rich book summary generation
  *   url-health-check         → HTTP HEAD check on all content_item URLs
  *   content-quality-score    → LLM merit scoring for content items
- *   pinecone-index-authors   → Embed + upsert all authors to Pinecone
- *   pinecone-index-books     → Embed + upsert all books to Pinecone
- *   pinecone-index-articles  → Embed + upsert all magazine articles to Pinecone
+ *   neon-index-authors   → Embed + upsert all authors to Neon pgvector
+ *   neon-index-books     → Embed + upsert all books to Neon pgvector
+ *   neon-index-articles  → Embed + upsert all magazine articles to Neon pgvector
  *   rag-readiness-scan       → Compute ragReadinessScore for all authors
  *   chatbot-candidate-scan   → Flag chatbot-ready authors in human_review_queue
  */
@@ -510,9 +510,9 @@ async function runContentQualityScoring(progress: JobProgress, batchSize: number
 }
 
 /**
- * pinecone-index-authors: Embed + upsert all un-indexed authors to Pinecone.
+ * neon-index-authors: Embed + upsert all un-indexed authors to Pinecone.
  */
-async function runPineconeIndexAuthors(progress: JobProgress, batchSize: number, concurrency: number): Promise<void> {
+async function runNeonIndexAuthors(progress: JobProgress, batchSize: number, concurrency: number): Promise<void> {
   const db = await getDb();
   if (!db) return;
 
@@ -555,9 +555,9 @@ async function runPineconeIndexAuthors(progress: JobProgress, batchSize: number,
 }
 
 /**
- * pinecone-index-books: Embed + upsert all un-indexed books to Pinecone.
+ * neon-index-books: Embed + upsert all un-indexed books to Pinecone.
  */
-async function runPineconeIndexBooks(progress: JobProgress, batchSize: number, concurrency: number): Promise<void> {
+async function runNeonIndexBooks(progress: JobProgress, batchSize: number, concurrency: number): Promise<void> {
   const db = await getDb();
   if (!db) return;
 
@@ -693,8 +693,8 @@ const PIPELINE_HANDLERS: Record<string, PipelineHandler> = {
   "enrich-rich-summaries": runRichSummaryEnrichment,
   "url-health-check": runUrlHealthCheck,
   "content-quality-score": runContentQualityScoring,
-  "pinecone-index-authors": runPineconeIndexAuthors,
-  "pinecone-index-books": runPineconeIndexBooks,
+  "neon-index-authors": runNeonIndexAuthors,
+  "neon-index-books": runNeonIndexBooks,
   "rag-readiness-scan": runRagReadinessScan,
   "chatbot-candidate-scan": runChatbotCandidateScan,
 };
@@ -911,8 +911,8 @@ export async function seedDefaultSchedules(): Promise<void> {
     { pipelineKey: "enrich-rich-summaries", label: "Generate Rich Book Summaries", entityType: "book" as const, intervalHours: 2160, priority: 4, batchSize: 10, concurrency: 1 },
     { pipelineKey: "url-health-check", label: "URL Health Check", entityType: "both" as const, intervalHours: 168, priority: 9, batchSize: 100, concurrency: 10 },
     { pipelineKey: "content-quality-score", label: "Content Quality Scoring", entityType: "both" as const, intervalHours: 2160, priority: 5, batchSize: 20, concurrency: 1 },
-    { pipelineKey: "pinecone-index-authors", label: "Pinecone: Index Authors", entityType: "author" as const, intervalHours: 168, priority: 7, batchSize: 50, concurrency: 5 },
-    { pipelineKey: "pinecone-index-books", label: "Pinecone: Index Books", entityType: "book" as const, intervalHours: 168, priority: 7, batchSize: 50, concurrency: 5 },
+    { pipelineKey: "neon-index-authors", label: "Pinecone: Index Authors", entityType: "author" as const, intervalHours: 168, priority: 7, batchSize: 50, concurrency: 5 },
+    { pipelineKey: "neon-index-books", label: "Pinecone: Index Books", entityType: "book" as const, intervalHours: 168, priority: 7, batchSize: 50, concurrency: 5 },
     { pipelineKey: "rag-readiness-scan", label: "RAG Readiness Scan", entityType: "author" as const, intervalHours: 48, priority: 8, batchSize: 169, concurrency: 5 },
     { pipelineKey: "chatbot-candidate-scan", label: "Chatbot Candidate Scan", entityType: "author" as const, intervalHours: 48, priority: 7, batchSize: 169, concurrency: 5 },
   ];

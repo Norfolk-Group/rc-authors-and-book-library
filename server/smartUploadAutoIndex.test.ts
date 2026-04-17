@@ -1,13 +1,13 @@
 /**
  * Smart Upload Auto-Indexing Tests
  *
- * Validates that the commit mutation correctly triggers Pinecone indexing
- * based on the pineconeNamespace field set by the AI classifier.
+ * Validates that the commit mutation correctly triggers Neon indexing
+ * based on the neonNamespace field set by the AI classifier.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// ── Mock the Pinecone indexing functions ─────────────────────────────────────
+// ── Mock the Neon indexing functions ─────────────────────────────────────
 
 vi.mock("./services/incrementalIndex.service", () => ({
   indexAuthorIncremental: vi.fn().mockResolvedValue(undefined),
@@ -38,8 +38,8 @@ import { indexRagFile, indexContentItem } from "./services/ragPipeline.service";
 // ── Helper: build a minimal upload object ────────────────────────────────────
 
 function makeUpload(overrides: Partial<{
-  pineconeNamespace: string | null;
-  shouldIndexPinecone: boolean;
+  neonNamespace: string | null;
+  shouldIndexNeon: boolean;
   aiContentType: string | null;
   overrideContentType: string | null;
   matchedAuthorId: number | null;
@@ -52,8 +52,8 @@ function makeUpload(overrides: Partial<{
   aiSuggestedBookTitle: string | null;
 }> = {}) {
   return {
-    pineconeNamespace: null,
-    shouldIndexPinecone: false,
+    neonNamespace: null,
+    shouldIndexNeon: false,
     aiContentType: null,
     overrideContentType: null,
     matchedAuthorId: null,
@@ -75,75 +75,75 @@ describe("Smart Upload Auto-Indexing Logic", () => {
     vi.clearAllMocks();
   });
 
-  it("skips Pinecone indexing when shouldIndexPinecone is false", async () => {
+  it("skips Neon indexing when shouldIndexNeon is false", async () => {
     const upload = makeUpload({
-      shouldIndexPinecone: false,
-      pineconeNamespace: "authors",
+      shouldIndexNeon: false,
+      neonNamespace: "authors",
       confirmedAuthorId: 1,
     });
 
     // Simulate the guard check
-    const shouldIndex = upload.shouldIndexPinecone && upload.pineconeNamespace;
+    const shouldIndex = upload.shouldIndexNeon && upload.neonNamespace;
     expect(shouldIndex).toBeFalsy();
     expect(indexAuthorIncremental).not.toHaveBeenCalled();
   });
 
-  it("skips Pinecone indexing when pineconeNamespace is null", async () => {
+  it("skips Neon indexing when neonNamespace is null", async () => {
     const upload = makeUpload({
-      shouldIndexPinecone: true,
-      pineconeNamespace: null,
+      shouldIndexNeon: true,
+      neonNamespace: null,
     });
 
-    const shouldIndex = upload.shouldIndexPinecone && upload.pineconeNamespace;
+    const shouldIndex = upload.shouldIndexNeon && upload.neonNamespace;
     expect(shouldIndex).toBeFalsy();
     expect(indexAuthorIncremental).not.toHaveBeenCalled();
   });
 
-  it("routes to authors namespace when pineconeNamespace is 'authors'", async () => {
+  it("routes to authors namespace when neonNamespace is 'authors'", async () => {
     const upload = makeUpload({
-      shouldIndexPinecone: true,
-      pineconeNamespace: "authors",
+      shouldIndexNeon: true,
+      neonNamespace: "authors",
       confirmedAuthorId: 1,
     });
 
     // Verify the namespace routing condition
-    expect(upload.pineconeNamespace).toBe("authors");
+    expect(upload.neonNamespace).toBe("authors");
     expect(upload.confirmedAuthorId).toBe(1);
   });
 
-  it("routes to books namespace when pineconeNamespace is 'books'", async () => {
+  it("routes to books namespace when neonNamespace is 'books'", async () => {
     const upload = makeUpload({
-      shouldIndexPinecone: true,
-      pineconeNamespace: "books",
+      shouldIndexNeon: true,
+      neonNamespace: "books",
       confirmedBookId: 42,
     });
 
-    expect(upload.pineconeNamespace).toBe("books");
+    expect(upload.neonNamespace).toBe("books");
     expect(upload.confirmedBookId).toBe(42);
   });
 
-  it("routes to rag_files namespace when pineconeNamespace is 'rag_files'", async () => {
+  it("routes to rag_files namespace when neonNamespace is 'rag_files'", async () => {
     const upload = makeUpload({
-      shouldIndexPinecone: true,
-      pineconeNamespace: "rag_files",
+      shouldIndexNeon: true,
+      neonNamespace: "rag_files",
       finalS3Url: "https://cdn.example.com/rag-file.txt",
       aiSuggestedAuthorName: "Adam Grant",
     });
 
-    expect(upload.pineconeNamespace).toBe("rag_files");
+    expect(upload.neonNamespace).toBe("rag_files");
     expect(upload.finalS3Url).not.toBeNull();
   });
 
-  it("routes to content_items namespace when pineconeNamespace is 'content_items'", async () => {
+  it("routes to content_items namespace when neonNamespace is 'content_items'", async () => {
     const upload = makeUpload({
-      shouldIndexPinecone: true,
-      pineconeNamespace: "content_items",
+      shouldIndexNeon: true,
+      neonNamespace: "content_items",
       finalS3Url: "https://cdn.example.com/article.txt",
       aiSuggestedBookTitle: "Podcast Episode 42",
       aiSuggestedAuthorName: "Adam Grant",
     });
 
-    expect(upload.pineconeNamespace).toBe("content_items");
+    expect(upload.neonNamespace).toBe("content_items");
     expect(upload.finalS3Url).not.toBeNull();
   });
 
@@ -179,8 +179,8 @@ describe("Smart Upload Auto-Indexing Logic", () => {
 
   it("skips authors indexing when authorId is null", () => {
     const upload = makeUpload({
-      shouldIndexPinecone: true,
-      pineconeNamespace: "authors",
+      shouldIndexNeon: true,
+      neonNamespace: "authors",
       matchedAuthorId: null,
       confirmedAuthorId: null,
     });
@@ -192,8 +192,8 @@ describe("Smart Upload Auto-Indexing Logic", () => {
 
   it("skips books indexing when bookId is null", () => {
     const upload = makeUpload({
-      shouldIndexPinecone: true,
-      pineconeNamespace: "books",
+      shouldIndexNeon: true,
+      neonNamespace: "books",
       matchedBookId: null,
       confirmedBookId: null,
     });

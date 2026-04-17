@@ -2,9 +2,9 @@
  * run_all_pipelines.ts
  * Triggers all enrichment pipelines in priority order:
  * 1. enrich-social-stats  (Substack post counts + Wikipedia + LinkedIn)
- * 2. pinecone-index-authors
- * 3. pinecone-index-books
- * 4. pinecone-index-articles
+ * 2. neon-index-authors
+ * 3. neon-index-books
+ * 4. neon-index-articles
  * 5. rag-readiness-scan
  * 6. chatbot-candidate-scan
  * 7. enrich-bios
@@ -16,9 +16,9 @@ import { triggerPipeline, getRegisteredPipelines } from "../server/services/enri
 
 const PRIORITY_PIPELINES = [
   "enrich-social-stats",       // Substack post counts, Wikipedia, LinkedIn, Twitter
-  "pinecone-index-authors",    // Embed + upsert all authors to Pinecone
-  "pinecone-index-books",      // Embed + upsert all books to Pinecone
-  "pinecone-index-articles",   // Embed + upsert all magazine articles to Pinecone
+  "neon-index-authors",    // Embed + upsert all authors to Neon pgvector
+  "neon-index-books",      // Embed + upsert all books to Neon pgvector
+  "neon-index-articles",   // Embed + upsert all magazine articles to Neon pgvector
   "rag-readiness-scan",        // Compute RAG readiness scores
   "chatbot-candidate-scan",    // Identify chatbot-ready authors
   "enrich-bios",               // Fill missing author bios

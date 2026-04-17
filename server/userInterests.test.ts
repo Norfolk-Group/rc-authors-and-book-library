@@ -14,7 +14,7 @@ vi.mock("./services/ragPipeline.service", () => ({
   embedText: vi.fn().mockResolvedValue(new Array(3072).fill(0.1)),
 }));
 
-vi.mock("./services/pinecone.service", () => ({
+vi.mock("./services/neonVector.service", () => ({
   queryVectors: vi.fn().mockResolvedValue([
     { id: "author-adam-grant-chunk0", score: 0.92, metadata: { authorName: "Adam Grant", contentType: "author", text: "..." } },
     { id: "author-daniel-kahneman-chunk0", score: 0.88, metadata: { authorName: "Daniel Kahneman", contentType: "author", text: "..." } },
@@ -26,7 +26,7 @@ vi.mock("./services/pinecone.service", () => ({
 // ── Import after mocks ────────────────────────────────────────────────────────
 
 import { embedText } from "./services/ragPipeline.service";
-import { queryVectors } from "./services/pinecone.service";
+import { queryVectors } from "./services/neonVector.service";
 
 // ── Inline the getPineconeAuthorCandidates logic for unit testing ─────────────
 // We test the logic directly since it's a module-level private function.

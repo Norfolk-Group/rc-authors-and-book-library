@@ -159,7 +159,7 @@ export function registerSmartUploadRoutes(app: Express): void {
                   matchedBookId,
                   targetTable: classification.targetTable,
                   shouldIndexPinecone: classification.shouldIndexPinecone,
-                  pineconeNamespace: classification.pineconeNamespace,
+                  neonNamespace: classification.neonNamespace,
                   shouldMirrorDropbox: true,
                   suggestedDropboxPath: classification.suggestedDropboxPath,
                   classifiedAt: new Date(),

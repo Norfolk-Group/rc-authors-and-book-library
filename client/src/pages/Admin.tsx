@@ -128,7 +128,7 @@ const NAV_TIPS: Record<string, string> = {
   dropbox: "Back up avatars, book covers, and PDFs to Dropbox. Browse the /backup folder and ingest new PDFs from /Inbox.",
   "dropbox-config": "Manage all Dropbox folder connections — backup, inbox, source, and design folders. Validate paths, toggle folders on/off, and add new connections.",
   "smart-upload": "Upload files from your computer. Claude AI automatically classifies each file, matches it to an author or book, and routes it to the correct database table and Pinecone namespace.",
-  pinecone: "Manage the Pinecone vector index used for semantic search, RAG chatbots, and content recommendations.",
+  "neon-pgvector": "Manage the Neon pgvector index used for semantic search, RAG chatbots, and content recommendations.",
   "s3-audit": "Audit S3 CDN assets — find missing covers, broken URLs, and orphaned files. Migrate non-S3 images to CDN.",
   // Intelligence
   "digital-me": "Configure and enable AI chatbots (Digital Me) for individual authors. Review RAG readiness scores and knowledge bases.",
@@ -177,7 +177,7 @@ const NAV_GROUPS: NavGroup[] = [
       { id: "dropbox", label: "Dropbox Backup", icon: Cloud },
       { id: "dropbox-config", label: "Dropbox Config", icon: Cloud },
       { id: "smart-upload", label: "Smart Upload", icon: CloudArrowUp },
-      { id: "pinecone", label: "Pinecone Index", icon: Database },
+      { id: "neon-pgvector", label: "Neon pgvector Index", icon: Database },
       { id: "s3-audit", label: "S3 CDN Audit", icon: CloudArrowUp },
     ],
   },
@@ -523,7 +523,7 @@ export default function Admin() {
               {activeSection === "dropbox" && <AdminDropboxTab />}
               {activeSection === "dropbox-config" && <AdminDropboxConfigTab />}
               {activeSection === "smart-upload" && <AdminSmartUploadTab />}
-              {activeSection === "pinecone" && <AdminPineconeTab />}
+              {activeSection === "neon-pgvector" && <AdminPineconeTab />}
               {activeSection === "duplicates" && <AdminDuplicatesTab />}
               {activeSection === "s3-audit" && <AdminS3AuditTab />}
               {activeSection === "ai-review" && <AdminReviewQueueTab />}

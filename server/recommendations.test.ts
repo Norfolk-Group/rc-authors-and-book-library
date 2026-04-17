@@ -12,7 +12,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import type { TrpcContext } from "./_core/context";
 
 // Mock Pinecone service to avoid real API calls in tests
-vi.mock("./services/pinecone.service", () => ({
+vi.mock("./services/neonVector.service", () => ({
   queryVectors: vi.fn().mockResolvedValue([]),
   queryAllNamespaces: vi.fn().mockResolvedValue([]),
   fetchVectorById: vi.fn().mockResolvedValue(null),

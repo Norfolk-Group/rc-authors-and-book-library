@@ -133,10 +133,10 @@ export function AdminPineconeTab() {
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-xl font-semibold">Pinecone Vector Index</h2>
-            <InfoTip text="Pinecone is the vector database powering all semantic search, chatbot RAG, and 'Similar Authors/Books' features. Vectors are 1536-dimensional Gemini embeddings. The library-rag index has 5 namespaces: authors, books, content_items, rag_files, articles." side="right" />
+            <InfoTip text="Neon pgvector is the vector database powering all semantic search, chatbot RAG, and 'Similar Authors/Books' features. Vectors are 1536-dimensional Gemini embeddings. The library-rag index has 5 namespaces: authors, books, content_items, rag_files, articles." side="right" />
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            Manage the <code className="text-xs bg-muted px-1 rounded">library-rag</code> index — embed and upsert content for semantic search.
+            Manage the <code className="text-xs bg-muted px-1 rounded">vector_embeddings</code> index — embed and upsert content for semantic search.
           </p>
         </div>
         <div className="flex gap-2">

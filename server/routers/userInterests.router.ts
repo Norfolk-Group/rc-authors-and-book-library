@@ -24,7 +24,7 @@ import { eq, and, inArray, desc } from "drizzle-orm";
 import { invokeLLM } from "../_core/llm";
 import { logger } from "../lib/logger";
 import { embedText } from "../services/ragPipeline.service";
-import { queryVectors } from "../services/pinecone.service";
+import { queryVectors } from "../services/neonVector.service";
 
 const DEFAULT_SCORING_MODEL = "claude-opus-4-5";
 
@@ -497,7 +497,7 @@ Be specific — cite actual books, frameworks, and ideas from each author.`,
   scoreAllAuthors: protectedProcedure
     .input(z.object({
       model: z.string().optional().default(DEFAULT_SCORING_MODEL),
-      pineconeTopK: z.number().int().min(5).max(183).optional().default(30),
+      neonTopK: z.number().int().min(5).max(183).optional().default(30),
       skipPineconeFilter: z.boolean().optional().default(false),
     }).optional())
     .mutation(async ({ ctx, input }) => {
@@ -505,7 +505,7 @@ Be specific — cite actual books, frameworks, and ideas from each author.`,
       if (!db) throw new Error("Database unavailable");
 
       const model = input?.model ?? DEFAULT_SCORING_MODEL;
-      const pineconeTopK = input?.pineconeTopK ?? 30;
+      const neonTopK = input?.neonTopK ?? 30;
       const skipPineconeFilter = input?.skipPineconeFilter ?? false;
 
       const interests = await db
@@ -519,14 +519,14 @@ Be specific — cite actual books, frameworks, and ideas from each author.`,
 
       // ── Step 1: Pinecone pre-filter ──────────────────────────────────────────
       let candidateNames: string[] = [];
-      let usedPineconeFilter = false;
+      let usedNeonFilter = false;
 
       if (!skipPineconeFilter) {
         candidateNames = await getPineconeAuthorCandidates(
           interests.map((i) => ({ topic: i.topic, description: i.description, weight: i.weight })),
-          pineconeTopK
+          neonTopK
         );
-        usedPineconeFilter = candidateNames.length > 0;
+        usedNeonFilter = candidateNames.length > 0;
       }
 
       // ── Step 2: Fetch RAG rows (filtered or full) ────────────────────────────
@@ -536,11 +536,11 @@ Be specific — cite actual books, frameworks, and ideas from each author.`,
         .where(eq(authorRagProfiles.ragStatus, "ready"));
 
       // If Pinecone returned candidates, restrict to those authors only
-      const ragRows = usedPineconeFilter
+      const ragRows = usedNeonFilter
         ? allRagRows.filter(r => candidateNames.includes(r.authorName))
         : allRagRows;
 
-      logger.info(`[userInterests] scoreAllAuthors: ${ragRows.length} authors to score (pinecone filter: ${usedPineconeFilter}, total with RAG: ${allRagRows.length})`);
+      logger.info(`[userInterests] scoreAllAuthors: ${ragRows.length} authors to score (neon filter: ${usedNeonFilter}, total with RAG: ${allRagRows.length})`);
 
       // ── Step 3: LLM scoring on candidates ───────────────────────────────────
       let scored = 0;
@@ -588,8 +588,8 @@ Be specific — cite actual books, frameworks, and ideas from each author.`,
         scored,
         total: allRagRows.length,
         candidates: ragRows.length,
-        usedPineconeFilter,
-        message: usedPineconeFilter
+        usedNeonFilter,
+        message: usedNeonFilter
           ? `Scored ${scored} of ${ragRows.length} Pinecone-selected candidates (${allRagRows.length} total with RAG)`
           : `Scored ${scored} of ${allRagRows.length} authors (full scan — Pinecone filter unavailable)`,
       };

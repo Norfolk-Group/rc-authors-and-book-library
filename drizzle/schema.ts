@@ -1366,7 +1366,7 @@ export const smartUploads = mysqlTable("smart_uploads", {
   /** Whether to index in Pinecone */
   shouldIndexPinecone: boolean("shouldIndexPinecone").default(false),
   /** Pinecone namespace to use */
-  pineconeNamespace: varchar("pineconeNamespace", { length: 64 }),
+  neonNamespace: varchar("neonNamespace", { length: 64 }),
   /** Whether to mirror to Dropbox */
   shouldMirrorDropbox: boolean("shouldMirrorDropbox").default(true),
   /** Suggested Dropbox destination path */

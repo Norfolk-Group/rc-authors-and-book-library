@@ -12,7 +12,7 @@ import { describe, it, expect } from "vitest";
 
 describe("Pinecone service — configuration", () => {
   it("should export required functions", async () => {
-    const pineconeModule = await import("./services/pinecone.service");
+    const pineconeModule = await import("./services/neonVector.service");
     expect(typeof pineconeModule.ensureIndex).toBe("function");
     expect(typeof pineconeModule.upsertVectors).toBe("function");
     expect(typeof pineconeModule.queryVectors).toBe("function");
@@ -21,12 +21,12 @@ describe("Pinecone service — configuration", () => {
   });
 
   it("should have the correct index name constant", async () => {
-    const { PINECONE_INDEX_NAME } = await import("./services/pinecone.service");
+    const { PINECONE_INDEX_NAME } = await import("./services/neonVector.service");
     expect(PINECONE_INDEX_NAME).toBe("library-rag");
   });
 
   it("should have the correct embedding dimension", async () => {
-    const { EMBEDDING_DIMENSION } = await import("./services/pinecone.service");
+    const { EMBEDDING_DIMENSION } = await import("./services/neonVector.service");
     expect(EMBEDDING_DIMENSION).toBe(768);
   });
 });
@@ -45,7 +45,7 @@ describe("RAG pipeline service — text chunking", () => {
   });
 
   it("should chunk text into segments under max size", async () => {
-    const { chunkText } = await import("./services/pinecone.service");
+    const { chunkText } = await import("./services/neonVector.service");
     const longText = "This is a sentence. ".repeat(200); // ~4000 chars
     const chunks = chunkText(longText, 500, 50);
     expect(chunks.length).toBeGreaterThan(1);
@@ -55,7 +55,7 @@ describe("RAG pipeline service — text chunking", () => {
   });
 
   it("should return a single chunk for short text", async () => {
-    const { chunkText } = await import("./services/pinecone.service");
+    const { chunkText } = await import("./services/neonVector.service");
     const shortText = "This is a short article about productivity.";
     const chunks = chunkText(shortText, 500, 50);
     expect(chunks).toHaveLength(1);
@@ -63,7 +63,7 @@ describe("RAG pipeline service — text chunking", () => {
   });
 
   it("should handle empty text gracefully", async () => {
-    const { chunkText } = await import("./services/pinecone.service");
+    const { chunkText } = await import("./services/neonVector.service");
     const chunks = chunkText("", 500, 50);
     expect(chunks).toHaveLength(0);
   });

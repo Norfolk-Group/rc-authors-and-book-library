@@ -1,0 +1,1 @@
+ALTER TABLE `smart_uploads` RENAME COLUMN `pineconeNamespace` TO `neonNamespace`;

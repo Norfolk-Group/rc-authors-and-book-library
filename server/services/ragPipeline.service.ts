@@ -17,12 +17,12 @@ import {
   queryAllNamespaces,
   chunkText,
   makeVectorId,
-  PINECONE_INDEX_NAME,
+  NEON_TABLE_NAME,
   type ContentNamespace,
   type VectorMetadata,
   type UpsertVectorInput,
   type QueryResult,
-} from "./pinecone.service";
+} from "./neonVector.service";
 
 // ── Gemini Embedding Client (lazy import to avoid OOM in test workers) ────────────────────────────────────────────────────────────────────────────────────
 
@@ -39,17 +39,21 @@ async function getGenAI() {
   return _genai;
 }
 
-const EMBEDDING_MODEL = "models/gemini-embedding-001";
+// Switched from gemini-embedding-001 (3072 dims) to text-embedding-004 (1536 dims)
+// to stay within pgvector's HNSW 2000-dimension limit while maintaining quality.
+const EMBEDDING_MODEL = "models/text-embedding-004";
+const EMBEDDING_DIMENSIONS = 1536;
 
 /**
- * Embed a single text string using Gemini gemini-embedding-001.
- * Returns a 3072-dimensional float array.
+ * Embed a single text string using Gemini text-embedding-004.
+ * Returns a 1536-dimensional float array.
  */
 export async function embedText(text: string): Promise<number[]> {
   const genai = await getGenAI();
   const result = await genai.models.embedContent({
     model: EMBEDDING_MODEL,
-    contents: [{ parts: [{ text: text.slice(0, 8192) }] }], // Gemini API v1beta format
+    contents: [{ parts: [{ text: text.slice(0, 8192) }] }],
+    config: { outputDimensionality: EMBEDDING_DIMENSIONS },
   });
   const values = result.embeddings?.[0]?.values;
   if (!values || values.length === 0) {
@@ -342,4 +346,4 @@ export async function indexRagFile(input: IndexRagFileInput): Promise<number> {
 
 // ── Convenience re-exports ────────────────────────────────────────────────────
 
-export { ensureIndex, getIndexStats } from "./pinecone.service";
+export { ensureIndex, getIndexStats } from "./neonVector.service";
