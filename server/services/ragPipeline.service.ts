@@ -39,13 +39,14 @@ async function getGenAI() {
   return _genai;
 }
 
-// Switched from gemini-embedding-001 (3072 dims) to text-embedding-004 (1536 dims)
-// to stay within pgvector's HNSW 2000-dimension limit while maintaining quality.
-const EMBEDDING_MODEL = "models/text-embedding-004";
+// Using gemini-embedding-001 with outputDimensionality: 1536 to stay within
+// pgvector's HNSW 2000-dimension limit. text-embedding-004 is not available
+// on the v1beta API endpoint; gemini-embedding-001 supports configurable dims.
+const EMBEDDING_MODEL = "models/gemini-embedding-001";
 const EMBEDDING_DIMENSIONS = 1536;
 
 /**
- * Embed a single text string using Gemini text-embedding-004.
+ * Embed a single text string using Gemini gemini-embedding-001 (1536 dims).
  * Returns a 1536-dimensional float array.
  */
 export async function embedText(text: string): Promise<number[]> {
