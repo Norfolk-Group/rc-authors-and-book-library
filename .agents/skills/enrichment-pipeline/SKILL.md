@@ -1,6 +1,6 @@
 ---
 name: enrichment-pipeline
-description: Understand and extend the enrichment orchestrator — the autonomous pipeline that fetches bios, summaries, social stats, avatars, and book covers for all authors and books. Use when adding new enrichment steps, debugging pipeline failures, adjusting batch sizes, or understanding the post-enrichment Pinecone re-indexing hooks.
+description: Understand and extend the enrichment orchestrator — the autonomous pipeline that fetches bios, summaries, social stats, avatars, and book covers for all authors and books. Use when adding new enrichment steps, debugging pipeline failures, adjusting batch sizes, or understanding the post-enrichment Neon pgvector re-indexing hooks. NOTE: Pinecone was removed Apr 18 2026 and replaced with Neon pgvector.
 ---
 
 # Enrichment Pipeline — RC Library App
@@ -21,61 +21,64 @@ client/src/components/admin/AdminIntelligenceTab.tsx ← Pipeline control UI
 
 ## Pipeline Registry
 
-| Pipeline Key | What it does | Auto-re-indexes Pinecone? |
+| Pipeline Key | What it does | Auto-re-indexes Neon? |
 |---|---|---|
-| `enrich-bios` | Fetches short author bios via Perplexity/Wikipedia | ✅ Yes — after each bio update |
-| `enrich-rich-bios` | Generates long-form richBioJson via Claude | ✅ Yes — after each richBioJson update |
-| `enrich-book-summaries` | Fetches book summaries via Google Books / Perplexity | ✅ Yes — after each summary update |
-| `enrich-rich-summaries` | Generates long-form richSummaryJson via Claude | ✅ Yes — after each richSummaryJson update |
-| `enrich-social-stats` | Fetches Twitter/Substack/LinkedIn stats | ❌ No (metadata only) |
-| `enrich-avatars` | Generates AI avatars for authors | ❌ No (images only) |
-| `enrich-book-covers` | Scrapes Amazon for book cover images | ❌ No (images only) |
-| `pinecone-index-authors` | Bulk-indexes all authors to Pinecone | N/A (is the indexing) |
-| `pinecone-index-books` | Bulk-indexes all books to Pinecone | N/A (is the indexing) |
+| `enrich-bios` | Fetches short author bios via Perplexity/Wikipedia | Yes — after each bio update |
+| `enrich-rich-bios` | Generates long-form richBioJson via Claude | Yes — after each richBioJson update |
+| `enrich-book-summaries` | Fetches book summaries via Google Books / Perplexity | Yes — after each summary update |
+| `enrich-rich-summaries` | Generates long-form richSummaryJson via Claude | Yes — after each richSummaryJson update |
+| `enrich-social-stats` | Fetches Twitter/Substack/LinkedIn stats | No (metadata only) |
+| `enrich-avatars` | Generates AI avatars for authors | No (images only) |
+| `enrich-book-covers` | Scrapes Amazon for book cover images | No (images only) |
+| `neon-index-authors` | Bulk-indexes all authors to Neon pgvector | N/A (is the indexing) |
+| `neon-index-books` | Bulk-indexes all books to Neon pgvector | N/A (is the indexing) |
 
-## Post-Enrichment Pinecone Re-indexing
+## Post-Enrichment Neon Re-indexing
 
-As of Apr 2026, the four bio/summary enrichment pipelines automatically re-index to Pinecone after each DB update. This prevents stale vectors.
+As of Apr 18, 2026, the four bio/summary enrichment pipelines automatically re-index to **Neon pgvector** after each DB update. This prevents stale vectors.
+
+> **MIGRATION NOTE:** Pinecone was removed Apr 18, 2026. All `pinecone.service.ts` imports
+> are now `neonVector.service.ts`. Pipeline keys `pinecone-index-*` are now `neon-index-*`.
 
 ### Where the hooks are wired:
 
 **`runBioEnrichment`** (short bio):
 ```ts
 // After: await db.update(authorProfiles).set({ bio: newBio }).where(eq(authorProfiles.id, author.id))
-await indexAuthorIncremental(author.id).catch(e => logger.warn("Pinecone re-index failed", e));
+await indexAuthorIncremental(author.id).catch(e => logger.warn("Neon re-index failed", e));
 ```
 
 **`runRichBioEnrichment`** (long-form richBioJson):
 ```ts
 // After: await db.update(authorProfiles).set({ richBioJson: result }).where(...)
-await indexAuthorIncremental(author.id).catch(e => logger.warn("Pinecone re-index failed", e));
+await indexAuthorIncremental(author.id).catch(e => logger.warn("Neon re-index failed", e));
 ```
 
 **`runRichSummaryEnrichment`** (long-form richSummaryJson):
 ```ts
 // After: await db.update(bookProfiles).set({ richSummaryJson: result }).where(...)
-await indexBookIncremental(book.id).catch(e => logger.warn("Pinecone re-index failed", e));
+await indexBookIncremental(book.id).catch(e => logger.warn("Neon re-index failed", e));
 ```
 
 **`handleUpdateBook`** (manual admin book edit):
 ```ts
 // After: return updatedBook
 if (patch.summary || patch.keyThemes) {
-  indexBookIncremental(updatedBook.id).catch(e => logger.warn("Pinecone re-index failed", e));
+  indexBookIncremental(updatedBook.id).catch(e => logger.warn("Neon re-index failed", e));
 }
 ```
 
 **Single-author enrich** (admin manual trigger):
 ```ts
 // After: await enrichAuthorViaWikipedia(authorId)
-await indexAuthorIncremental(authorId).catch(e => logger.warn("Pinecone re-index failed", e));
+await indexAuthorIncremental(authorId).catch(e => logger.warn("Neon re-index failed", e));
 ```
 
 ## Adding a New Enrichment Pipeline
 
 1. Add a new `run*Enrichment` function in `enrichmentOrchestrator.service.ts`
 2. Register it in the `PIPELINE_REGISTRY` object in `orchestrator.router.ts`
-3. If the pipeline updates `bio`, `richBioJson`, `summary`, or `richSummaryJson`, add a Pinecone re-index hook after the DB update
+3. If the pipeline updates `bio`, `richBioJson`, `summary`, or `richSummaryJson`, add a Neon re-index hook after the DB update
 4. Add a trigger button in `AdminIntelligenceTab.tsx`
 
 ### Template for a new pipeline:
@@ -96,7 +99,7 @@ export async function runMyNewEnrichment(
       if (!result) { skipped++; continue; }
       await db.update(authorProfiles).set({ myNewField: result }).where(eq(authorProfiles.id, row.id));
       // If this updates bio/summary, add re-index hook here:
-      // await indexAuthorIncremental(row.id).catch(e => logger.warn("Pinecone re-index failed", e));
+      // await indexAuthorIncremental(row.id).catch(e => logger.warn("Neon re-index failed", e));
       processed++;
     } catch (e) {
       logger.error(`Failed to enrich author ${row.authorName}:`, e);
@@ -128,7 +131,7 @@ Then re-run `enrich-social-stats` for that author.
 
 ## Common Pitfalls
 
-- **Re-index hook placement**: always add the Pinecone hook AFTER the DB update succeeds, inside the `try` block, with `.catch()` to prevent pipeline failures from Pinecone errors.
+- **Re-index hook placement**: always add the Neon re-index hook AFTER the DB update succeeds, inside the `try` block, with `.catch()` to prevent pipeline failures from Neon errors.
 - **`indexAuthorIncremental` vs `indexAuthor`**: use `indexAuthorIncremental` (skips if already indexed) for enrichment hooks; use `indexAuthor` only for full re-index operations.
 - **`parallelBatch` generic type**: the function signature is `parallelBatch<TInput>`. TypeScript infers the type from the array — do not cast to `string[]`.
 - **Pipeline progress**: `onProgress` is called after each item. The UI polls for updates every 2 seconds. Do not call `onProgress` more than once per item.

@@ -3,19 +3,51 @@
 This file provides context for AI coding assistants (Claude Code, Manus, Gemini CLI, etc.)
 working on this codebase. **Read this before making any changes.**
 
-Last updated: April 2026
+Last updated: April 18, 2026
 
 ---
 
 ## Project Overview
 
 **RC Library** (`authors-books-library`) is a full-stack personal digital library for
-Ricardo Cidale / Norfolk Consulting Group. It manages **187 authors** and **163 books**,
+Ricardo Cidale / Norfolk Consulting Group. It manages **183 authors** and **163 books**,
 enriched with AI-generated bios, avatars, book covers, summaries, social stats, and
-semantic vector search powered by Pinecone.
+semantic vector search powered by **Neon pgvector** (migrated from Pinecone, April 2026).
 
 **Live URL:** `https://authlib-ehsrgokn.manus.space`
 **GitHub:** `https://github.com/norfolk-ai/authors-books-library` (private)
+
+---
+
+## Critical Rules (Read First)
+
+1. **Never use Google Drive** — removed April 2026. All cloud storage is Dropbox + Manus S3.
+   Do not add any `gws`, `rclone`, or Google Drive API calls.
+
+2. **Always use `ENV` from `server/_core/env.ts`** — never access `process.env` directly in
+   application code. Scripts (`.mjs`/`.cjs` in `scripts/`) may use `process.env` directly.
+
+3. **Never edit `server/_core/`** — framework plumbing. Use the exported helpers only.
+
+4. **TypeScript: 0 errors at all times.** Run `npx tsc --noEmit` to verify. Trust this over
+   the watcher output.
+
+5. **Test suite: ~1020 tests passing.** All changes must keep tests green.
+
+6. **Always fire-and-forget Neon re-indexing** after bio/summary DB updates:
+   ```ts
+   indexAuthorIncremental(id).catch(e => logger.warn("Neon re-index failed", e));
+   ```
+
+7. **Never store file bytes in DB columns.** Use S3 (`storagePut`) and store the URL.
+
+8. **Never call LLM from client-side code.** All AI calls go through tRPC procedures.
+
+9. **Vite version pin:** Pinned to `6.x`. Do NOT upgrade to Vite 7 — the deployment
+   environment runs Node.js 20.15.1, which is below Vite 7's minimum of 20.19+.
+
+10. **flowbite-react version pin:** Pinned to `0.12.16`. Do NOT upgrade to `0.12.17+` —
+    those versions introduce `oxc-parser` which has a native binding that fails in deployment.
 
 ---
 
@@ -25,23 +57,95 @@ semantic vector search powered by Pinecone.
 |---|---|
 | Frontend | React 19, Tailwind CSS 4, shadcn/ui, Radix UI, Wouter (routing) |
 | Backend | Express 4, tRPC 11, Superjson |
-| Database | MySQL / TiDB Cloud (Drizzle ORM v0.44) |
-| Vector DB | Pinecone v7 (`library-rag` index, 4 namespaces, ~1,160 vectors) |
+| Database | MySQL / TiDB Cloud (Drizzle ORM v0.44) — 45 migrations applied |
+| Vector DB | **Neon pgvector** (`vector_embeddings` table, 1536-dim HNSW cosine index, 395 vectors) |
 | File storage | Manus S3 CDN (`storagePut` / `storageGet` in `server/storage.ts`) |
 | Cloud sync | Dropbox API (OAuth, auto token refresh) — **Google Drive removed Apr 2026** |
 | AI / LLM | Anthropic Claude (Opus for architecture, Sonnet for enrichment), Gemini (embeddings) |
 | Auth | Manus OAuth (JWT session cookies) |
 | Build | Vite 6.4.1, esbuild, TypeScript 5.9 |
-| Testing | Vitest — **963 tests passing** (Apr 2026) |
+| Testing | Vitest — ~1020 tests passing (Apr 2026) |
 | Icons | Phosphor Icons (`@phosphor-icons/react`), Lucide |
 | Animation | Framer Motion |
 | Logging | `server/lib/logger.ts` — structured logger (debug suppressed in prod) |
 
-> **Vite version pin:** Pinned to `6.x`. Do NOT upgrade to Vite 7 — the deployment
-> environment runs Node.js 20.15.1 which is below Vite 7's minimum of 20.19+.
+---
 
-> **flowbite-react version pin:** Pinned to `0.12.16`. Do NOT upgrade to `0.12.17+` —
-> those versions introduce `oxc-parser` which has a native binding that fails in deployment.
+## Vector Database — Neon pgvector (MIGRATED FROM PINECONE, APR 18 2026)
+
+> **IMPORTANT:** The vector database was migrated from Pinecone to Neon pgvector on April 18, 2026.
+> All references to `pinecone.service.ts` are now stale. Use `neonVector.service.ts` instead.
+
+### Connection
+- **Provider:** Neon Postgres (serverless)
+- **Env var:** `NEON_DATABASE_URL` (separate from the MySQL `DATABASE_URL`)
+- **Driver:** `@neondatabase/serverless` (WebSocket-based) for server code; `pg` for scripts
+
+### Table Schema
+```sql
+CREATE TABLE vector_embeddings (
+  id          TEXT PRIMARY KEY,
+  namespace   TEXT NOT NULL,
+  embedding   vector(1536),
+  metadata    JSONB,
+  title       TEXT,
+  text        TEXT,
+  created_at  TIMESTAMPTZ DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX ON vector_embeddings USING hnsw (embedding vector_cosine_ops);
+CREATE INDEX ON vector_embeddings (namespace);
+```
+
+### Namespaces (Current Vector Counts — Apr 18, 2026)
+
+| Namespace | Vectors | Content |
+|---|---|---|
+| `authors` | 183 | Author bios and richBioJson |
+| `books` | 165 | Book summaries and richSummaryJson |
+| `lb_pitchdeck` | 28 | Library pitch deck RAG chunks |
+| `lb_documents` | 8 | Library document RAG chunks |
+| `lb_website` | 7 | Library website RAG chunks |
+| `lb_app_data` | 4 | Library app data RAG chunks |
+| **Total** | **395** | |
+
+### Embedding Model
+- **Model:** `models/gemini-embedding-001` with `outputDimensionality: 1536`
+- **Why 1536?** pgvector's HNSW index has a 2000-dimension limit. Gemini `gemini-embedding-001`
+  default produces 3072 dims (too large). `text-embedding-004` is not available on the v1beta
+  API endpoint. `gemini-embedding-001` with `outputDimensionality: 1536` is the correct approach.
+- **Do NOT** use `text-embedding-004` — it returns 404 on the v1beta endpoint.
+- **Do NOT** use `gemini-embedding-001` without `outputDimensionality: 1536` — it produces 3072
+  dims which exceed the HNSW limit.
+
+### Key Service File
+```
+server/services/neonVector.service.ts   ← Drop-in replacement for pinecone.service.ts
+```
+
+### Fire-and-Forget Re-indexing Pattern
+```ts
+import { indexAuthorIncremental, indexBookIncremental } from "../services/incrementalIndex.service";
+
+// After any bio/summary DB update:
+indexAuthorIncremental(authorId).catch(e => logger.warn("Neon re-index failed", e));
+indexBookIncremental(bookId).catch(e => logger.warn("Neon re-index failed", e));
+```
+
+### Admin Re-indexing
+The Admin Console → System → Neon pgvector Index tab has individual "Index All Authors",
+"Index All Books", etc. buttons. For bulk re-indexing from the command line, use:
+```bash
+node scripts/reindex_pg.cjs authors 0 200
+node scripts/reindex_pg.cjs books 0 200
+```
+
+### Legacy Pinecone Notes (DO NOT USE)
+- `server/services/pinecone.service.ts` still exists but is **no longer used**. It should be
+  deleted once the migration is confirmed stable.
+- The old Pinecone index was `library-rag` with 1,160 vectors across 4 namespaces.
+- The `@pinecone-database/pinecone` package is still in `package.json` but should be removed.
+- `pinecone.test.ts` still exists but is skipped in CI due to OOM in vitest worker.
 
 ---
 
@@ -51,9 +155,9 @@ semantic vector search powered by Pinecone.
 client/src/
   pages/
     Home.tsx                    ← Main library view (Authors / Books / Audiobooks tabs)
-    admin/Admin.tsx             ← Admin Console (sidebar with grouped sections)
+    Admin.tsx                   ← Admin Console (sidebar with grouped sections)
     AuthorDetail.tsx            ← /author/:slug deep-link page
-    BookDetail.tsx              ← /book/:slug deep-link page
+    BookDetail.tsx              ← /book/:slug detail page
     AuthorCompare.tsx           ← /compare — side-by-side author comparison
     Leaderboard.tsx             ← /leaderboard — enrichment quality leaderboard
   components/
@@ -63,9 +167,12 @@ client/src/
       AdminDropboxConfigTab.tsx ← Dropbox folder connection management
       AdminSmartUploadTab.tsx   ← Smart Upload (drag-drop, AI classify, review, commit)
       AdminRagReadinessTab.tsx  ← RAG readiness leaderboard
+      AdminPineconeTab.tsx      ← Neon pgvector Index admin UI (RENAMED but file kept)
       [other admin tabs...]
     library/
       AuthorCard.tsx            ← Author card with cover strip + hover tooltips
+      AuthorsTabContent.tsx     ← Authors tab with collapsible Recently Enriched/Tagged strips
+      BooksTabContent.tsx       ← Books tab with collapsible Recently Tagged strip
       BookCard.tsx              ← Book card with keyboard nav
       AudioCard.tsx             ← Audiobook card
       [other library components...]
@@ -75,27 +182,28 @@ server/
   routers/                      ← tRPC feature routers (one file per domain)
     authorProfiles.router.ts    ← Bio, avatar, social link enrichment
     bookProfiles.router.ts      ← Summary, cover, rating enrichment
-    recommendations.router.ts   ← similarBooks, similarAuthors, thematicSearch (Pinecone + reranker)
+    recommendations.router.ts   ← similarBooks, similarAuthors, thematicSearch (score-sorted)
     chatbot.router.ts           ← Author chatbot with RAG chunk retrieval
     smartUpload.router.ts       ← Smart Upload tRPC procedures
     dropboxConfig.router.ts     ← Dropbox folder config CRUD
     orchestrator.router.ts      ← Enrichment pipeline trigger/monitor
     humanReviewQueue.router.ts  ← Human review queue procedures
-    search.router.ts            ← Semantic search across namespaces
+    vectorSearch.router.ts      ← Semantic search + Neon pgvector index management
     favorites.router.ts         ← Favorites toggle/list
     scheduling.router.ts        ← Pipeline schedules + job history
     admin.router.ts             ← Admin utility procedures
     routers.ts                  ← Root router (merges all feature routers)
   services/
+    neonVector.service.ts            ← Neon pgvector client, upsert, query (REPLACES pinecone.service.ts)
+    pinecone.service.ts              ← DEPRECATED — do not use; pending deletion
+    incrementalIndex.service.ts      ← indexAuthorIncremental, indexBookIncremental
+    ragPipeline.service.ts           ← indexRagFile, indexContentItem, embedBatch
     enrichmentOrchestrator.service.ts ← All pipeline runners (bio, richBio, summary, etc.)
-    pinecone.service.ts               ← Pinecone client, upsert, query, rerank
-    incrementalIndex.service.ts       ← indexAuthorIncremental, indexBookIncremental
-    ragPipeline.service.ts            ← indexRagFile, indexContentItem, embedBatch
-    aiFileClassifier.service.ts       ← Claude AI file classification for Smart Upload
-    semanticDuplicate.service.ts      ← Near-duplicate detection (cosine ≥ 0.92)
-    ragReadiness.service.ts           ← RAG readiness scoring (0-100)
-    contentIntelligence.service.ts    ← URL health check + LLM quality scoring
-    dropboxIngest.service.ts          ← Dropbox → S3 ingestion pipeline
+    aiFileClassifier.service.ts      ← Claude AI file classification for Smart Upload
+    semanticDuplicate.service.ts     ← Near-duplicate detection (cosine ≥ 0.92)
+    ragReadiness.service.ts          ← RAG readiness scoring (0-100)
+    contentIntelligence.service.ts   ← URL health check + LLM quality scoring
+    dropboxIngest.service.ts         ← Dropbox → S3 ingestion pipeline
   _core/                        ← Framework plumbing — DO NOT EDIT
     llm.ts                      ← invokeLLM() helper
     env.ts                      ← ENV constants (use instead of process.env)
@@ -105,10 +213,17 @@ server/
   lib/
     logger.ts                   ← Structured logger
     parallelBatch.ts            ← Generic parallel batch executor
+    llmCatalogue.ts             ← Multi-vendor LLM catalogue (13 vendors, 47 models)
 
 drizzle/
-  schema.ts                     ← All table definitions
-  migrations/                   ← Auto-generated migration files
+  schema.ts                     ← All table definitions (25 tables, migration 0045 = latest)
+  migrations/                   ← Auto-generated migration files (0000–0045)
+
+scripts/
+  reindex_pg.cjs                ← Pure-Node re-indexing script (no tsx, uses pg + Gemini REST)
+  run_reindex_all.sh            ← Shell wrapper for full re-index of all types
+  find_missing_books.cjs        ← Finds and indexes books missing from Neon
+  [other scripts...]
 
 shared/
   types.ts                      ← Shared TypeScript types
@@ -126,6 +241,10 @@ shared/
 | `/book/:slug` | `BookDetail.tsx` | Deep-link book detail page |
 | `/compare` | `AuthorCompare.tsx` | Side-by-side author comparison |
 | `/leaderboard` | `Leaderboard.tsx` | Enrichment quality leaderboard |
+| `/chat/:slug` | `AuthorChatbot.tsx` | Author chatbot |
+| `/interests/heatmap` | `InterestHeatmap.tsx` | Interest heatmap |
+| `/interests/contrast` | `GroupContrast.tsx` | Group contrast view |
+| `/privacy` | `PrivacyPolicy.tsx` | Privacy policy |
 | `/admin` | `Admin.tsx` | Admin Console (auth-gated, admin role required) |
 | `/404` | `NotFound.tsx` | 404 fallback |
 
@@ -159,90 +278,15 @@ shared/
 | `coverImageUrl` / `s3CoverUrl` | External URL / S3 CDN URL |
 | `s3PdfUrl` | S3 CDN URL for the book PDF |
 
-### `rag_files`
-
-Chunked RAG documents indexed to Pinecone `rag_files` namespace.
-
-### `content_items`
-
-Individual content items (articles, videos, podcasts, newsletters) per author.
-Indexed to Pinecone `content_items` namespace.
-
 ### `smart_uploads`
 
 Staging table for Smart Upload jobs. Statuses: `pending` → `classifying` → `review` → `committed` / `rejected` / `error`.
 
-### `dropbox_folder_configs`
+**Column rename (Apr 18, 2026):** `pineconeNamespace` was renamed to `neonNamespace` (migration `0045_pale_betty_ross.sql`).
 
-Admin-managed Dropbox folder connections. Managed via Admin → Media → Dropbox Config.
+### `author_aliases`
 
-### `human_review_queue`
-
-Items flagged for human review (chatbot candidates, near-duplicates).
-
-### `enrichment_jobs`
-
-Background enrichment job log (pipeline name, status, progress, errors).
-
----
-
-## Pinecone Vector Database
-
-**Index:** `library-rag` | **Dimension:** 1536 | **Metric:** cosine | **Cloud:** AWS us-east-1
-
-| Namespace | Vectors (Apr 2026) | Content |
-|---|---|---|
-| `authors` | ~465 | Author bios, richBioJson fields |
-| `books` | ~409 | Book summaries, themes, richSummaryJson |
-| `rag_files` | ~129 | Chunked RAG documents |
-| `content_items` | ~157 | Individual content items |
-
-**Reranker:** `bge-reranker-v2-m3` applied to `similarBooks`, `similarAuthors`, `thematicSearch`.
-
-**Post-enrichment re-indexing:** All bio/summary enrichment pipelines automatically call
-`indexAuthorIncremental` or `indexBookIncremental` after each DB update (fire-and-forget).
-
-See `.agents/skills/pinecone-rag/SKILL.md` for full Pinecone patterns.
-
----
-
-## Dropbox Integration
-
-**All cloud sync goes through Dropbox. Google Drive was removed in April 2026.**
-
-| Folder | API Path |
-|---|---|
-| Backup root | `/Apps NAI/RC Library App Data/Authors and Books Backup` |
-| Books inbox | `/Apps NAI/RC Library App Data/Books Content Entry Folder` |
-| Authors inbox | `/Apps NAI/RC Library App Data/Authors Content Entry Folder` (env: `DROPBOX_AUTHORS_FOLDER`) |
-| Graphics | `/Apps NAI/RC Library App Data/Graphics and Design` |
-
-Always use `DROPBOX_FOLDERS` from `server/dropbox.service.ts` — never hardcode paths.
-Always call `getDropboxAccessToken()` — it auto-refreshes the short-lived token.
-
-See `.agents/skills/dropbox-sync/SKILL.md` for full Dropbox patterns.
-
----
-
-## Smart Upload
-
-Admin feature (`/admin` → Media → Smart Upload) for AI-powered file ingestion:
-1. Drag-and-drop files (PDF, images, audio, video, EPUB, DOCX — 100 MB × 10)
-2. Claude AI classifies each file → determines content type, matched author/book, Pinecone namespace
-3. Admin reviews and commits → writes to DB + auto-indexes to Pinecone
-
-See `.agents/skills/smart-upload/SKILL.md` for full Smart Upload patterns.
-
----
-
-## Enrichment Pipelines
-
-All pipelines are managed by `server/services/enrichmentOrchestrator.service.ts` and
-triggered from Admin → Intelligence Dashboard.
-
-Post-enrichment Pinecone re-indexing is automatic for all bio/summary pipelines.
-
-See `.agents/skills/enrichment-pipeline/SKILL.md` for full pipeline patterns.
+DB-backed author name normalization. Maps `rawName → canonical`. Managed via Admin → Content → Author Aliases. Seeded from `scripts/seed-author-aliases.mjs`.
 
 ---
 
@@ -265,7 +309,8 @@ Media
 
 System
   ├── API Health
-  └── Settings
+  ├── Neon pgvector Index   ← formerly "Pinecone Index"
+  └── [other system tabs]
 ```
 
 ---
@@ -319,15 +364,63 @@ Never use `console.log` directly in server production code.
 Use `parallelBatch<TInput>` from `server/lib/parallelBatch.ts` for all batch procedures.
 The function is generic over input type. Default concurrency is 2.
 
-### Fire-and-Forget Pinecone Re-indexing
+### Fire-and-Forget Neon Re-indexing
 
-Always use `.catch()` to prevent pipeline failures from Pinecone errors:
+Always use `.catch()` to prevent pipeline failures from Neon errors:
 
 ```ts
 // ✅ Correct pattern
 await db.update(authorProfiles).set({ bio: newBio }).where(eq(authorProfiles.id, id));
-indexAuthorIncremental(id).catch(e => logger.warn("Pinecone re-index failed", e));
+indexAuthorIncremental(id).catch(e => logger.warn("Neon re-index failed", e));
 ```
+
+---
+
+## Dropbox Integration
+
+**All cloud sync goes through Dropbox. Google Drive was removed in April 2026.**
+
+| Folder | API Path |
+|---|---|
+| Backup root | `/Apps NAI/RC Library App Data/Authors and Books Backup` |
+| Books inbox | `/Apps NAI/RC Library App Data/Books Content Entry Folder` |
+| Authors inbox | `/Apps NAI/RC Library App Data/Authors Content Entry Folder` (env: `DROPBOX_AUTHORS_FOLDER`) |
+| Graphics | `/Apps NAI/RC Library App Data/Graphics and Design` |
+
+Always use `DROPBOX_FOLDERS` from `server/dropbox.service.ts` — never hardcode paths.
+Always call `getDropboxAccessToken()` — it auto-refreshes the short-lived token.
+
+---
+
+## Smart Upload
+
+Admin feature (`/admin` → Media → Smart Upload) for AI-powered file ingestion:
+1. Drag-and-drop files (PDF, images, audio, video, EPUB, DOCX — 100 MB × 10)
+2. Claude AI classifies each file → determines content type, matched author/book, Neon namespace
+3. Admin reviews and commits → writes to DB + auto-indexes to Neon pgvector
+
+**Column name:** `smart_uploads.neonNamespace` (was `pineconeNamespace` before Apr 18, 2026 migration).
+
+---
+
+## Enrichment Pipelines
+
+All pipelines are managed by `server/services/enrichmentOrchestrator.service.ts` and
+triggered from Admin → Intelligence Dashboard.
+
+Post-enrichment Neon re-indexing is automatic for all bio/summary pipelines.
+
+| Pipeline Key | What it does | Auto-re-indexes Neon? |
+|---|---|---|
+| `enrich-bios` | Fetches short author bios via Perplexity/Wikipedia | ✅ Yes |
+| `enrich-rich-bios` | Generates long-form richBioJson via Claude | ✅ Yes |
+| `enrich-book-summaries` | Fetches book summaries via Google Books / Perplexity | ✅ Yes |
+| `enrich-rich-summaries` | Generates long-form richSummaryJson via Claude | ✅ Yes |
+| `enrich-social-stats` | Fetches Twitter/Substack/LinkedIn stats | ❌ No (metadata only) |
+| `enrich-avatars` | Generates AI avatars for authors | ❌ No (images only) |
+| `enrich-book-covers` | Scrapes Amazon for book cover images | ❌ No (images only) |
+| `neon-index-authors` | Bulk-indexes all authors to Neon pgvector | N/A (is the indexing) |
+| `neon-index-books` | Bulk-indexes all books to Neon pgvector | N/A (is the indexing) |
 
 ---
 
@@ -338,10 +431,10 @@ All secrets are injected by the Manus platform. Use `ENV` from `server/_core/env
 | Variable | Purpose |
 |---|---|
 | `DATABASE_URL` | MySQL/TiDB connection string |
+| `NEON_DATABASE_URL` | Neon Postgres connection string (pgvector) |
 | `JWT_SECRET` | Session cookie signing |
 | `ANTHROPIC_API_KEY` | Claude (enrichment, Smart Upload classification) |
-| `GEMINI_API_KEY` | Gemini embeddings |
-| `PINECONE_API_KEY` | Pinecone vector DB |
+| `GEMINI_API_KEY` | Gemini embeddings (`gemini-embedding-001` with 1536 dims) |
 | `DROPBOX_ACCESS_TOKEN` | Short-lived Dropbox token (auto-refreshed) |
 | `DROPBOX_REFRESH_TOKEN` | Long-lived Dropbox refresh token |
 | `DROPBOX_APP_KEY` / `DROPBOX_APP_SECRET` | Dropbox OAuth app credentials |
@@ -354,6 +447,7 @@ All secrets are injected by the Manus platform. Use `ENV` from `server/_core/env
 | `YOUTUBE_API_KEY` | YouTube Data API v3 |
 | `TWITTER_BEARER_TOKEN` | Twitter/X API v2 (requires Basic plan for read access) |
 | `RAPIDAPI_KEY` | RapidAPI enrichment helpers |
+| `PINECONE_API_KEY` | **DEPRECATED** — Pinecone removed Apr 2026; key still in env but unused |
 
 ---
 
@@ -363,55 +457,41 @@ All secrets are injected by the Manus platform. Use `ENV` from `server/_core/env
 pnpm install
 pnpm db:push        # generate + migrate schema
 pnpm dev            # starts Express + Vite on :3000
-pnpm test           # vitest (963 tests passing, Apr 2026)
+pnpm test           # vitest (~1020 tests passing, Apr 2026)
 pnpm build          # production build
 npx tsc --noEmit    # type check — ALWAYS trust this over the watcher
 ```
 
 ---
 
-## Common Pitfalls
+## Design System
 
-**Never use Google Drive** — removed Apr 2026. All cloud storage is Dropbox + Manus S3.
-Do not add any `gws` or `rclone` calls.
+**Philosophy:** Editorial Intelligence — private library aesthetic with Swiss Modernist typography.
 
-**Stale TS watcher errors** — Always trust `npx tsc --noEmit` over the watcher output.
-
-**Protected vs public procedures** — Enrichment mutations use `adminProcedure`.
-Only user-specific operations use `protectedProcedure`. Public reads use `publicProcedure`.
-
-**No local image assets** — All images must be uploaded to CDN via `manus-upload-file --webdev`.
-Never put images in `client/public/` or `client/src/assets/`.
-
-**`parallelBatch` generic type** — The function signature is `parallelBatch<TInput>`.
-Do not cast to `string[]`.
-
-**Pinecone test skip** — `pinecone.test.ts` is skipped in CI due to a Vitest worker crash
-with the Pinecone SDK. Run it manually: `pnpm test -- pinecone`.
-
-**Twitter API credits** — The Free tier does not include read access to user lookup endpoints.
-The `twitter.ts` helper handles `CreditsDepleted` gracefully (returns `null`).
-
-**Vite version** — Pinned to `6.x`. Do NOT upgrade to Vite 7.
-
-**flowbite-react version** — Pinned to `0.12.16`. Do NOT upgrade.
-
----
-
-## Agent Skills (in `.agents/skills/`)
-
-These app-specific skills document repeatable patterns for this codebase:
-
-| Skill | Description |
+| Token | Value |
 |---|---|
-| `library-architecture` | Overall app architecture, stack, data flow, what NOT to do |
-| `pinecone-rag` | Pinecone indexing, querying, reranking, chatbot chunk retrieval |
-| `dropbox-sync` | Dropbox folder paths, env vars, API patterns, sync pipeline |
-| `smart-upload` | AI file classification, review queue, commit flow, auto-indexing |
-| `enrichment-pipeline` | Enrichment orchestrator, pipeline registry, post-enrichment hooks |
-| `deterministic-tools` | Verification scripts in `scripts/` — DB indexes, Pinecone coverage, Dropbox, S3, enrichment gaps |
+| Heading font | IBM Plex Sans Bold / SemiBold |
+| Body font | Inter / DM Sans |
+| Background | Warm off-white `oklch(0.98 0.005 80)` |
+| Foreground | Deep charcoal `oklch(0.235 0.015 65)` |
+| Border radius | `0.65rem` |
 
-Read the relevant skill before working on any of these areas.
+**Multi-theme support:** Three themes — Manus (default), Norfolk AI, Noir Dark — defined as
+CSS variable sets in `client/src/index.css`. Active theme stored in `localStorage` via
+`AppSettingsContext`.
+
+### Design Rules (Absolute)
+
+1. **Zero hardcoded colors** — No hex, rgb, rgba, or hsl literals in components. All colors from CSS variable tokens.
+2. **Category identity via icon + label only** — No colored stripes or tinted backgrounds (except in Manus/Norfolk AI themes where border stripes are allowed).
+3. **Top-justified card content** — All card content starts at the top (`flex-col`, `items-start`).
+4. **Business-like monocolor icons** — All icons are single-color. Add subtle hover animation to interactive icons.
+5. **3-hotspot interaction model** — Every card has exactly 3 clickable areas (avatar/name, cover/title, card surface). Everything else is presentational.
+6. **Amazon-first for book covers** — Always scrape Amazon before falling back to Google Books or other sources.
+7. **Manus theme is the seed** — Always update the Manus theme first when making design changes. Other themes branch from it.
+8. **Avatar background color** — Default is Norfolk AI Teal `#0091AE`. Swatches use the official Norfolk AI palette.
+9. **AppSettingsContext is the theme authority** — `ThemeContext.tsx` has been removed. Use `useAppSettings()` from `AppSettingsContext.tsx` for theme state.
+10. **Sidebar open by default** — `SidebarProvider defaultOpen={true}` in Home.tsx.
 
 ---
 
@@ -435,21 +515,27 @@ Always pass `settings.avatarBgColor` when calling `buildMeticulousPrompt()`.
 
 ---
 
-## Design System
+## Author Alias System
 
-**Philosophy:** Editorial Intelligence — private library aesthetic with Swiss Modernist typography.
+Author name normalization is **fully DB-backed** via the `author_aliases` table.
 
-| Token | Value |
-|---|---|
-| Heading font | IBM Plex Sans Bold / SemiBold |
-| Body font | Inter / DM Sans |
-| Background | Warm off-white `oklch(0.98 0.005 80)` |
-| Foreground | Deep charcoal `oklch(0.235 0.015 65)` |
-| Border radius | `0.65rem` |
+| Layer | File | Role |
+|---|---|---|
+| DB table | `drizzle/schema.ts` → `authorAliases` | Stores `rawName → canonical` mappings |
+| Seed script | `scripts/seed-author-aliases.mjs` | One-time seed of 159 aliases |
+| tRPC router | `server/routers/authorAliases.router.ts` | `getMap`, `getAll`, `upsert`, `delete`, `resolveNames` |
+| Client hook | `client/src/hooks/useAuthorAliases.ts` | Fetches alias map from DB; provides `canonicalName()` with hardcoded fallback |
+| Admin UI | `client/src/components/admin/AdminAliasesTab.tsx` | CRUD UI under Admin → Content → Author Aliases |
 
-**Multi-theme support:** Three themes — Manus (default), Norfolk AI, Noir Dark — defined as
-CSS variable sets in `client/src/index.css`. Active theme stored in `localStorage` via
-`AppSettingsContext`.
+`client/src/lib/authorAliases.ts` is kept as a fallback but should be deleted once all aliases are confirmed in the DB.
+
+---
+
+## Author Name Validator
+
+The author name validator (`shared/authorNameValidator.ts`) prevents false-positive author records. Applied at three entry points: Drive scanner, `createAuthor` procedure, and Add Author form.
+
+**Admin bypass:** Pass `allowAdminOverride: true` in the `createAuthor` procedure input.
 
 ---
 
@@ -459,44 +545,114 @@ CSS variable sets in `client/src/index.css`. Active theme stored in `localStorag
 |---|---|
 | `dropbox.test.ts` | Dropbox API client, token refresh, folder listing |
 | `dropboxIngest.test.ts` | Dropbox → S3 ingestion pipeline |
-| `dropboxPaths.test.ts` | Live validation of both Dropbox folder paths |
 | `smartUpload.test.ts` | Smart Upload tRPC procedures + auto-indexing |
-| `pinecone.test.ts` | Pinecone indexing + search (skipped in CI — run manually) |
+| `neonVector.test.ts` | Neon pgvector unit tests (mocked; OOM in vitest worker with live driver) |
+| `pinecone.test.ts` | **DEPRECATED** — Pinecone removed; skip in CI |
 | `humanReviewQueue.test.ts` | Human review queue procedures |
 | `auth.logout.test.ts` | Auth logout flow |
 | `favorites.test.ts` | Favorites toggle, list, checkMany |
+| `authorNameValidator.test.ts` | 29 tests for name validation rules |
+| `authorAliases.router.test.ts` | 9 tests for alias CRUD |
 | `lib/parallelBatch.test.ts` | Generic parallel batch executor |
 
 ---
 
-## Author Alias System (Session B — Apr 9, 2026)
+## Known Issues and Lessons Learned
 
-### Architecture
+### Pinecone → Neon Migration (Apr 18, 2026)
 
-Author name normalization is now **fully DB-backed** via the `author_aliases` table.
+**What was done:**
+- Replaced `pinecone.service.ts` with `neonVector.service.ts` (identical public API)
+- Created `vector_embeddings` table in Neon Postgres with pgvector HNSW index (1536 dims)
+- Renamed `smart_uploads.pineconeNamespace` → `neonNamespace` (migration 0045)
+- Updated all enrichment pipeline keys from `pinecone-index-*` to `neon-index-*`
+- Updated Admin UI labels from "Pinecone Index" to "Neon pgvector Index"
+- Re-indexed 183 authors + 163 books using `scripts/reindex_pg.cjs`
 
-| Layer | File | Role |
+**Failed attempts during migration:**
+1. **`text-embedding-004` returns 404** — This model is not available on the Gemini v1beta API
+   endpoint. Use `gemini-embedding-001` with `outputDimensionality: 1536` instead.
+2. **tsx-based indexing scripts OOM in sandbox** — The tsx + Neon driver + Drizzle ORM stack
+   consumes ~2GB just to start in the sandbox. Solution: use pure Node.js `.cjs` scripts with
+   `pg` (not `@neondatabase/serverless`) and the Gemini REST API directly.
+3. **`@neondatabase/serverless` OOM in vitest workers** — The serverless driver is too large for
+   vitest's worker heap. Solution: mock the Neon client in tests and run live integration tests
+   as standalone scripts.
+4. **JWT authentication for admin tRPC calls from shell** — The server's `JWT_SECRET` is injected
+   by the Manus platform and differs from what's in the shell environment. Cannot generate valid
+   admin tokens from shell scripts. Solution: use direct DB + REST API scripts instead.
+5. **Stale chunk IDs after first tsx run** — The first tsx-based run used `author-{id}-chunk0`
+   IDs. The pg script used `author-{id}`. This created duplicate entries. Solution: deleted
+   all `-chunk0` suffixed entries after the pg re-index completed.
+6. **`ON CONFLICT` not matching** — The `ON CONFLICT (id)` clause requires the `id` column to
+   be the primary key. Ensure the table uses `id TEXT PRIMARY KEY` not a composite key.
+
+### Vitest Worker OOM (Persistent Issue)
+Two test files (`neonVector.test.ts` and `pinecone.test.ts`) cause OOM in vitest workers due
+to the heavy SDK dependencies. This is a sandbox constraint, not a code bug. The full test suite
+(63 files, ~1020 tests) passes; these 2 files are the only OOM casualties. Run them standalone:
+```bash
+NODE_OPTIONS="--max-old-space-size=4096" npx vitest run neonVector
+```
+
+### Collapsible Activity Strips (Apr 18, 2026)
+"Recently Enriched" and "Recently Tagged" strips in `AuthorsTabContent.tsx` and
+`BooksTabContent.tsx` were converted from always-visible scrolling rows to collapsible pill
+toggles. They default to **collapsed** so the card grid is immediately visible.
+
+### Books Tab Search (Apr 18, 2026)
+The search bar in the Authors tab was extended to also filter book titles on the Books tab.
+The `query` state from `useLibraryData` already drove `filteredBooks` — the fix was simply
+adding the search input UI to `BooksTabContent.tsx`.
+
+---
+
+## Agent Skills (in `.agents/skills/`)
+
+These app-specific skills document repeatable patterns for this codebase:
+
+| Skill | Description |
+|---|---|
+| `library-architecture` | Overall app architecture, stack, data flow, what NOT to do |
+| `pinecone-rag` | **STALE** — Pinecone removed Apr 2026; see neonVector.service.ts instead |
+| `dropbox-sync` | Dropbox folder paths, env vars, API patterns, sync pipeline |
+| `smart-upload` | AI file classification, review queue, commit flow, auto-indexing |
+| `enrichment-pipeline` | Enrichment orchestrator, pipeline registry, post-enrichment hooks |
+| `deterministic-tools` | Verification scripts in `scripts/` — DB indexes, Neon coverage, Dropbox, S3, enrichment gaps |
+
+> **`pinecone-rag` skill is stale.** It documents the old Pinecone API. The replacement is
+> `neonVector.service.ts` with the same public API surface. Update this skill when time permits.
+
+---
+
+## LLM Catalogue
+
+The multi-vendor LLM catalogue data lives in `server/lib/llmCatalogue.ts` (~899 lines).
+The `llm.router.ts` router (~133 lines) imports from it. **Do not add vendor/model data directly to the router.**
+
+**13 vendors, 47 models** as of March 2026. The recommendation engine (`getRecommendedModels`)
+maps task types to optimal vendor/model combinations.
+
+---
+
+## External Dependency Contracts
+
+| Service | Purpose | Credential |
 |---|---|---|
-| DB table | `drizzle/schema.ts` → `authorAliases` | Stores `rawName → canonical` mappings |
-| Seed script | `scripts/seed-author-aliases.mjs` | One-time seed of 159 aliases from the old hardcoded file |
-| tRPC router | `server/routers/authorAliases.router.ts` | `getMap`, `getAll`, `upsert`, `delete`, `resolveNames`, `canonicalNameFromDb()` |
-| Client hook | `client/src/hooks/useAuthorAliases.ts` | Fetches alias map from DB; provides `canonicalName()` with hardcoded fallback |
-| Admin UI | `client/src/components/admin/AdminAliasesTab.tsx` | CRUD UI under Admin → Content → Author Aliases |
-| Tests | `server/authorAliases.router.test.ts` | 9 unit tests (all passing) |
-
-### How canonicalName() works
-
-1. **DB map** (from `trpc.authorAliases.getMap`) — checked first
-2. **Dash-suffix stripping** — `"Adam Grant - Org Psych"` → `"Adam Grant"` (generic fallback)
-3. **Hardcoded file fallback** — `client/src/lib/authorAliases.ts` — used while DB map loads
-
-### Deprecation plan
-
-`client/src/lib/authorAliases.ts` is kept as a fallback but should be deleted once all 159 aliases are confirmed in the DB and the app has been running in production for a sprint.
-
-### authorAvatars.ts — No migration needed
-
-`client/src/lib/authorAvatars.ts` is already superseded by the DB-backed avatar system:
-- `author_profiles.avatarUrl` / `s3AvatarUrl` columns hold live avatar URLs
-- `trpc.authorProfiles.getAvatarMap` serves the DB avatar map to all components
-- `getAuthorAvatar()` from the hardcoded file is only a tertiary fallback
+| Google Imagen 3 | AI avatar generation (Tier 4) | `GEMINI_API_KEY` |
+| Gemini Vision | Avatar photo validation | `GEMINI_API_KEY` |
+| Gemini Embeddings | 1536-dim text embeddings | `GEMINI_API_KEY` |
+| Replicate Flux | AI avatar generation (Tier 5) | `REPLICATE_API_TOKEN` |
+| Tavily | Web image search for avatars (Tier 2) | `TAVILY_API_KEY` |
+| Wikipedia / Wikidata | Author photos (Tier 3), bio data | None (public API) |
+| Perplexity | Rich bio generation | `PERPLEXITY_API_KEY` |
+| Anthropic Claude Opus | RAG generation, Digital Me synthesis | `ANTHROPIC_API_KEY` |
+| Apify | Amazon book cover scraping | `APIFY_API_TOKEN` |
+| RapidAPI | Yahoo Finance stats | `RAPIDAPI_KEY` |
+| Twitter Bearer | Twitter follower counts | `TWITTER_BEARER_TOKEN` |
+| YouTube Data API | Channel stats | `YOUTUBE_API_KEY` |
+| Dropbox OAuth 2 | S3-to-Dropbox sync target | `DROPBOX_APP_KEY`, `DROPBOX_APP_SECRET` |
+| Manus Forge S3 | File storage (avatars, covers, RAG files) | `BUILT_IN_FORGE_API_KEY` |
+| Neon Postgres | pgvector vector database | `NEON_DATABASE_URL` |
+| TiDB / MySQL | Primary relational database | `DATABASE_URL` |
+| Manus OAuth | User authentication | `VITE_APP_ID`, `JWT_SECRET` |

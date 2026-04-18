@@ -1,6 +1,6 @@
 ---
 name: smart-upload
-description: Understand and extend the Smart Upload feature — AI-powered file classification, review queue, and auto-Pinecone indexing. Use when adding new file types, changing the AI classification logic, debugging the commit flow, or extending the review queue UI.
+description: Understand and extend the Smart Upload feature — AI-powered file classification, review queue, and auto-Neon-pgvector indexing. Use when adding new file types, changing the AI classification logic, debugging the commit flow, or extending the review queue UI. NOTE: Pinecone removed Apr 18 2026; column is now neonNamespace (migration 0045).
 ---
 
 # Smart Upload — RC Library App
@@ -10,9 +10,9 @@ description: Understand and extend the Smart Upload feature — AI-powered file 
 Smart Upload is an admin feature (`/admin` → Media → Smart Upload) that:
 1. Accepts files via drag-and-drop or OS file picker (PDF, images, audio, video, EPUB, DOCX — up to 100 MB × 10 files)
 2. Uploads each file to Manus S3 via a REST endpoint (`POST /api/upload/smart`)
-3. Runs Claude AI classification to determine content type, matched author/book, and Pinecone namespace
+3. Runs Claude AI classification to determine content type, matched author/book, and Neon pgvector namespace
 4. Presents a **Review Queue** where the admin can approve, override, or reject each classification
-5. On commit: writes to the correct DB table and auto-indexes to Pinecone (fire-and-forget)
+5. On commit: writes to the correct DB table and auto-indexes to Neon pgvector (fire-and-forget)
 
 ## Key Files
 
@@ -44,9 +44,10 @@ export const smartUploads = mysqlTable("smart_uploads", {
   matchedBookId: int("matched_book_id"),
   matchedAuthorName: varchar("matched_author_name", { length: 255 }),
   matchedBookTitle: varchar("matched_book_title", { length: 500 }),
-  pineconeNamespace: varchar("pinecone_namespace", { length: 100 }),
+  neonNamespace: varchar("neonNamespace", { length: 64 }),
   // "authors" | "books" | "rag_files" | "content_items" | null
-  shouldIndexPinecone: boolean("should_index_pinecone").default(false),
+  // NOTE: renamed from pineconeNamespace in migration 0045 (Apr 18, 2026)
+  shouldIndexNeon: boolean("should_index_neon").default(false),
   adminOverride: text("admin_override"),   // JSON blob of admin corrections
   committedAt: bigint("committed_at", { mode: "number" }),
   errorMessage: text("error_message"),
@@ -74,9 +75,9 @@ export const smartUploads = mysqlTable("smart_uploads", {
 3. Call `enrichClassificationWithDbMatches()` to fuzzy-match author/book names against the DB
 4. Update the `smart_uploads` row with classification results and `status: "review"`
 
-### Content Type → Pinecone Namespace Mapping
+### Content Type → Neon Namespace Mapping
 
-| `aiContentType` | `pineconeNamespace` | `shouldIndexPinecone` |
+| `aiContentType` | `neonNamespace` | `shouldIndexNeon` |
 |---|---|---|
 | `author_bio` | `authors` | true |
 | `book_summary` | `books` | true |
@@ -101,15 +102,15 @@ When the admin clicks **Commit** on a reviewed upload:
    - `author_photo` → updates `author_profiles.photoUrl`
    - `content_item` → creates `content_items` row
 4. Sets `status: "committed"` and `committedAt`
-5. Calls `triggerPineconeIndexing()` fire-and-forget if `shouldIndexPinecone: true`
+5. Calls `triggerNeonIndexing()` fire-and-forget if `shouldIndexNeon: true`
 
-## Auto-Pinecone Indexing After Commit
+## Auto-Neon Indexing After Commit
 
 ```ts
 // Triggered automatically in smartUpload.router.ts commit procedure
-async function triggerPineconeIndexing(upload) {
-  if (!upload.shouldIndexPinecone) return;
-  switch (upload.pineconeNamespace) {
+async function triggerNeonIndexing(upload) {
+  if (!upload.shouldIndexNeon) return;
+  switch (upload.neonNamespace) {
     case "authors": await indexAuthorIncremental(upload.matchedAuthorId); break;
     case "books":   await indexBookIncremental(upload.matchedBookId); break;
     case "rag_files": await indexRagFile({ authorId, title, text, url }); break;
@@ -130,8 +131,8 @@ If the AI classification is wrong, the admin can override before committing:
     aiContentType?: string,
     matchedAuthorId?: number,
     matchedBookId?: number,
-    pineconeNamespace?: string,
-    shouldIndexPinecone?: boolean,
+    neonNamespace?: string,
+    shouldIndexNeon?: boolean,
   }
 }
 ```
@@ -143,4 +144,5 @@ The override is stored as JSON in `adminOverride` and applied during the commit.
 - **File size limit**: multer is configured for 100 MB per file, 10 files max. Do not increase without also updating the S3 upload timeout.
 - **Classification is async**: the REST endpoint returns immediately with `uploadIds`. The UI polls `trpc.smartUpload.list` to watch status transitions from `classifying` → `review`.
 - **Commit is idempotent for status**: calling commit on an already-committed upload returns an error. Check `status === "review"` before showing the Commit button.
-- **Fire-and-forget indexing**: Pinecone indexing errors are logged but never surface to the user. Check server logs if a committed file doesn't appear in search.
+- **Fire-and-forget indexing**: Neon pgvector indexing errors are logged but never surface to the user. Check server logs if a committed file doesn't appear in search.
+- **Column rename (Apr 18, 2026)**: `pineconeNamespace` was renamed to `neonNamespace` in migration 0045. Any code referencing `pineconeNamespace` is stale and must be updated.
