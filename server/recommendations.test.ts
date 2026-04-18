@@ -1,6 +1,6 @@
 /**
  * Recommendations Router Tests
- * Tests for all Pinecone-powered recommendation procedures.
+ * Tests for all Neon-powered recommendation procedures.
  * Return shapes match recommendations.router.ts exactly:
  *   - similarBooks      → { books: [] }
  *   - similarAuthors    → { authors: [] }
@@ -11,7 +11,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import type { TrpcContext } from "./_core/context";
 
-// Mock Pinecone service to avoid real API calls in tests
+// Mock Neon vector service to avoid real API calls in tests
 vi.mock("./services/neonVector.service", () => ({
   queryVectors: vi.fn().mockResolvedValue([]),
   queryAllNamespaces: vi.fn().mockResolvedValue([]),

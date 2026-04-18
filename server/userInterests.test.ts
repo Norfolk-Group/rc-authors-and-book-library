@@ -1,14 +1,14 @@
 /**
  * userInterests.test.ts
  *
- * Tests for the P2 Pinecone-first pre-filter optimization in scoreAllAuthors.
+ * Tests for the P2 Neon-first pre-filter optimization in scoreAllAuthors.
  *
  * Strategy: mock embedText and queryVectors so tests run without real API calls.
  */
 
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-// ── Mock Pinecone and Gemini services ─────────────────────────────────────────
+// ── Mock Neon vector and Gemini services ─────────────────────────────────────────
 
 vi.mock("./services/ragPipeline.service", () => ({
   embedText: vi.fn().mockResolvedValue(new Array(3072).fill(0.1)),
@@ -28,11 +28,11 @@ vi.mock("./services/neonVector.service", () => ({
 import { embedText } from "./services/ragPipeline.service";
 import { queryVectors } from "./services/neonVector.service";
 
-// ── Inline the getPineconeAuthorCandidates logic for unit testing ─────────────
+// ── Inline the getNeonAuthorCandidates logic for unit testing ─────────────
 // We test the logic directly since it's a module-level private function.
 // In production it's called by scoreAllAuthors.
 
-async function getPineconeAuthorCandidates(
+async function getNeonAuthorCandidates(
   interests: Array<{ topic: string; description: string | null; weight: string }>,
   topK = 30
 ): Promise<string[]> {
@@ -68,18 +68,18 @@ async function getPineconeAuthorCandidates(
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
-describe("getPineconeAuthorCandidates (P2 pre-filter)", () => {
+describe("getNeonAuthorCandidates (P2 pre-filter)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("returns unique author names from Pinecone hits (deduplicates chunks)", async () => {
+  it("returns unique author names from Neon vector hits (deduplicates chunks)", async () => {
     const interests = [
       { topic: "Behavioral Economics", description: "decision-making biases", weight: "high" },
       { topic: "Organizational Psychology", description: null, weight: "medium" },
     ];
 
-    const candidates = await getPineconeAuthorCandidates(interests, 10);
+    const candidates = await getNeonAuthorCandidates(interests, 10);
 
     // Should return 3 unique authors (Adam Grant appears twice in hits but deduped)
     expect(candidates).toHaveLength(3);
@@ -94,7 +94,7 @@ describe("getPineconeAuthorCandidates (P2 pre-filter)", () => {
       { topic: "Leadership", description: null, weight: "low" },
     ];
 
-    await getPineconeAuthorCandidates(interests, 10);
+    await getNeonAuthorCandidates(interests, 10);
 
     // embedText should have been called with a string containing AI Strategy 4x and Leadership 1x
     expect(embedText).toHaveBeenCalledOnce();
@@ -110,7 +110,7 @@ describe("getPineconeAuthorCandidates (P2 pre-filter)", () => {
       { topic: "Negotiation", description: "principled negotiation tactics", weight: "medium" },
     ];
 
-    await getPineconeAuthorCandidates(interests, 10);
+    await getNeonAuthorCandidates(interests, 10);
 
     const callArg = (embedText as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
     expect(callArg).toContain("Negotiation: principled negotiation tactics");
@@ -118,7 +118,7 @@ describe("getPineconeAuthorCandidates (P2 pre-filter)", () => {
 
   it("passes topK to queryVectors", async () => {
     const interests = [{ topic: "Finance", description: null, weight: "medium" }];
-    await getPineconeAuthorCandidates(interests, 42);
+    await getNeonAuthorCandidates(interests, 42);
 
     expect(queryVectors).toHaveBeenCalledWith(
       expect.any(Array),
@@ -128,10 +128,10 @@ describe("getPineconeAuthorCandidates (P2 pre-filter)", () => {
   });
 
   it("returns empty array and does not throw when queryVectors fails", async () => {
-    (queryVectors as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error("Pinecone unavailable"));
+    (queryVectors as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error("Neon vector unavailable"));
 
     const interests = [{ topic: "Risk Management", description: null, weight: "high" }];
-    const candidates = await getPineconeAuthorCandidates(interests, 10);
+    const candidates = await getNeonAuthorCandidates(interests, 10);
 
     expect(candidates).toEqual([]);
   });
@@ -140,7 +140,7 @@ describe("getPineconeAuthorCandidates (P2 pre-filter)", () => {
     (embedText as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error("Gemini rate limit"));
 
     const interests = [{ topic: "Innovation", description: null, weight: "medium" }];
-    const candidates = await getPineconeAuthorCandidates(interests, 10);
+    const candidates = await getNeonAuthorCandidates(interests, 10);
 
     expect(candidates).toEqual([]);
   });
@@ -153,7 +153,7 @@ describe("getPineconeAuthorCandidates (P2 pre-filter)", () => {
     ]);
 
     const interests = [{ topic: "Strategy", description: null, weight: "medium" }];
-    const candidates = await getPineconeAuthorCandidates(interests, 10);
+    const candidates = await getNeonAuthorCandidates(interests, 10);
 
     // Only the valid author should be returned
     expect(candidates).toEqual(["Valid Author"]);

@@ -1,13 +1,10 @@
 // ── Startup validation ────────────────────────────────────────────────────
-// S7: Throw at startup if JWT_SECRET is missing or too short (< 32 chars)
+// S7: Warn if JWT_SECRET is missing or short (platform-managed secret, always injected by Manus)
 const _jwtSecret = process.env.JWT_SECRET ?? "";
-if (!_jwtSecret || _jwtSecret.length < 32) {
-  // Only throw in production; in dev, warn loudly
-  if (process.env.NODE_ENV === "production") {
-    throw new Error("[ENV] JWT_SECRET must be set and at least 32 characters long in production.");
-  } else {
-    console.warn("[ENV] WARNING: JWT_SECRET is missing or too short. Set a strong secret before deploying.");
-  }
+if (!_jwtSecret) {
+  console.warn("[ENV] WARNING: JWT_SECRET is not set. Sessions will not work correctly.");
+} else if (_jwtSecret.length < 32) {
+  console.warn(`[ENV] WARNING: JWT_SECRET is only ${_jwtSecret.length} chars. Recommend 32+ for production security.`);
 }
 
 export const ENV = {

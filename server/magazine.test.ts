@@ -4,7 +4,7 @@
  * Unit tests for the magazine article pipeline service.
  * Tests cover RSS config validation and author name normalization.
  *
- * Note: Pinecone and RAG pipeline tests have been moved to pinecone.test.ts
+ * Note: Neon vector and RAG pipeline tests have been moved to neonVector.test.ts
  * to avoid OOM crashes caused by loading @google/genai in the same worker.
  */
 

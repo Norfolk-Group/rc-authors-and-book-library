@@ -7,7 +7,7 @@
  *      and magazine.syncAll / magazine.syncFeed procedures are callable
  *   3. Semantic search — vectorSearch.search procedure validates inputs correctly
  *
- * These are unit / schema tests that do NOT require live DB or Pinecone access.
+ * These are unit / schema tests that do NOT require live DB or Neon vector access.
  */
 import { describe, it, expect } from "vitest";
 

@@ -4,7 +4,7 @@
  * Tests that P3 near-duplicate detection is correctly wired into
  * the book and author create/update handlers.
  *
- * These are unit tests — they mock the Pinecone/DB dependencies
+ * These are unit tests — they mock the Neon vector/DB dependencies
  * and verify that checkBookDuplicate / checkAuthorDuplicate are
  * called (fire-and-forget) after create/update operations.
  */

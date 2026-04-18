@@ -4,7 +4,7 @@
  * Tests for the 3 optimization suggestions implemented in Apr 2026:
  *   S1 — RAG pipeline seedAllPending procedure
  *   S2 — autoTagAll bulk tag enrichment
- *   S3 — T2-A Pinecone metadata filters (category, bookCount, enrichedAt)
+ *   S3 — T2-A Neon metadata filters (category, bookCount, enrichedAt)
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -119,9 +119,9 @@ describe("S2 — autoTagAll tag taxonomy validation", () => {
   });
 });
 
-// ── S3: T2-A Pinecone metadata filters ───────────────────────────────────────
+// ── S3: T2-A Neon metadata filters ───────────────────────────────────────
 
-describe("S3 — T2-A Pinecone metadata fields", () => {
+describe("S3 — T2-A Neon metadata fields", () => {
   it("should include category in author VectorMetadata when provided", () => {
     const authorInput = {
       authorId: "123",
@@ -225,7 +225,7 @@ describe("S3 — T2-A Pinecone metadata fields", () => {
     expect(primaryCategory).toBeUndefined();
   });
 
-  it("should build Pinecone filter object for category-based queries", () => {
+  it("should build Neon filter object for category-based queries", () => {
     const dominantCategory = "psychology";
     const filter = dominantCategory
       ? { category: { $eq: dominantCategory } }

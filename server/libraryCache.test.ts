@@ -199,7 +199,7 @@ describe("libraryCache router module", () => {
   });
 });
 
-// ─── Pinecone bulk indexing: vectorSearch router ──────────────────────────────
+// ─── Neon vector bulk indexing: vectorSearch router ──────────────────────────────
 
 describe("vectorSearch router bulk indexing procedures", () => {
   it("exports vectorSearchRouter with bulk indexing procedures", async () => {
