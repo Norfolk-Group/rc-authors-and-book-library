@@ -645,3 +645,98 @@ These Python scripts regenerate `libraryData.ts` and `audioData.ts` from Google 
 | `final_audio_move_v2.py` | Move audio files into Books Audio |
 | `organize_authors.py` | Initial categorization of author folders |
 | `organize_books.py` | Initial categorization of book folders |
+
+---
+
+## Failed Attempts & Lessons Learned
+
+This section records every known failure mode, forgotten instruction, and anti-pattern
+discovered across all AI sessions on this project. Read before running any automation.
+
+### Sandbox Missing on Scheduled Runs (Apr 18, 2026)
+**What happened:** Manus scheduled task triggered the nightly cover scrape but the
+sandbox was fresh — `/home/ubuntu/authors-books-library` did not exist, and
+`APIFY_API_TOKEN` / `BUILT_IN_FORGE_API_KEY` were not set.
+**Root cause:** Sandbox hibernation resets the filesystem. The project must be cloned
+and env vars confirmed at the start of every new sandbox session.
+**Fix:** Always run the Session Bootstrap below before any project work.
+
+### Manus Forgot Required API Tokens (recurring pattern)
+**Pattern:** Agent runs `scripts/batch-scrape-covers.mjs` without verifying env vars
+first, then fails at runtime with cryptic errors.
+**Fix:** The script itself hard-fails on missing vars (see `env.ts`), but always
+pre-check to avoid wasted time:
+```bash
+env | grep -E "APIFY|FORGE|DATABASE_URL" || echo "STOP: Missing env vars — ask user"
+```
+
+### Wrong CLAUDE.md Loaded (recurring)
+**What happened:** Multiple CLAUDE.md files exist across different projects in Google
+Drive and GitHub. Manus has loaded the wrong one and applied rules from unrelated
+projects (Crash Case RCC26-00012, norfolk-ai-proposal-site, AI spend dashboard).
+**Fix:** The canonical CLAUDE.md for this project lives in the repo root at
+`/home/ubuntu/authors-books-library/CLAUDE.md`. Always confirm project context.
+
+### Wrong Stack Inferred from Drive Docs (Apr 18, 2026)
+**What happened:** Manus inferred from Google Drive documentation that the stack was
+Next.js + Neon Postgres. The real stack is **React 19 + Express 4 + MySQL/TiDB**.
+**Fix:** Always clone the repo and read `package.json` and `drizzle/schema.ts` before
+making any architectural assumptions. Drive docs are supplementary, not authoritative.
+
+### Author/Book Name Confusion (critical guardrail)
+**Rule:** "Active Listening" is a **book title**, NOT an author name. Never create an
+`author_profiles` row for a book title. The `canonicalName()` function in
+`client/src/lib/authorAliases.ts` normalizes names but does not catch title-as-author
+errors — implement explicit checks when ingesting new data.
+
+### Duplicate Content Uploads
+**Rule:** Never upload duplicate files, PDF binders, or non-mp3/mp4 audio files.
+Upload only one copy of a book text, prioritizing the best PDF. Ask the user before
+uploading any file over 50 MB. Run `node scripts/detect-duplicates.mjs` before any
+bulk operation.
+
+### Books Nested Under Authors in Google Drive (March 2026)
+**What happened:** Start with Why, Leaders Eat Last, and Note on Being a Man were
+found nested inside author profile folders rather than in the Books folder.
+**Fix:** Books always live in the Books folder hierarchy. Author folders contain only
+bios, author pictures, and author-specific assets — never book folders.
+
+### Avatar N+1 Method Not Followed
+**Rule:** Always use the N+1 generation method (generate N+1 candidates, pick the
+best N). Skip incomplete generations silently. Background color must be **bokeh-gold**
+(see `avatar-background-consistency` skill). T5 timeout must be ≥ 240 seconds.
+
+### Book Covers Missing from Author Cards
+**Rule:** Book covers must appear in both the **author card** (cover strip in
+`FlowbiteAuthorCard.tsx`) and the **book card** (`BookCard.tsx`). Omitting covers
+from either location is a bug.
+
+### `bookSummaryMap` Renamed to `bookInfoMap`
+**Rule:** The prop was renamed when rating data was added. If you see a TS error
+about `bookSummaryMap`, it has been removed — use `bookInfoMap`.
+
+### Third Dedup Layer Bug
+**Rule:** Book deduplication happens at exactly **two layers** (see Key Conventions
+above). Adding a third layer causes books to disappear from cards.
+
+---
+
+## Session Bootstrap
+
+Run this at the start of every new sandbox session before any project work:
+
+```bash
+# 1. Clone repo if not present
+if [ ! -d /home/ubuntu/authors-books-library ]; then
+  gh repo clone Norfolk-Group/authors-books-library /home/ubuntu/authors-books-library
+fi
+
+# 2. Install dependencies
+cd /home/ubuntu/authors-books-library && pnpm install
+
+# 3. Verify required env vars
+env | grep -E "APIFY|FORGE|DATABASE_URL" || echo "WARNING: Missing env vars — stop and ask user"
+
+# 4. Confirm correct project
+head -3 /home/ubuntu/authors-books-library/CLAUDE.md
+```
