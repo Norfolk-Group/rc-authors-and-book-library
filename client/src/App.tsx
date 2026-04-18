@@ -1,11 +1,12 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { CommandPalette } from "@/components/CommandPalette";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import { lazy, Suspense } from "react";
 import ErrorBoundary from "./components/ErrorBoundary";
-import Home from "./pages/Home";
+
+const Home = lazy(() => import("./pages/Home"));
+const CommandPalette = lazy(() => import("@/components/CommandPalette").then(m => ({ default: m.CommandPalette })));
 
 const Admin = lazy(() => import("./pages/Admin"));
 const AuthorDetail = lazy(() => import("./pages/AuthorDetail"));
@@ -34,7 +35,9 @@ const PageLoader = () => (
 function Router() {
   return (
     <Switch>
-      <Route path={"/"} component={Home} />
+      <Route path="/">
+        <Suspense fallback={<PageLoader />}><Home /></Suspense>
+      </Route>
       <Route path={"/author/:slug"}>
         <Suspense fallback={<PageLoader />}>
           <AuthorDetail />
@@ -117,7 +120,7 @@ function App() {
       <TooltipProvider>
         <Toaster />
         {/* Global Cmd+K command palette — available on all pages */}
-        <CommandPalette />
+        <Suspense fallback={null}><CommandPalette /></Suspense>
         <Router />
       </TooltipProvider>
     </ErrorBoundary>

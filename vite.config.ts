@@ -167,6 +167,46 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    // Reduce peak memory usage during production build
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          // Heavy 3D libraries — isolate completely
+          if (id.includes('three') || id.includes('@react-three')) {
+            return 'vendor-three';
+          }
+          // Animation library
+          if (id.includes('framer-motion')) {
+            return 'vendor-framer';
+          }
+          // Charts
+          if (id.includes('recharts') || id.includes('d3-')) {
+            return 'vendor-charts';
+          }
+          // Flowbite UI
+          if (id.includes('flowbite')) {
+            return 'vendor-flowbite';
+          }
+          // tRPC + React Query stack
+          if (id.includes('@trpc') || id.includes('@tanstack/react-query')) {
+            return 'vendor-trpc';
+          }
+          // Radix UI primitives
+          if (id.includes('@radix-ui')) {
+            return 'vendor-radix';
+          }
+          // React core
+          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
+            return 'vendor-react';
+          }
+          // All other node_modules
+          if (id.includes('node_modules')) {
+            return 'vendor-misc';
+          }
+        },
+      },
+    },
   },
   server: {
     host: true,
