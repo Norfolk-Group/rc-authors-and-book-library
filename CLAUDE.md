@@ -15,7 +15,7 @@ enriched with AI-generated bios, avatars, book covers, summaries, social stats, 
 semantic vector search powered by **Neon pgvector** (migrated from Pinecone, April 2026).
 
 **Live URL:** `https://authlib-ehsrgokn.manus.space`
-**GitHub:** `https://github.com/norfolk-ai/authors-books-library` (private)
+**GitHub:** `https://github.com/Norfolk-Group/rc-authors-and-book-library` (private)
 
 ---
 
