@@ -663,3 +663,14 @@ Last cleaned: Apr 5, 2026
 - [x] Confirmed: AdminIntelligenceDashboard already has InfoTips + Run All Pipelines Now button
 - [x] Confirmed: AdminDropboxFolderBrowser already exists with browseFolderContents + getBackupFolderStats
 - [x] TypeScript: 0 errors
+
+## Apr 18 2026 — verify-neon-coverage.mjs
+
+- [x] Upgrade verify-neon-coverage.mjs with full coverage reporting
+  - Per-namespace: indexable count, covered count, gap, coverage %, vector chunk count, last-updated age
+  - Progress bar visualization per namespace
+  - Gap samples: first 25 uncovered author/book names with IDs
+  - Extra namespaces in Neon (lb_app_data, lb_documents, lb_faq, lb_pitchdeck, lb_website) shown separately
+  - Flags: --json (machine-readable), --gaps-only (hide fully covered), --namespace <ns> (filter)
+  - Exit codes: 0 = all ≥ 80%, 1 = below threshold, 2 = connection error
+  - Live test result: Authors 100%, Books 101%, Content Items 0% (157 gaps), RAG Files 0% (187 gaps)
