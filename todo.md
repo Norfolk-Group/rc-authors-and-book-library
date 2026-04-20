@@ -190,3 +190,4 @@ Last cleaned: Apr 19, 2026
 - [x] ~1020 vitest tests passing, 0 TypeScript errors
 
 - [x] Create rewritetax.md — comprehensive audit of all wasted credits, tokens, time, and money (63 incidents across 8 categories, ~31 sessions wasted)
+- [x] Write agent-best-practices.md — 6-phase rules document derived from all 63 rewritetax.md incidents
