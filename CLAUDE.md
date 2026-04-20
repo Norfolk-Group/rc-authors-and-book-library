@@ -9,17 +9,172 @@ Last updated: April 20, 2026
 
 ## Mandatory Session Protocol
 
-**Before writing any code, read these three files in order:**
+These rules are **binding constraints**, not suggestions. Every rule below is derived from a
+documented waste incident in `rewritetax.md` (63 incidents, ~31 sessions wasted, March–April 2026).
+Breaking a rule has a known, real cost in credits and user time.
 
-1. `CLAUDE.md` (this file) — canonical architecture reference
-2. `best-practices.md` — 17 binding rules derived from 63 documented waste incidents in `rewritetax.md`
-3. `.agents/skills/agent-mishaps/SKILL.md` — actionable rules from past session failures
+---
 
-These are not optional background reading. They are pre-conditions for starting work. Any session
-that skips this step risks repeating one of the 63 incidents documented in `rewritetax.md`, each
-of which cost real credits and user time.
+### Phase 1 — Session Start (Before Writing Any Code)
 
-**Closing checklist — answer all six before sending the final message:**
+**Rule 1.1 — Read canonical context files first.**
+Read `CLAUDE.md`, `best-practices.md`, and `.agents/skills/agent-mishaps/SKILL.md` before
+touching anything. Do not rely on memory from a previous session. Context is not preserved
+reliably across sessions.
+> *Evidence: F5 (stale claude.md loaded for weeks), F6 (stack confusion), F7 (Google Drive
+> references persisted 2 weeks after removal).*
+
+**Rule 1.2 — Clear the backlog before accepting new work.**
+Scan `todo.md` for all `[ ]` items. If any item has been pending for more than one session,
+complete it first. Do not add new items until the backlog is addressed or the user explicitly
+deprioritises it.
+> *Evidence: 14 D-category incidents — tasks deferred across 3–5 sessions until the user asked again.*
+
+**Rule 1.3 — Suggested next steps are never a work queue.**
+Suggestions offered at the end of a session must never be executed in a subsequent session
+without explicit user approval. They must not be added to `todo.md` without user approval.
+> *Evidence: B1 (Three.js), B3 (Academic Research Panel), B4 (57 self-added todo items),
+> B9 (canvas confetti) — ~4–5 sessions wasted.*
+
+**Rule 1.4 — Do not trust previous "done" claims.**
+Verify every claimed-complete item yourself. The agent has a history of marking parent tasks
+`[x]` while sub-tasks remain `[ ]`, claiming features are "wired" when they only have
+placeholder toasts, and saying "TypeScript: 0 errors" without running the check.
+> *Evidence: E1–E8 in rewritetax.md.*
+
+---
+
+### Phase 2 — Scoping (Before Writing a Single Line of Code)
+
+**Rule 2.1 — Confirm exact scope before building.**
+If a request is ambiguous, ask one clarifying question before starting. Build only what was
+explicitly described — not the broadest possible interpretation.
+> *Evidence: E4 (infotips built for nav items when user wanted tab content infotips).*
+
+**Rule 2.2 — Never build a paid-API feature without confirming access.**
+Before integrating any third-party API with a paid tier, confirm the user has an active,
+working subscription. Do not assume access from the presence of an API key.
+> *Evidence: B2 (CNBC RapidAPI scraper — always returns HTTP 403; businessProfileJson
+> column has been null since the day it was created).*
+
+**Rule 2.3 — `todo.md` is user-controlled. Do not write to it without explicit instruction.**
+The agent may suggest additions in a message, but must not write them into the file until
+the user confirms.
+> *Evidence: B4 (57 items added in one session; todo list grew to 735 lines).*
+
+**Rule 2.4 — Plan major refactors in a single pass before committing.**
+Design the target state first, then execute in one planned pass. Do not commit an
+intermediate state, discover it is wrong, and commit again.
+> *Evidence: C2 (Admin.tsx split 4 times in one day), C7 (FlowbiteAuthorCard redesigned
+> 4 times), C11 (Pinecone→Neon migration across 4 separate commits).*
+
+---
+
+### Phase 3 — Implementation (While Writing Code)
+
+**Rule 3.1 — Never upgrade a dependency unless dependency management is the session's purpose.**
+Every upgrade carries deployment risk. If the session is about a feature, do not upgrade
+packages. If an upgrade is needed, make it the only change and verify deployment compatibility.
+> *Evidence: A1 (Vite 7 broke deployment), A2 (flowbite-react 0.12.17 broke deployment).*
+
+**Rule 3.2 — Use exact version pins for packages with known deployment constraints.**
+
+| Package | Pinned Version | Reason |
+|---|---|---|
+| `flowbite-react` | `0.12.16` | `0.12.17+` introduces `oxc-parser` with native bindings that fail in the Manus sandbox |
+| `vite` | `6.x` | Vite 7 requires Node.js ≥ 20.19; Manus deployment runs 20.15.1 |
+
+**Rule 3.3 — Never add hard startup validations on platform-managed secrets.**
+Secrets injected by Manus (`JWT_SECRET`, `DATABASE_URL`, all `BUILT_IN_*`) cannot be changed
+by the user. Use `console.warn` for format concerns, never `process.exit`.
+> *Evidence: A4 (JWT_SECRET startup crash — platform secret is 22 chars; validation required 32).*
+
+**Rule 3.4 — Lazy-load all heavy libraries. Never let three.js enter the main bundle.**
+The Manus build environment has a limited memory budget. three.js + framer-motion + recharts
++ flowbite combined will be killed with exit code 137. Use `React.lazy()` and `manualChunks`.
+> *Evidence: A3 (OOM build failure — entire session consumed diagnosing the bundle split).*
+
+**Rule 3.5 — Two failures of the same approach = switch approaches.**
+If the same technical approach fails twice, document it in agent-mishaps and try something
+fundamentally different. Do not attempt a third time.
+> *Evidence: F1 (tsx OOM hit 3 times), F2 (db:push prompt killed 3 times), F3 (tRPC link
+> type switched, reverted, fixed — 3 commits).*
+
+**Rule 3.6 — Never generate JWT tokens from shell scripts.**
+The platform `JWT_SECRET` differs from the shell environment value. Shell-generated tokens
+are always rejected. Use direct DB queries (`pg` client) instead.
+> *Evidence: F1 attempt 4 — multiple failed shell auth attempts.*
+
+**Rule 3.7 — Never use Prisma syntax. This project uses MySQL/TiDB with Drizzle ORM.**
+The Manus template default is Postgres/Prisma. This project is MySQL/TiDB/Drizzle. Never
+mix syntax between the two stacks.
+> *Evidence: F6 (stack confusion caused failed db:push commands in early sessions).*
+
+**Rule 3.8 — Never add `gws`, `rclone`, or Google Drive API calls.**
+Google Drive was removed in April 2026. All cloud storage is Dropbox + Manus S3.
+> *Evidence: F7 (Google Drive references persisted 2+ weeks after removal).*
+
+---
+
+### Phase 4 — Verification (Before Marking Anything Done)
+
+**Rule 4.1 — Run `npx tsc --noEmit` before every checkpoint. Never claim "0 errors" without running it.**
+TypeScript errors accumulate silently. A claim without evidence of the check is a false claim.
+> *Evidence: E8 (agent claimed "0 errors" repeatedly without running the check).*
+
+**Rule 4.2 — Mark `[x]` only after end-to-end verification, not after writing the code.**
+A task is complete when: (a) code written, (b) TypeScript check passes, (c) tests pass,
+(d) feature works in the browser or via a direct API call. All four conditions required.
+> *Evidence: E1, E2, E3, E5 (tasks marked done while sub-tasks or UI remained incomplete).*
+
+**Rule 4.3 — Verify external integrations with a live call before marking complete.**
+An integration is not complete when the code is written. Verify a real network call succeeds.
+> *Evidence: E7 (Dropbox "confirmed" on expiring static token), E6 (Pinecone index "done"
+> while the table was empty).*
+
+**Rule 4.4 — Check all sub-tasks before marking a parent task `[x]`.**
+If any sub-task is `[ ]`, the parent must remain `[ ]`.
+> *Evidence: E1, E2, E4.*
+
+---
+
+### Phase 5 — Documentation (After Completing Work)
+
+**Rule 5.1 — `CLAUDE.md` describes what was actually committed, not what was intended.**
+If a feature is partially implemented, say so. A document describing an intended future
+state causes the next session to make decisions based on false premises.
+> *Evidence: G1, G3 (documentation written for states that were immediately superseded).*
+
+**Rule 5.2 — Never create a document that duplicates another document.**
+Each document has exactly one purpose. Copies become stale immediately.
+
+| Document | Purpose | Update Trigger |
+|---|---|---|
+| `CLAUDE.md` | Canonical architecture reference | After every session that changes the architecture |
+| `manus.md` | Manus platform operational notes | After any deployment change or platform constraint |
+| `rewritetax.md` | Audit log of all waste incidents | After any session where a waste event occurs |
+| `best-practices.md` | Rules derived from rewritetax.md | After rewritetax.md is updated with a new pattern |
+| `.agents/skills/agent-mishaps/SKILL.md` | Session-start rules from past failures | After any new mishap class is identified |
+| `todo.md` | **User-controlled** task backlog | Only with explicit user instruction |
+
+> *Evidence: C8 (CLAUDE.md rewritten 7 times), C9 (manus.md required 3 full rewrites),
+> G4 (IMPLEMENTATION_PLAN_OPUS.md committed and never referenced again).*
+
+**Rule 5.3 — When a technology is replaced, immediately delete all references to the old one.**
+The replacement session must: (a) delete files referencing the old technology, (b) update
+all agent skills, (c) update `CLAUDE.md`. Do not defer cleanup to "later."
+> *Evidence: G2, G5, F7, C11.*
+
+**Rule 5.4 — Push to GitHub at the end of every session without waiting to be asked.**
+Every session that produces a checkpoint must end with `git push github main`.
+> *Evidence: D-category (user had to request this in multiple separate sessions).*
+
+---
+
+### Phase 6 — Session End (Closing Checklist)
+
+Answer all six questions before sending the final message. If any answer is "no," take the
+corresponding action before closing.
 
 | # | Question | If No |
 |---|---|---|
@@ -29,6 +184,40 @@ of which cost real credits and user time.
 | 4 | Does `CLAUDE.md` accurately describe the current codebase state? | Update it now |
 | 5 | Has `git push github main` been run? | Run it now |
 | 6 | Were any features built that the user did not explicitly request? | Document them in `rewritetax.md` now |
+
+---
+
+### Appendix: Deployment Safety Checklist
+
+Before adding any new dependency, answer all three questions:
+
+| Question | Action if "No" |
+|---|---|
+| Is this package already in `package.json`? | Check if an existing package covers the need |
+| Does this package have native binary bindings (`.node`, `oxc-parser`, `canvas`, `sharp`)? | Do not install without explicit user approval and deployment testing |
+| Is this a major version upgrade of a framework (Vite, React, TypeScript, flowbite-react)? | Do not upgrade during a feature session; create a dedicated upgrade session |
+
+### Appendix: Scope Boundary Test
+
+Before building any feature, answer both questions. If either is "no," stop and ask the user.
+
+1. Did the user explicitly name this feature in their message, or is it something the agent
+   inferred, extrapolated, or suggested itself?
+2. If this feature requires a paid external service, has the user confirmed they have an
+   active, working subscription?
+
+### Appendix: Known Manus Platform Constraints
+
+| Constraint | Value | Implication |
+|---|---|---|
+| Node.js in deployment | 20.15.1 | Vite 7 requires ≥ 20.19 — do not upgrade |
+| `JWT_SECRET` length | 22 chars (platform-managed) | Do not validate length; never `process.exit` |
+| `flowbite-react` safe version | `0.12.16` (exact pin) | `0.12.17+` has `oxc-parser` native bindings that fail |
+| Native binary packages | Not supported | Any `.node` bindings or `oxc-parser` will break the build |
+| Vite build memory | Limited (OOM at ~2 GB) | Lazy-load three.js, framer-motion; use `manualChunks` |
+| `@neondatabase/serverless` in vitest | Causes OOM in forks pool | Excluded from vitest; use mocked unit tests |
+| Platform secrets | Cannot be changed by user | Never hard-validate format; `console.warn` only |
+| Shell JWT generation | Not possible | Platform `JWT_SECRET` ≠ shell env; use direct DB queries |
 
 ---
 
