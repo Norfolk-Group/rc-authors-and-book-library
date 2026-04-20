@@ -3,7 +3,32 @@
 This file provides context for AI coding assistants (Claude Code, Manus, Gemini CLI, etc.)
 working on this codebase. **Read this before making any changes.**
 
-Last updated: April 19, 2026
+Last updated: April 20, 2026
+
+---
+
+## Mandatory Session Protocol
+
+**Before writing any code, read these three files in order:**
+
+1. `CLAUDE.md` (this file) — canonical architecture reference
+2. `best-practices.md` — 17 binding rules derived from 63 documented waste incidents in `rewritetax.md`
+3. `.agents/skills/agent-mishaps/SKILL.md` — actionable rules from past session failures
+
+These are not optional background reading. They are pre-conditions for starting work. Any session
+that skips this step risks repeating one of the 63 incidents documented in `rewritetax.md`, each
+of which cost real credits and user time.
+
+**Closing checklist — answer all six before sending the final message:**
+
+| # | Question | If No |
+|---|---|---|
+| 1 | Has `npx tsc --noEmit` been run and confirmed 0 errors? | Run it now |
+| 2 | Has `pnpm test` been run and all tests passed? | Fix failures now |
+| 3 | Are all completed items in `todo.md` marked `[x]`? | Update `todo.md` now |
+| 4 | Does `CLAUDE.md` accurately describe the current codebase state? | Update it now |
+| 5 | Has `git push github main` been run? | Run it now |
+| 6 | Were any features built that the user did not explicitly request? | Document them in `rewritetax.md` now |
 
 ---
 
