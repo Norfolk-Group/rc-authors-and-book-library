@@ -1,0 +1,19 @@
+# Keep the Docker build context small and never bake local state/secrets in.
+node_modules
+dist
+.git
+.gitignore
+
+# Local secrets (never copy into the image — set env vars on the host instead)
+.env
+.env.*
+
+# Logs / OS / editor cruft
+*.log
+npm-debug.log*
+.DS_Store
+.vscode
+.idea
+
+# Test / coverage output
+coverage

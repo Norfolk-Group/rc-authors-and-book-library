@@ -7,7 +7,7 @@
  * Platforms covered:
  *   Phase A (no new keys): GitHub, Wikipedia, Substack, YouTube, CNN, Y Combinator
  *   Phase A+ (TWITTER_BEARER_TOKEN): Twitter/X follower count
- *   Phase B (RAPIDAPI_KEY): Yahoo Finance, CNBC, LinkedIn, Seeking Alpha
+ *   Phase B (RAPIDAPI_KEY): Yahoo Finance, LinkedIn, Seeking Alpha
  */
 
 import { fetchGitHubStats } from "./github";
@@ -18,7 +18,6 @@ import { fetchCNNStats } from "./cnn";
 import { fetchTwitterStats } from "./twitter";
 import {
   fetchYahooFinanceStats,
-  fetchCNBCStats,
   fetchLinkedInStats,
   fetchSeekingAlphaStats,
 } from "./rapidapi";
@@ -31,7 +30,6 @@ export interface SocialStatsResult {
   cnn?: Awaited<ReturnType<typeof fetchCNNStats>>;
   twitter?: Awaited<ReturnType<typeof fetchTwitterStats>>;
   yahooFinance?: Awaited<ReturnType<typeof fetchYahooFinanceStats>>;
-  cnbc?: Awaited<ReturnType<typeof fetchCNBCStats>>;
   linkedin?: Awaited<ReturnType<typeof fetchLinkedInStats>>;
   seekingAlpha?: Awaited<ReturnType<typeof fetchSeekingAlphaStats>>;
   enrichedAt: string;
@@ -143,11 +141,6 @@ export async function enrichAuthorSocialStats(
         fetchYahooFinanceStats(author.stockTicker!, config.rapidApiKey!)
       );
     }
-
-    // CNBC — requires RAPIDAPI_KEY
-    result.cnbc = await run("cnbc", () =>
-      fetchCNBCStats(author.authorName, config.rapidApiKey!)
-    );
 
     // LinkedIn — requires RAPIDAPI_KEY
     if (author.linkedinUrl) {

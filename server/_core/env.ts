@@ -28,6 +28,14 @@ export const ENV = {
   twitterBearerToken: process.env.TWITTER_BEARER_TOKEN ?? "",
   googleBooksApiKey: process.env.GOOGLE_BOOKS_API_KEY ?? "",
   omdbApiKey: process.env.OMDB_API_KEY ?? "",
+  exaApiKey: process.env.EXA_API_KEY ?? "",
+  // Cloudflare R2 (S3-compatible object storage). When account id + credentials
+  // + bucket are all set, storage.ts uses R2; otherwise it falls back to Forge.
+  r2AccountId: process.env.R2_ACCOUNT_ID ?? "",
+  r2AccessKeyId: process.env.R2_ACCESS_KEY_ID ?? "",
+  r2SecretAccessKey: process.env.R2_SECRET_ACCESS_KEY ?? "",
+  r2Bucket: process.env.R2_BUCKET ?? "",
+  r2PublicUrl: process.env.R2_PUBLIC_URL ?? "",
   // Google Drive folder IDs (NCG Library structure)
   // Set via environment variables to avoid hardcoding in source
   driveAuthorsFolderId: process.env.DRIVE_AUTHORS_FOLDER_ID ?? "18SjO_Cz6U7hjsSQZwSFVaAA12pL2RQaf",

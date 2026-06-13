@@ -9,41 +9,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// ─── Task 2: CNBC / LinkedIn badge logic ─────────────────────────────────────
-
-describe("CNBC article count badge", () => {
-  function computeCNBCBadge(socialStatsJson: unknown): { count: number; label: string } | null {
-    if (!socialStatsJson || typeof socialStatsJson !== "object") return null;
-    const stats = socialStatsJson as Record<string, unknown>;
-    const cnbc = stats.cnbc as Record<string, unknown> | undefined;
-    if (!cnbc) return null;
-    const count = typeof cnbc.articleCount === "number" ? cnbc.articleCount : 0;
-    if (count === 0) return null;
-    return { count, label: count === 1 ? "1 article" : `${count} articles` };
-  }
-
-  it("returns null when socialStatsJson is null", () => {
-    expect(computeCNBCBadge(null)).toBeNull();
-  });
-
-  it("returns null when cnbc field is missing", () => {
-    expect(computeCNBCBadge({ twitter: { followers: 1000 } })).toBeNull();
-  });
-
-  it("returns null when articleCount is 0", () => {
-    expect(computeCNBCBadge({ cnbc: { articleCount: 0 } })).toBeNull();
-  });
-
-  it("returns badge with count and label for 1 article", () => {
-    const result = computeCNBCBadge({ cnbc: { articleCount: 1 } });
-    expect(result).toEqual({ count: 1, label: "1 article" });
-  });
-
-  it("returns badge with count and label for multiple articles", () => {
-    const result = computeCNBCBadge({ cnbc: { articleCount: 42 } });
-    expect(result).toEqual({ count: 42, label: "42 articles" });
-  });
-});
+// ─── Task 2: LinkedIn badge logic ────────────────────────────────────────────
 
 describe("LinkedIn follower count badge", () => {
   function computeLinkedInBadge(socialStatsJson: unknown): { followers: string } | null {

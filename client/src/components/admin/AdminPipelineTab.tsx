@@ -274,7 +274,7 @@ export function AdminPipelineTab({
         />
         <ActionCard
           title="Enrich Social Stats"
-          description="Live stats from GitHub, Wikipedia, Substack, YouTube, LinkedIn, CNBC, Yahoo Finance, and more."
+          description="Live stats from GitHub, Wikipedia, Substack, YouTube, LinkedIn, Yahoo Finance, and more."
           icon={ChartBar}
           actionKey="enrich-social-stats"
           state={enrichSocialStatsState}

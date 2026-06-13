@@ -295,10 +295,9 @@ const OPTIONAL_DEPENDENCIES: Dependency[] = [
     name: "RapidAPI Hub",
     type: "optional",
     description:
-      "Gateway to Yahoo Finance, CNBC, LinkedIn, and Seeking Alpha endpoints for business and financial data.",
+      "Gateway to Yahoo Finance, LinkedIn, and Seeking Alpha endpoints for business and financial data.",
     features: [
       "Yahoo Finance data",
-      "CNBC article search",
       "LinkedIn profile data",
       "Seeking Alpha mentions",
     ],

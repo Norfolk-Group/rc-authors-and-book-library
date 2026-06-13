@@ -103,7 +103,7 @@ const SERVICE_META: Record<
   },
   rapidapi: {
     label: "RapidAPI",
-    description: "Yahoo Finance, CNBC, LinkedIn, Seeking Alpha endpoints",
+    description: "Yahoo Finance, LinkedIn, Seeking Alpha endpoints",
     icon: "⚡",
     docsUrl: "https://rapidapi.com",
   },

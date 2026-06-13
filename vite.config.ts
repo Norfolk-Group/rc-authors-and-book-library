@@ -172,10 +172,6 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          // Heavy 3D libraries — isolate completely
-          if (id.includes('three') || id.includes('@react-three')) {
-            return 'vendor-three';
-          }
           // Animation library
           if (id.includes('framer-motion')) {
             return 'vendor-framer';
