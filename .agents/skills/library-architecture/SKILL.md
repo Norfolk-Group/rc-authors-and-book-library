@@ -1,15 +1,18 @@
 ---
 name: library-architecture
-description: Overall architecture reference for the RC Library app. Use when onboarding to the codebase, understanding data flow between components, adding new features, or making architectural decisions. Covers stack, database schema, tRPC router conventions, key design patterns, deterministic verification tools, known broken features, and what NOT to do. Last updated April 18, 2026.
+description: Overall architecture reference for the RC Library app. Use when onboarding to the codebase, understanding data flow between components, adding new features, or making architectural decisions. Covers stack, database schema, tRPC router conventions, key design patterns, deterministic verification tools, known broken features, and what NOT to do. Last updated June 13, 2026.
 ---
 
 # RC Library App — Architecture Reference
 
-> **IMPORTANT CHANGES AS OF APRIL 18, 2026:**
-> - Vector DB migrated from **Neon pgvector → Neon pgvector**. Use `neonVector.service.ts`, NOT `neon.service.ts`.
-> - Embedding model changed: `text-embedding-004` (404 error) → `gemini-embedding-001` with `outputDimensionality: 1536`.
-> - Google Drive removed. All cloud sync is Dropbox + Manus S3.
-> - Migration 0045 is the latest (`neonNamespace` renamed to `neonNamespace` in `smart_uploads`).
+> **IMPORTANT CHANGES AS OF JUNE 13, 2026:**
+> - Platform migrated from **Manus → Railway**. Live URL: **https://library.superconversations.ai**
+> - Auth changed from Manus OAuth → **Cloudflare Access** (Zero Trust, email OTP). `server/lib/cfAccess.ts` handles JWT validation.
+> - File storage changed from Manus Forge S3 → **Cloudflare R2** (S3-compatible). `server/storage.ts` detects R2 via env vars and falls back to Forge.
+> - New env vars: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL`, `CF_ACCESS_TEAM_DOMAIN`, `CF_ACCESS_AUD`
+> - Node.js in Railway deployment: **22.22.3** (Vite 7 would work here, but keep 6.x for stability)
+> - flowbite-react pinned to `0.12.17` with oxc-parser stubbed via pnpm override (works on Railway)
+> - LLM enrichment prompts now enforce English (added "Always respond in English" to all system prompts in `richBio.ts` and `richSummary.ts`)
 
 ---
 
@@ -21,12 +24,13 @@ description: Overall architecture reference for the RC Library app. Use when onb
 | Backend | Express 4, tRPC 11, Superjson |
 | Database | MySQL / TiDB Cloud (Drizzle ORM v0.44) — 45 migrations applied |
 | Vector DB | **Neon pgvector** (`vector_embeddings` table, 1536-dim HNSW cosine index, 395 vectors) |
-| File storage | Manus S3 CDN (`storagePut` / `storageGet` in `server/storage.ts`) |
+| File storage | **Cloudflare R2** (primary) / Manus Forge S3 (fallback) — `server/storage.ts` |
 | Cloud sync | Dropbox API (OAuth, auto token refresh) — **Google Drive removed Apr 2026** |
 | AI / LLM | Anthropic Claude (Opus for architecture, Sonnet for enrichment), Gemini (embeddings) |
-| Auth | Manus OAuth (JWT session cookies) |
-| Build | Vite 6.4.1 (pinned — do NOT upgrade), esbuild, TypeScript 5.9 |
-| Testing | Vitest — ~1020 tests passing (Apr 2026) |
+| Auth | **Cloudflare Access** (Zero Trust, email OTP, RS256 JWT) — `server/lib/cfAccess.ts` |
+| Build | Vite 6.4.1 (pinned), esbuild, TypeScript 5.9 |
+| Deployment | **Railway** (Nixpacks + Dockerfile) — auto-deploys from `main` branch |
+| Testing | Vitest — ~1020 tests passing |
 | Icons | Phosphor Icons (`@phosphor-icons/react`), Lucide |
 | Animation | Framer Motion |
 | Logging | `server/lib/logger.ts` — structured logger (debug suppressed in prod) |
@@ -50,21 +54,25 @@ client/src/
 
 server/
   routers/            ← tRPC feature routers (one file per domain)
-  services/           ← Business logic services (no tRPC, pure functions)
-    neonVector.service.ts       ← Neon pgvector client (REPLACES neon.service.ts)
-    neon.service.ts         ← DEPRECATED — do not use; pending deletion
+  services/           ← Business logic services
+    neonVector.service.ts       ← Neon pgvector client
     incrementalIndex.service.ts ← indexAuthorIncremental, indexBookIncremental
     ragPipeline.service.ts      ← RAG file generation + embedding
     enrichmentOrchestrator.service.ts ← Background job engine (13 pipelines)
   _core/              ← Framework plumbing (auth, context, LLM helpers) — DO NOT EDIT
-  db.ts               ← Drizzle query helpers
-  routers.ts          ← Root router (merges all feature routers)
-  storage.ts          ← S3 helpers (storagePut, storageGet)
-  dropbox.service.ts  ← Dropbox API client + DROPBOX_FOLDERS constant
+    context.ts        ← Session resolution: tries Manus cookie first, falls back to CF Access
+    env.ts            ← ENV constants (use instead of process.env)
   lib/
+    cfAccess.ts       ← Cloudflare Access JWT validation (RS256, JWKS, 5-min owner cache)
     logger.ts         ← Structured logger
     parallelBatch.ts  ← Generic parallel batch executor
     llmCatalogue.ts   ← Multi-vendor LLM catalogue (13 vendors, 47 models)
+  db.ts               ← Drizzle + TiDB TLS pool
+  storage.ts          ← R2/Forge helpers (storagePut, storageGet)
+  dropbox.service.ts  ← Dropbox API client + DROPBOX_FOLDERS constant
+  enrichment/
+    richBio.ts        ← Double-pass LLM bio enrichment (English enforced)
+    richSummary.ts    ← Double-pass LLM summary enrichment (English enforced)
 
 drizzle/
   schema.ts           ← All table definitions + indexes (25 tables)
@@ -72,11 +80,12 @@ drizzle/
 
 scripts/
   reindex_pg.cjs      ← Pure-Node Neon re-indexing (no tsx — avoids OOM)
-  verify-db-indexes.mjs ← Verify all 42 DB indexes exist (read-only)
-  verify-dropbox-folders.mjs ← Verify Dropbox folder accessibility (read-only)
-  audit-enrichment-gaps.mjs  ← Audit enrichment gaps (read-only)
-  verify-s3-coverage.mjs     ← Audit S3 mirror coverage (read-only)
-  verify-neon-coverage.mjs ← BROKEN — still uses Neon pgvector SDK; needs rewrite
+  verify-r2.mjs       ← Verify R2 credentials (PutObject + public GET)
+  verify-neon-coverage.mjs ← Neon vector coverage report
+  verify-db-indexes.mjs    ← Verify all 42 DB indexes exist (read-only)
+  verify-dropbox-folders.mjs ← Verify Dropbox folder accessibility
+  audit-enrichment-gaps.mjs  ← Audit enrichment gaps
+  verify-s3-coverage.mjs     ← Audit S3 mirror coverage
 
 shared/
   types.ts            ← Shared TypeScript types (client + server)
@@ -85,24 +94,76 @@ shared/
 
 ---
 
+## Cloudflare Access Auth
+
+Auth is handled at two layers:
+
+1. **Edge layer** — Cloudflare Access sits in front of the custom domain (`library.superconversations.ai`). Unauthenticated requests are redirected to the CF Access login page (email OTP or Google). On success, CF injects a `CF_Authorization` cookie containing an RS256-signed JWT.
+
+2. **Application layer** — `server/lib/cfAccess.ts` validates the CF Access JWT via JWKS (pinned to `CF_ACCESS_TEAM_DOMAIN` and `CF_ACCESS_AUD`). `server/_core/context.ts` first tries to resolve a Manus session (for backward compatibility), then falls back to `resolveCfAccessOwner()` from `cfAccess.ts`.
+
+**Key rules:**
+- The raw `*.up.railway.app` URL bypasses Cloudflare Access — **always use `library.superconversations.ai`**
+- `CF_ACCESS_TEAM_DOMAIN` = your Zero Trust team domain (e.g. `norfolk.cloudflareaccess.com`)
+- `CF_ACCESS_AUD` = the AUD tag from the CF Access application settings
+- The owner cache in `cfAccess.ts` is 5 minutes in-process — avoids two DB round-trips per request
+- Log only `(err as Error).message` from jose errors — never log raw `err` (jose attaches decoded JWT payload to errors)
+
+---
+
+## Cloudflare R2 Storage
+
+`server/storage.ts` exports `storagePut(key, buffer, contentType)` and `storageGet(key)`.
+
+R2 is active when all five vars are set: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL`. If any is missing, falls back to Manus Forge proxy.
+
+**Key rules:**
+- Always check `isR2Configured()` before assuming R2 is active
+- `R2_PUBLIC_URL` must be included in the configured check — if it's missing, uploads succeed but the public URL build throws, orphaning the object
+- S3 key conventions: `author-avatars/<hex>.jpg`, `book-covers/<hex>.<ext>`, `smart-uploads/<ts>-<name>`
+- Never store file bytes in DB columns — store only the S3 key and CDN URL
+
+---
+
 ## Database Schema (Core Tables)
 
 | Table | Purpose |
 |---|---|
-| `author_profiles` | 183 authors — bio, richBioJson, avatarUrl, s3AvatarUrl, socialStatsJson, substackUrl, businessProfileJson, academicResearchJson |
-| `book_profiles` | 163 books — title, authorId, summary, richSummaryJson, coverImageUrl, s3CoverUrl, isbn |
-| `author_rag_profiles` | RAG pipeline state per author (ragStatus: pending/ready/error/stale) |
+| `author_profiles` | 183 authors — bio, richBioJson, avatarUrl, s3AvatarUrl, socialStatsJson |
+| `book_profiles` | 163 books — title, summary, richSummaryJson, coverImageUrl, s3CoverUrl |
+| `content_files` | File attachments — `s3Key`, `s3Url`, `fileType (pdf/mp3/...)`, `contentItemId` FK |
 | `content_items` | Articles, videos, podcasts, newsletters per author |
-| `smart_uploads` | Staging table for Smart Upload jobs (`neonNamespace` column, renamed from `neonNamespace` in migration 0045) |
+| `author_rag_profiles` | RAG pipeline state per author |
+| `smart_uploads` | Staging table for Smart Upload jobs (`neonNamespace` column) |
 | `dropbox_folder_configs` | Admin-managed Dropbox folder connections |
-| `human_review_queue` | Items flagged for human review (near-duplicates, chatbot candidates) |
+| `human_review_queue` | Items flagged for human review (near-duplicates) |
 | `enrichment_schedules` | Cron-like enrichment pipeline schedules |
 | `author_aliases` | DB-backed author name normalization (rawName → canonical) |
-| `users` | Manus OAuth users (id, email, role: admin\|user) |
+| `users` | Session users (id, email, role: admin\|user) |
+
+**Note:** `book_profiles` does NOT have an `s3PdfUrl` column (documented in old CLAUDE.md but never added to schema). PDFs are stored in `content_files WHERE fileType='pdf'`, linked via `contentItemId` → `content_items` → author+title match.
 
 ---
 
-## Neon pgvector Namespaces (Current — Apr 18, 2026)
+## PDF / File Upload Scope
+
+When building any file upload or batch migration feature, the accepted file types are:
+- ✅ PDF (`.pdf`)
+- ✅ DOCX (`.docx`)
+- ✅ Images (`.jpg`, `.jpeg`, `.png`, `.webp`, `.gif`)
+- ❌ Audio (no `.mp3`, `.m4a`, `.wav`, etc.)
+- ❌ Video (no `.mp4`, `.mov`, `.avi`, etc.)
+- ❌ EPUB (no `.epub`)
+
+---
+
+## Neon pgvector
+
+**Connection:** `NEON_DATABASE_URL` (Postgres, not MySQL)
+**Driver:** `@neondatabase/serverless` (WebSocket) for server code; `pg` for scripts
+**Table:** `vector_embeddings (id TEXT PK, namespace TEXT, embedding vector(1536), metadata JSONB, title TEXT, text TEXT)`
+**Index:** HNSW cosine on `embedding`, B-tree on `namespace`
+**Embedding model:** `models/gemini-embedding-001` with `outputDimensionality: 1536`
 
 | Namespace | Vectors | Content |
 |---|---|---|
@@ -112,31 +173,18 @@ shared/
 | `lb_documents` | 8 | Library document RAG chunks |
 | `lb_website` | 7 | Library website RAG chunks |
 | `lb_app_data` | 4 | Library app data RAG chunks |
-| **Total** | **395** | |
 
-**Embedding model:** `models/gemini-embedding-001` with `outputDimensionality: 1536`
-**Do NOT use `text-embedding-004`** — returns 404 on the Gemini v1beta API endpoint.
-**Do NOT use `gemini-embedding-001` without `outputDimensionality: 1536`** — produces 3072 dims which exceed the HNSW limit.
+**Do NOT use `text-embedding-004`** — 404 on v1beta endpoint.
+**Do NOT use `gemini-embedding-001` without `outputDimensionality: 1536`** — produces 3072 dims (exceeds HNSW limit).
 
----
-
-## Dropbox Folder Constants
-
-All Dropbox paths are in `DROPBOX_FOLDERS` in `server/dropbox.service.ts`:
-
-| Key | Env Var | Path |
-|---|---|---|
-| `backup` | `DROPBOX_BACKUP_FOLDER` | `/Apps NAI/RC Library App Data/Authors and Books Backup` |
-| `booksInbox` | `DROPBOX_INBOX_FOLDER` | `/Apps NAI/RC Library App Data/Books Content Entry Folder` |
-| `authorsInbox` | `DROPBOX_AUTHORS_FOLDER` | `/Apps NAI/RC Library App Data/Authors Content Entry Folder` |
-
-**Never hardcode these paths.** Always use `DROPBOX_FOLDERS.authorsInbox` etc.
+Fire-and-forget re-index after any bio/summary DB update:
+```ts
+indexAuthorIncremental(id).catch(e => logger.warn("Neon re-index failed", e));
+```
 
 ---
 
 ## tRPC Router Conventions
-
-All feature routers live in `server/routers/`. They are merged in `server/routers/index.ts`.
 
 ```ts
 // server/routers/myFeature.router.ts
@@ -149,121 +197,100 @@ export const myFeatureRouter = router({
 });
 ```
 
-**Procedure types:**
 - `publicProcedure` — no auth required
 - `protectedProcedure` — requires login (any role)
 - `adminProcedure` — requires `ctx.user.role === "admin"`
 
-Keep each router under ~150 lines. Split into `server/routers/<feature>.router.ts` when they grow.
+Keep each router under ~150 lines.
 
 ---
 
-## Admin Console Structure
+## Enrichment Pipelines — Language Rule
 
-```
-Content
-  ├── Authors
-  ├── Books
-  ├── Content Items
-  └── Author Aliases
+All LLM enrichment prompts in `server/enrichment/` **must include "Always respond in English."** in their system prompt. Added June 13, 2026 to `richBio.ts` and `richSummary.ts`. If adding new enrichment prompts, include this instruction.
 
-Intelligence
-  ├── Intelligence Dashboard (enrichment orchestrator)
-  ├── Human Review Queue
-  └── RAG Readiness
+The root cause: Perplexity/Wikipedia can return Spanish content for Spanish-named authors. Without the constraint, the LLM mirrors the input language.
 
-Media
-  ├── Dropbox Config
-  └── Smart Upload
-
-System
-  ├── API Health
-  ├── Neon pgvector Index   ← formerly "Neon pgvector Index" (file still named AdminNeon pgvectorTab.tsx)
-  ├── Semantic Map
-  ├── LLM Catalogue
-  ├── Dependencies
-  └── Settings
-```
+To re-enrich already-affected records: Admin → Intelligence Dashboard → trigger `enrich-rich-bios` and `enrich-rich-summaries` pipelines.
 
 ---
 
-## Data Flow: Author Enrichment → Neon
+## Deployment (Railway)
 
-```
-Admin triggers pipeline
-  → enrichmentOrchestrator.service.ts: runBioEnrichment(authorId)
-    → fetch bio from Perplexity/Wikipedia
-    → db.update(authorProfiles).set({ bio })
-    → indexAuthorIncremental(authorId)  ← fire-and-forget Neon re-index
-      → embedBatch([bioText, richBioJson fields])
-      → neonVector.upsertVectors({ namespace: "authors", records: [...] })
-```
+- Auto-deploys from `main` branch on push
+- Uses Nixpacks (ignores Dockerfile unless explicitly configured)
+- **Critical:** All packages used at server runtime must be in `dependencies`, not `devDependencies`. Nixpacks prunes devDependencies. Vite, @vitejs/plugin-react, @tailwindcss/vite, vite-plugin-manus-runtime, @builder.io/vite-plugin-jsx-loc are in `dependencies` for this reason.
+- Port: Railway pre-allocates `$PORT`. Bind directly with `server.listen(parseInt(process.env.PORT || "3000", 10))`. Never use `findAvailablePort()` — TOCTOU race will bump the server off the pre-allocated port.
+- Node.js version: 22.22.3
 
-Always use fire-and-forget pattern:
+---
+
+## Vite Build — No manualChunks
+
+`vite.config.ts` does NOT use `manualChunks`. Hand-grouping vendor libs (react, misc, radix, charts) created mutual circular chunk dependencies that left `React.forwardRef` undefined at runtime (white screen in production). Rollup's automatic chunking is correct and produces 0 mutual cycles. Do not add `manualChunks` back.
+
+---
+
+## TiDB TLS
+
+`server/db.ts` uses an explicit mysql2 pool with `ssl: { minVersion: "TLSv1.2" }`. TiDB Cloud Serverless requires TLS — a bare URI connection string leaves SSL off and silently connects but returns no data.
+
 ```ts
-indexAuthorIncremental(id).catch(e => logger.warn("Neon re-index failed", e));
+const pool = mysql.createPool({
+  uri: process.env.DATABASE_URL,
+  ssl: { minVersion: "TLSv1.2" },
+});
+_db = drizzle(pool);
 ```
-
-## Data Flow: Interest Scoring (Neon-First)
-
-```
-User triggers "Score All Authors"
-  → userInterests.router.ts: scoreAllAuthors
-    → build composite query from user interests
-    → embedText(compositeQuery)  ← single Gemini embed call
-    → neonVector.queryVectors(namespace: "authors", topK: 30)  ← pre-filter
-    → for each of top-30 candidates:
-        → invokeLLM(authorBio + userInterests)  ← score 0-100
-    → upsert scores to DB
-```
-
-This is ~84% cheaper than the old full-scan approach (30 LLM calls vs 183).
 
 ---
 
-## Deterministic Verification Tools
+## Environment Variables
 
-```bash
-# 1. Verify all DB indexes exist (42 expected)
-node scripts/verify-db-indexes.mjs
+All managed in Railway Variables (never in git). Use `ENV` from `server/_core/env.ts` — never `process.env` directly in application code.
 
-# 2. ⚠️ BROKEN — verify-neon-coverage.mjs still uses Neon pgvector SDK
-# DO NOT RUN: node scripts/verify-neon-coverage.mjs
-# TODO: Rewrite as verify-neon-coverage.mjs using pg + NEON_DATABASE_URL
-
-# 3. Check Dropbox folder accessibility
-node scripts/verify-dropbox-folders.mjs
-
-# 4. Audit enrichment gaps (what's missing)
-node scripts/audit-enrichment-gaps.mjs
-node scripts/audit-enrichment-gaps.mjs --json   # machine-readable
-
-# 5. Check S3 mirror coverage for avatars/covers
-node scripts/verify-s3-coverage.mjs
-node scripts/verify-s3-coverage.mjs --list      # show un-mirrored items
-```
-
-All scripts exit with code 0 on pass, code 1 on failure. Safe to run at any time (read-only).
-
----
-
-## Current System State (Apr 18, 2026)
-
-| Metric | Value |
+| Variable | Purpose |
 |---|---|
-| Authors in DB | 183 |
-| Books in DB | 163 |
-| Authors with avatars | 183 (100%) |
-| Authors with S3 avatar | 183 (100%) |
-| Authors with bio | ~180 (98%) |
-| Authors with tags | 183 (100%) — auto-tagged Apr 2026 |
-| Authors in RAG | 183 (100%) — seeded + generated Apr 2026 |
-| Books with covers | 163 (100%) |
-| Books with S3 cover | ~162 (99.4%) |
-| Neon vectors | 395 (183 authors + 163 books + 49 RAG chunks) |
-| DB migrations applied | 45 (0000–0045) |
-| Test suite | ~1020 passing, 17 skipped, 2 OOM (neonVector, neon) |
-| TypeScript errors | 0 |
+| `DATABASE_URL` | MySQL/TiDB connection string |
+| `NEON_DATABASE_URL` | Neon Postgres (pgvector) |
+| `JWT_SECRET` | Session cookie signing |
+| `ANTHROPIC_API_KEY` | Claude (enrichment, classification) |
+| `GEMINI_API_KEY` | Gemini embeddings (1536-dim) |
+| `R2_ACCOUNT_ID` | Cloudflare R2 account ID |
+| `R2_ACCESS_KEY_ID` | R2 access key |
+| `R2_SECRET_ACCESS_KEY` | R2 secret key |
+| `R2_BUCKET` | R2 bucket name |
+| `R2_PUBLIC_URL` | R2 public CDN URL (required for storagePut return value) |
+| `CF_ACCESS_TEAM_DOMAIN` | Cloudflare Access team domain |
+| `CF_ACCESS_AUD` | Cloudflare Access AUD tag |
+| `DROPBOX_ACCESS_TOKEN` | Short-lived Dropbox token (auto-refreshed) |
+| `DROPBOX_REFRESH_TOKEN` | Long-lived Dropbox refresh token |
+| `DROPBOX_APP_KEY` / `DROPBOX_APP_SECRET` | Dropbox OAuth app credentials |
+| `PERPLEXITY_API_KEY` | Perplexity Sonar (bio enrichment + web research) |
+| `EXA_API_KEY` | Exa neural web search |
+| `REPLICATE_API_TOKEN` | Replicate flux-schnell avatars |
+| `TAVILY_API_KEY` | Tavily image search |
+| `YOUTUBE_API_KEY` | YouTube Data API v3 |
+
+---
+
+## What NOT to Do
+
+- **Never use Google Drive** — removed Apr 2026. All cloud storage is Dropbox + R2/Forge.
+- **Never access `process.env` directly** — use `ENV` from `server/_core/env.ts`.
+- **Never edit `server/_core/`** — framework plumbing. Exception: `context.ts` and `index.ts` had authorized edits for CF Access and port binding.
+- **Never use `text-embedding-004`** — 404 on Gemini v1beta endpoint.
+- **Never use `gemini-embedding-001` without `outputDimensionality: 1536`** — 3072 dims exceeds HNSW limit.
+- **Never hardcode Dropbox paths** — use `DROPBOX_FOLDERS` from `dropbox.service.ts`.
+- **Never store file bytes in DB columns** — use `storagePut` and store the URL.
+- **Never call LLM from client-side code** — all AI calls through tRPC.
+- **Never skip Neon re-index after bio/summary updates** — use fire-and-forget pattern.
+- **Never run tsx-based scripts for bulk indexing** — OOMs in sandbox. Use `.cjs` + `pg` + Gemini REST.
+- **Never add `manualChunks` to vite.config.ts** — causes circular chunk deps → React.forwardRef undefined.
+- **Never use `findAvailablePort()`** — TOCTOU race bumps server off Railway's pre-allocated $PORT.
+- **Never log raw jose errors** — jose attaches decoded JWT payload. Log only `(err as Error).message`.
+- **Never skip `R2_PUBLIC_URL` in the R2 configured check** — upload succeeds but URL build throws, orphaning the object.
+- **Never add hard startup validations on platform-managed secrets** — use `console.warn` only.
 
 ---
 
@@ -271,72 +298,9 @@ All scripts exit with code 0 on pass, code 1 on failure. Safe to run at any time
 
 | Feature | Status | Notes |
 |---|---|---|
-| CNBC RapidAPI badge | **Permanently 403** | Requires paid RapidAPI subscription; never worked in prod |
-| `businessProfileJson` column | **Always null** | Populated by CNBC scraper which is broken |
-| `verify-neon-coverage.mjs` | **Crashes** | Still uses Neon pgvector SDK; needs rewrite for Neon |
-| `neon.service.ts` | **Replaced** | Superseded by `neonVector.service.ts`; pending deletion |
-| `neon.test.ts` | **OOM + stale** | Neon pgvector removed; pending deletion |
-| `indexAllToNeon pgvector.mjs/py/ts` | **Dead code** | Neon pgvector removed; pending deletion |
-| "Refresh All Data" button | **Toast placeholder** | Shows "coming soon"; never implemented |
-| `vectorSearch.indexEverything` | **Stub only** | Returns a message; does nothing |
-| `authorAliases.ts` (client lib) | **Superseded** | DB-backed aliases are the source of truth |
-| `authorAvatars.ts` (client lib) | **Superseded** | DB-backed `s3AvatarUrl` is the source of truth |
-
----
-
-## What NOT to Do
-
-- **Never use Google Drive** — removed Apr 2026. All cloud storage is Dropbox + Manus S3.
-- **Never use `neon.service.ts`** — replaced by `neonVector.service.ts`. Neon pgvector removed.
-- **Never use `text-embedding-004`** — returns 404 on the Gemini v1beta endpoint.
-- **Never use `gemini-embedding-001` without `outputDimensionality: 1536`** — produces 3072 dims.
-- **Never hardcode Dropbox paths** — always use `DROPBOX_FOLDERS` from `dropbox.service.ts`.
-- **Never store file bytes in DB columns** — use S3 (`storagePut`) and store the URL.
-- **Never call LLM from client-side code** — all AI calls go through tRPC procedures.
-- **Never edit `server/_core/`** — framework plumbing. Use the exported helpers.
-- **Never skip Neon re-index after bio/summary updates** — use fire-and-forget pattern.
-- **Never run tsx-based scripts for bulk indexing** — OOMs in sandbox. Use `.cjs` + `pg` + Gemini REST.
-- **Never upgrade Vite past 6.x** — Node.js 20.15.1 is below Vite 7's minimum of 20.19+.
-- **Never upgrade flowbite-react past 0.12.16** — newer versions introduce `oxc-parser` native binding that fails in deployment.
-- **Never run heavy client-side data transforms** — use SQL aggregates in the router instead.
-- **Never access `process.env` directly in application code** — use `ENV` from `server/_core/env.ts`.
-
----
-
-## Environment Variables (Key Ones)
-
-| Variable | Purpose |
-|---|---|
-| `DATABASE_URL` | MySQL/TiDB connection string |
-| `NEON_DATABASE_URL` | Neon Postgres connection string (pgvector) |
-| `ANTHROPIC_API_KEY` | Claude API (enrichment, Smart Upload classification) |
-| `GEMINI_API_KEY` | Gemini embeddings (`gemini-embedding-001` with 1536 dims) |
-| `NEON_DATABASE_URL` | **DEPRECATED** — Neon pgvector removed Apr 2026; key still in env but unused |
-| `DROPBOX_ACCESS_TOKEN` | Short-lived Dropbox token (auto-refreshed) |
-| `DROPBOX_REFRESH_TOKEN` | Long-lived Dropbox refresh token |
-| `DROPBOX_APP_KEY` / `DROPBOX_APP_SECRET` | Dropbox OAuth app credentials |
-| `JWT_SECRET` | Session cookie signing |
-| `VITE_APP_ID` | Manus OAuth app ID |
-
----
-
-## Test Suite
-
-```bash
-pnpm test              # Run all tests (~1020 passing, Apr 2026)
-pnpm test -- myFile    # Run specific test file
-pnpm test -- --watch   # Watch mode
-```
-
-Tests live in `server/*.test.ts`. Use Vitest. Mock external services (Dropbox, Neon, Claude) with `vi.mock()`.
-
-**Known OOM test files (sandbox constraint, not code bugs):**
-- `neonVector.test.ts` — `@neondatabase/serverless` too large for vitest worker heap
-- `neon.test.ts` — stale + OOM; should be deleted
-
----
-
-## TypeScript
-
-The project maintains **0 TypeScript errors** at all times. Run `npx tsc --noEmit` to verify.
-Trust this over the watcher output.
+| CNBC RapidAPI | **Removed Jun 2026** | Required paid RapidAPI plan; always 403 |
+| `businessProfileJson` | **Yahoo Finance only** | CNBC removed; column now holds Yahoo Finance data |
+| `vectorSearch.indexEverything` | **Stub** | Returns a message; does nothing |
+| `authorAliases.ts` (client lib) | **Superseded** | DB-backed aliases are source of truth; still imported in 10+ places |
+| `authorAvatars.ts` (client lib) | **Superseded** | DB-backed `s3AvatarUrl` is source of truth; still imported in 10+ places |
+| PDF vector indexing | **Not built** | No PDF parse library installed; `content_files` rows incomplete |
