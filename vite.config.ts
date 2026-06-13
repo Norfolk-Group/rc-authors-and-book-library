@@ -167,42 +167,13 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
-    // Reduce peak memory usage during production build
     chunkSizeWarningLimit: 1000,
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          // Animation library
-          if (id.includes('framer-motion')) {
-            return 'vendor-framer';
-          }
-          // Charts
-          if (id.includes('recharts') || id.includes('d3-')) {
-            return 'vendor-charts';
-          }
-          // Flowbite UI
-          if (id.includes('flowbite')) {
-            return 'vendor-flowbite';
-          }
-          // tRPC + React Query stack
-          if (id.includes('@trpc') || id.includes('@tanstack/react-query')) {
-            return 'vendor-trpc';
-          }
-          // Radix UI primitives
-          if (id.includes('@radix-ui')) {
-            return 'vendor-radix';
-          }
-          // React core
-          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
-            return 'vendor-react';
-          }
-          // All other node_modules
-          if (id.includes('node_modules')) {
-            return 'vendor-misc';
-          }
-        },
-      },
-    },
+    // NOTE: no manualChunks. Hand-grouping these interdependent vendor libraries
+    // (react <-> misc <-> radix <-> charts) produced circular chunk dependencies
+    // that left React.forwardRef undefined at runtime (a white screen in the
+    // production build). Rollup's automatic chunking orders shared dependencies
+    // correctly and avoids that. Route-level code-splitting (React.lazy) is
+    // unaffected. three.js — the original reason for manual chunking — is gone.
   },
   server: {
     host: true,
