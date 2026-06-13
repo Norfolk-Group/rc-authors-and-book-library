@@ -41,8 +41,6 @@ import { BookCard } from "@/components/library/BookCard";
 import { AuthorBioPanel } from "@/components/library/AuthorBioPanel";
 import { BookDetailPanel } from "@/components/library/BookDetailPanel";
 import { StatCard } from "@/components/library/LibraryPrimitives";
-import { lazy, Suspense } from "react";
-const FloatingBooks = lazy(() => import("@/components/FloatingBooks").then(m => ({ default: m.FloatingBooks })));
 import { STATS, type BookEnrichmentLevel } from "@/components/library/libraryConstants";
 import { LibrarySidebar, type TabType } from "@/components/library/LibrarySidebar";
 import { LibraryHeader } from "@/components/library/LibraryHeader";
@@ -296,11 +294,8 @@ export default function Home() {
 
           <main ref={mainRef} className="flex-1 px-3 sm:px-6 py-4 sm:py-6 overflow-auto">
             {/* Stats strip */}
-            <div className="relative mb-6">
-              <div className="absolute inset-0 -top-4 -bottom-4 overflow-hidden rounded-xl opacity-40">
-                <Suspense fallback={null}><FloatingBooks count={6} className="w-full h-full" /></Suspense>
-              </div>
-              <div className="relative z-10 grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="mb-6">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <StatCard label="Authors" value={liveStats?.authors ?? STATS.totalAuthors} icon={Users} />
                 <StatCard label="Books" value={liveStats?.books ?? STATS.totalBooks} icon={BookOpen} />
                 <StatCard label="Audiobooks" value={AUDIO_BOOKS.length} icon={Headphones} />

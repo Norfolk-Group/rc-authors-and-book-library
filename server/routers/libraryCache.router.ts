@@ -20,7 +20,6 @@ import { getBookByISBN, getCoverUrl } from "../enrichment/openLibrary";
 import { checkDigitalAvailability, getAvailabilitySummary } from "../enrichment/hathiTrust";
 import { searchWorldCat } from "../enrichment/worldcat";
 import { getAuthorNewsFromOutlets } from "../enrichment/newsOutlets";
-import { getCNBCAuthorMentions } from "../enrichment/newsSearch";
 
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
@@ -152,7 +151,7 @@ export const libraryCacheRouter = router({
 
   /**
    * Get cached news articles for an author.
-   * Fetches from Google News RSS and CNBC if cache is stale.
+   * Fetches from news outlets if cache is stale.
    */
   getAuthorNews: publicProcedure
     .input(
@@ -172,8 +171,6 @@ export const libraryCacheRouter = router({
           authorName: authorProfiles.authorName,
           newsCacheJson: authorProfiles.newsCacheJson,
           newsCachedAt: authorProfiles.newsCachedAt,
-          cnbcMentionsCacheJson: authorProfiles.cnbcMentionsCacheJson,
-          cnbcMentionsCachedAt: authorProfiles.cnbcMentionsCachedAt,
         })
         .from(authorProfiles)
         .where(eq(authorProfiles.id, input.authorId))
@@ -182,7 +179,6 @@ export const libraryCacheRouter = router({
       if (!author) throw new Error("Author not found");
 
       const newsValid = !input.forceRefresh && isCacheValid(author.newsCachedAt);
-      const cnbcValid = !input.forceRefresh && isCacheValid(author.cnbcMentionsCachedAt);
 
       const updates: Record<string, unknown> = {};
 
@@ -201,21 +197,6 @@ export const libraryCacheRouter = router({
         }
       }
 
-      // Fetch CNBC mentions if needed
-      let cnbcMentions = cnbcValid && author.cnbcMentionsCacheJson
-        ? JSON.parse(author.cnbcMentionsCacheJson)
-        : null;
-      if (!cnbcValid) {
-        try {
-          const mentions = await getCNBCAuthorMentions(author.authorName, 5);
-          cnbcMentions = mentions;
-          updates.cnbcMentionsCacheJson = JSON.stringify(mentions);
-          updates.cnbcMentionsCachedAt = new Date();
-        } catch {
-          cnbcMentions = cnbcMentions ?? [];
-        }
-      }
-
       // Persist updates
       if (Object.keys(updates).length > 0) {
         await db.update(authorProfiles).set(updates).where(eq(authorProfiles.id, input.authorId));
@@ -225,7 +206,6 @@ export const libraryCacheRouter = router({
         authorId: author.id,
         authorName: author.authorName,
         newsArticles: newsArticles ?? [],
-        cnbcMentions: cnbcMentions ?? [],
         newsCachedAt: updates.newsCachedAt ?? author.newsCachedAt,
       };
     }),
@@ -260,7 +240,6 @@ export const libraryCacheRouter = router({
 
       await db.update(authorProfiles).set({
         newsCachedAt: null,
-        cnbcMentionsCachedAt: null,
       }).where(eq(authorProfiles.id, input.authorId));
 
       return { success: true, message: "News cache cleared — next query will re-fetch" };

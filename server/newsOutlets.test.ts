@@ -5,8 +5,6 @@
  *  - NewsArticle interface shape validation
  *  - searchAuthorNews: graceful failure, empty array on network error, shape validation
  *  - searchBookNews: graceful failure, shape validation
- *  - getCNBCAuthorMentions: graceful null on missing key, shape validation
- *  - getCNBCBusinessNews: graceful null on missing key
  *  - RSS parsing: valid XML, malformed XML, CDATA handling, limit enforcement
  *  - extractTag: basic extraction, missing tag, nested tags
  *  - Source attribution: Google News default source
@@ -18,8 +16,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   searchAuthorNews,
   searchBookNews,
-  getCNBCAuthorMentions,
-  getCNBCBusinessNews,
   type NewsArticle,
 } from "./enrichment/newsSearch";
 
@@ -296,91 +292,6 @@ describe("searchBookNews", () => {
       expect(articles[0]).toHaveProperty("url");
     }
   }, 25_000);
-});
-
-// ─── getCNBCAuthorMentions ────────────────────────────────────────────────────
-// Note: getCNBCAuthorMentions returns NewsArticle[] (empty array on failure, not null)
-// because it uses ENV.rapidApiKey internally (not a parameter)
-
-describe("getCNBCAuthorMentions", () => {
-  it("returns empty array when RapidAPI key is missing (ENV.rapidApiKey not set)", async () => {
-    // The function uses ENV.rapidApiKey internally; if not set, returns []
-    // In test env, key is likely empty, so result should be []
-    const result = await getCNBCAuthorMentions("Adam Grant");
-    expect(Array.isArray(result)).toBe(true);
-  });
-
-  it("returns empty array on network failure", async () => {
-    const originalFetch = globalThis.fetch;
-    vi.stubGlobal("fetch", async () => {
-      throw new Error("Network unavailable");
-    });
-    const result = await getCNBCAuthorMentions("Adam Grant");
-    expect(Array.isArray(result)).toBe(true);
-    expect(result.length).toBe(0);
-    vi.stubGlobal("fetch", originalFetch);
-  });
-
-  it("returns empty array on HTTP 403 (invalid key)", async () => {
-    const originalFetch = globalThis.fetch;
-    vi.stubGlobal("fetch", async () => ({
-      ok: false,
-      status: 403,
-      json: async () => ({ message: "Invalid API key" }),
-    }));
-    const result = await getCNBCAuthorMentions("Adam Grant");
-    expect(Array.isArray(result)).toBe(true);
-    vi.stubGlobal("fetch", originalFetch);
-  });
-
-  it("returns valid shape on mocked success response", async () => {
-    const originalFetch = globalThis.fetch;
-    vi.stubGlobal("fetch", async () => ({
-      ok: true,
-      json: async () => ({
-        data: {
-          articles: {
-            articles: [
-              {
-                id: "1",
-                headline: "Adam Grant on leadership",
-                url: "https://cnbc.com/article/1",
-                datePublished: "2024-01-15T10:00:00Z",
-                thumbnail: { url: "https://cnbc.com/img.jpg" },
-              },
-            ],
-          },
-        },
-      }),
-    }));
-    const result = await getCNBCAuthorMentions("Adam Grant", "fake-key");
-    // Should return an array or null
-    if (result !== null) {
-      expect(Array.isArray(result)).toBe(true);
-    }
-    vi.stubGlobal("fetch", originalFetch);
-  });
-});
-
-// ─── getCNBCBusinessNews ──────────────────────────────────────────────────────
-// Note: getCNBCBusinessNews delegates to getCNBCAuthorMentions, returns NewsArticle[]
-
-describe("getCNBCBusinessNews", () => {
-  it("returns empty array (not null) — delegates to getCNBCAuthorMentions", async () => {
-    const result = await getCNBCBusinessNews();
-    expect(Array.isArray(result)).toBe(true);
-  });
-
-  it("returns empty array on network failure", async () => {
-    const originalFetch = globalThis.fetch;
-    vi.stubGlobal("fetch", async () => {
-      throw new Error("Network unavailable");
-    });
-    const result = await getCNBCBusinessNews();
-    expect(Array.isArray(result)).toBe(true);
-    expect(result.length).toBe(0);
-    vi.stubGlobal("fetch", originalFetch);
-  });
 });
 
 // ─── RSS Parsing Edge Cases ───────────────────────────────────────────────────

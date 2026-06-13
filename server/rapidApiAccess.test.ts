@@ -5,7 +5,6 @@
  *  - News outlet functions: BBC, NYT, Apple News, Guardian, Reuters, searchAllOutlets
  *  - Spotify podcast/audiobook search functions
  *  - Instagram username extraction and graceful failure handling
- *  - CNBC stats: buildNameTokens, fetchCNBCStats shape validation
  *  - Yahoo Finance: fetchYahooFinanceStats shape validation
  *  - LinkedIn: fetchLinkedInStats graceful failure on missing key
  *
@@ -45,13 +44,10 @@ import {
   type InstagramStats,
 } from "./enrichment/instagram";
 
-// ── RapidAPI (CNBC, LinkedIn, Yahoo Finance) ──────────────────────────────────
+// ── RapidAPI (LinkedIn, Yahoo Finance) ────────────────────────────────────────
 import {
-  buildNameTokens,
-  fetchCNBCStats,
   fetchLinkedInStats,
   fetchYahooFinanceStats,
-  type CNBCStats,
   type LinkedInStats,
   type YahooFinanceStats,
 } from "./enrichment/rapidapi";
@@ -548,46 +544,6 @@ describe("fetchInstagramStats", () => {
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
-// CNBC Stats — buildNameTokens
-// ═════════════════════════════════════════════════════════════════════════════
-
-describe("buildNameTokens", () => {
-  it("splits a two-part name into first and last", () => {
-    const tokens = buildNameTokens("Adam Grant");
-    expect(tokens.first).toBe("adam");
-    expect(tokens.last).toBe("grant");
-    expect(tokens.full).toBe("adam grant");
-    expect(Array.isArray(tokens.parts)).toBe(true);
-    expect(tokens.parts.length).toBe(2);
-  });
-
-  it("handles three-part names", () => {
-    const tokens = buildNameTokens("Malcolm Timothy Gladwell");
-    expect(tokens.first).toBe("malcolm");
-    expect(tokens.last).toBe("gladwell");
-    expect(tokens.parts.length).toBe(3);
-  });
-
-  it("handles single-word names gracefully", () => {
-    const tokens = buildNameTokens("Cher");
-    expect(tokens.first).toBe("cher");
-    expect(tokens.last).toBe("cher"); // first === last for single word
-    expect(tokens.parts.length).toBe(1);
-  });
-
-  it("normalizes to lowercase", () => {
-    const tokens = buildNameTokens("Brené Brown");
-    expect(tokens.full).toBe("brené brown");
-    expect(Array.isArray(tokens.parts)).toBe(true);
-    expect(tokens.parts.length).toBeGreaterThanOrEqual(1);
-    for (const part of tokens.parts) {
-      expect(typeof part).toBe("string");
-      expect(part.length).toBeGreaterThan(0);
-    }
-  });
-});
-
-// ═════════════════════════════════════════════════════════════════════════════
 // LinkedIn Stats — graceful failure
 // ═════════════════════════════════════════════════════════════════════════════
 
@@ -676,36 +632,4 @@ describe("fetchYahooFinanceStats", () => {
       expect(typeof result.regularMarketPrice).toBe("number");
     }
   }, 15000);
-});
-
-// ═════════════════════════════════════════════════════════════════════════════
-// CNBCStats interface
-// ═════════════════════════════════════════════════════════════════════════════
-
-describe("CNBCStats interface", () => {
-  it("has required fields: articleCount, recentArticles, latestArticleDate", () => {
-    const stats: CNBCStats = {
-      articleCount: 5,
-      recentArticles: [],
-      latestArticleDate: "2024-01-01T00:00:00.000Z",
-      feedsSearched: 5,
-      fetchedAt: new Date().toISOString(),
-    };
-    expect(typeof stats.articleCount).toBe("number");
-    expect(Array.isArray(stats.recentArticles)).toBe(true);
-    expect(typeof stats.feedsSearched).toBe("number");
-    expect(typeof stats.fetchedAt).toBe("string");
-  });
-
-  it("allows null latestArticleDate when no articles found", () => {
-    const stats: CNBCStats = {
-      articleCount: 0,
-      recentArticles: [],
-      latestArticleDate: null,
-      feedsSearched: 5,
-      fetchedAt: new Date().toISOString(),
-    };
-    expect(stats.latestArticleDate).toBeNull();
-    expect(stats.articleCount).toBe(0);
-  });
 });

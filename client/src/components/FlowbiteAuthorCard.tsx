@@ -358,17 +358,6 @@ export function FlowbiteAuthorCard({
     } catch { return null; }
   }, [platformLinks]);
 
-  // CNBC article count badge
-  const cnbcBadge = useMemo(() => {
-    if (!platformLinks?.socialStatsJson) return null;
-    try {
-      const stats = JSON.parse(platformLinks.socialStatsJson as string);
-      const count = stats?.cnbc?.articleCount;
-      if (!count || count <= 0) return null;
-      return { count };
-    } catch { return null; }
-  }, [platformLinks]);
-
   // Hex to rgba helper
   const hexToRgba = useCallback((hex: string, alpha: number) => {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -665,17 +654,6 @@ export function FlowbiteAuthorCard({
                               )}
                             </TooltipTrigger>
                             <TooltipContent side="top" className="text-xs max-w-[200px]">{linkedinBadge.count} LinkedIn followers</TooltipContent>
-                          </Tooltip>
-                        )}
-                        {cnbcBadge && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold ring-1 bg-red-500/10 text-red-700 dark:text-red-400 ring-red-500/30">
-                                <span className="font-black text-[8px] tracking-tight leading-none">CNBC</span>
-                                {cnbcBadge.count} articles
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent side="top" className="text-xs max-w-[200px]">{cnbcBadge.count} articles on CNBC</TooltipContent>
                           </Tooltip>
                         )}
                         {newsBadge && (

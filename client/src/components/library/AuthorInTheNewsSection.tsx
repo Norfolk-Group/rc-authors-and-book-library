@@ -2,7 +2,7 @@
  * AuthorInTheNewsSection — "In the News" panel for the Author Detail page.
  *
  * Fetches news articles mentioning the author via enrichment.news.searchAuthorNews
- * (Google News RSS + CNBC RapidAPI). Shows article cards with source badge,
+ * (Google News RSS). Shows article cards with source badge,
  * headline, date, and "Read" link.
  */
 import { useState } from "react";
@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/button";
 
 // Source → badge color mapping
 const SOURCE_COLORS: Record<string, string> = {
-  CNBC: "bg-red-500/15 text-red-700 dark:text-red-400 ring-red-500/30",
   "The New York Times": "bg-slate-500/15 text-slate-700 dark:text-slate-300 ring-slate-500/30",
   Bloomberg: "bg-blue-500/15 text-blue-700 dark:text-blue-400 ring-blue-500/30",
   "The Wall Street Journal": "bg-gray-500/15 text-gray-700 dark:text-gray-300 ring-gray-500/30",
@@ -113,7 +112,7 @@ export function AuthorInTheNewsSection({ authorName }: Props) {
       {/* Prompt to load */}
       {!enabled && (
         <div className="py-6 text-center text-sm text-muted-foreground border border-dashed border-border rounded-xl">
-          Click "Load News" to search Google News, CNBC, and other sources for recent articles mentioning {authorName}.
+          Click "Load News" to search Google News and other sources for recent articles mentioning {authorName}.
         </div>
       )}
 

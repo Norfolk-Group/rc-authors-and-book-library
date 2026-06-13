@@ -524,13 +524,13 @@ export const authorSocialRouter = router({
       return parsed.twitter ?? null;
     }),
 
-  // ── Business Profile (CNBC + Yahoo Finance) ──────────────────────────────────
+  // ── Business Profile (Yahoo Finance) ─────────────────────────────────────────
 
-  /** Enrich a single author's business profile from CNBC + Yahoo Finance */
+  /** Enrich a single author's business profile from Yahoo Finance */
   enrichBusinessProfile: adminProcedure
     .input(z.object({ authorName: z.string() }))
     .mutation(async ({ input }) => {
-      const { fetchCNBCAuthorProfile, fetchYahooFinanceStats } = await import("../enrichment/rapidapi");
+      const { fetchYahooFinanceStats } = await import("../enrichment/rapidapi");
       const { ENV } = await import("../_core/env");
       const db = await getDb();
       if (!db) throw new Error("Database not available");
@@ -550,8 +550,6 @@ export const authorSocialRouter = router({
       if (!author) throw new Error(`Author not found: ${input.authorName}`);
 
       const profile: Record<string, unknown> = {};
-      const cnbc = await fetchCNBCAuthorProfile(input.authorName, ENV.rapidApiKey);
-      if (cnbc) profile.cnbc = cnbc;
 
       if (author.stockTicker) {
         const yahoo = await fetchYahooFinanceStats(author.stockTicker, ENV.rapidApiKey);
@@ -571,8 +569,6 @@ export const authorSocialRouter = router({
       return {
         success: true,
         authorName: input.authorName,
-        hasCnbc: !!cnbc,
-        cnbcArticleCount: cnbc?.articleCount ?? 0,
         hasYahooFinance: !!author.stockTicker,
       };
     }),
@@ -584,7 +580,7 @@ export const authorSocialRouter = router({
       onlyMissing: z.boolean().optional().default(true),
     }))
     .mutation(async ({ input }) => {
-      const { fetchCNBCAuthorProfile, fetchYahooFinanceStats } = await import("../enrichment/rapidapi");
+      const { fetchYahooFinanceStats } = await import("../enrichment/rapidapi");
       const { ENV } = await import("../_core/env");
       const db = await getDb();
       if (!db) throw new Error("Database not available");
@@ -611,8 +607,6 @@ export const authorSocialRouter = router({
       for (const author of batch) {
         try {
           const profile: Record<string, unknown> = {};
-          const cnbc = await fetchCNBCAuthorProfile(author.authorName, ENV.rapidApiKey);
-          if (cnbc) profile.cnbc = cnbc;
           if (author.stockTicker) {
             const yahoo = await fetchYahooFinanceStats(author.stockTicker, ENV.rapidApiKey);
             if (yahoo) profile.yahooFinance = yahoo;

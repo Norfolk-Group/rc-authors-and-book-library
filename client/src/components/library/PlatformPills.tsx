@@ -10,7 +10,7 @@
  * Platforms supported:
  *   Websites: multiple named entries from websitesJson (personal, company, speaking, course, etc.)
  *   Social: youtube, twitter/X, linkedin, substack, facebook, instagram, tiktok, github, podcast, newsletter, blog
- *   Media:  wikipedia, ycombinator, cnbc, cnn, bloomberg/seekingAlpha, yahooFinance
+ *   Media:  wikipedia, ycombinator, cnn, bloomberg/seekingAlpha, yahooFinance
  */
 
 import { Globe, Mic, Mail, Presentation, BookOpen } from "lucide-react";
@@ -89,12 +89,6 @@ const WikipediaIcon = () => (
 const YCIcon = () => (
   <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current shrink-0" aria-hidden="true">
     <path d="M11.1 0L6.6 8.4 0 9.3l4.8 4.7-1.1 6.6L10 17.4l6.3 3.2-1.1-6.6L20 9.3l-6.6-.9L11.1 0z"/>
-  </svg>
-);
-
-const CNBCIcon = () => (
-  <svg viewBox="0 0 36 14" className="w-6 h-3.5 fill-current shrink-0" aria-hidden="true">
-    <text x="0" y="12" fontSize="11" fontWeight="bold" fontFamily="Arial,sans-serif">CNBC</text>
   </svg>
 );
 
@@ -341,21 +335,6 @@ const MEDIA_PRESENCE_DEFS: MediaPresenceDef[] = [
     },
   },
   {
-    key: "cnbc",
-    label: "CNBC",
-    color: "bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50",
-    textColor: "text-blue-800 dark:text-blue-200",
-    icon: <CNBCIcon />,
-    getUrl: (s) => {
-      const articles = (s as any).cnbc?.recentArticles;
-      return articles?.[0]?.url || null;
-    },
-    getStat: (s) => {
-      const count = (s as any).cnbc?.articleCount;
-      return count ? `${count} articles` : null;
-    },
-  },
-  {
     key: "cnn",
     label: "CNN",
     color: "bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50",
@@ -526,7 +505,7 @@ export function PlatformPills({
     );
   }
 
-  // 3. Media presence pills (Wikipedia, YC, CNBC, CNN, Bloomberg, Yahoo Finance)
+  // 3. Media presence pills (Wikipedia, YC, CNN, Bloomberg, Yahoo Finance)
   const mediaPills: React.ReactNode[] = [];
   if (socialStats) {
     for (const def of MEDIA_PRESENCE_DEFS) {

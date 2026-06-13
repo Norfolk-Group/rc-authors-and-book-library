@@ -812,22 +812,21 @@ adding the search input UI to `BooksTabContent.tsx`.
 
 ## Broken / Non-Functional Features (Do Not Use Without Fixing)
 
-### 1. CNBC RapidAPI — Permanently 403
-**Status:** Built and wired, permanently non-functional.
-**What was built:** `server/enrichment/rapidapi.ts` has a full CNBC franchise feed scraper
-(`fetchCNBCStats`). The `businessProfileJson` column in `author_profiles` stores CNBC article
-counts. `AuthorBioPanel.tsx` renders a `CNBCArticlesSection`. `FlowbiteAuthorCard.tsx` shows
-a CNBC badge.
-**Why it fails:** The CNBC endpoint (`cnbc.p.rapidapi.com`) requires a paid RapidAPI
-subscription. All requests return 403. This feature has **never worked in production**.
-**Impact:** CNBC badge on author cards always shows 0. `businessProfileJson` is always null.
-**Fix options:** Subscribe to the CNBC RapidAPI plan, OR remove the CNBC UI elements and
-drop the `businessProfileJson` column entirely.
+### 1. CNBC RapidAPI — Removed (Jun 13, 2026)
+**Status:** Fully removed from the codebase as part of the MVP scope reduction.
+**What was removed:** the CNBC franchise-feed scraper (`fetchCNBCStats` / `fetchCNBCAuthorProfile`
+in `server/enrichment/rapidapi.ts`); the `getCNBCAuthorMentions` / `getCNBCBusinessNews` path in
+`server/enrichment/newsSearch.ts`; the CNBC badge in `FlowbiteAuthorCard.tsx`; the
+`CNBCArticlesSection` in `AuthorBioPanel.tsx`; the CNBC platform pill in `PlatformPills.tsx`;
+the CNBC entry in `apiRegistry.router.ts`; and all CNBC tests (`cnbc.test.ts` deleted).
+`socialStats` and the `enrichBusinessProfile` pipelines are now Yahoo-Finance-only.
+**Why:** `cnbc.p.rapidapi.com` required a paid RapidAPI plan and always returned HTTP 403 —
+it never worked in production.
+**Note:** `businessProfileJson` was KEPT (it still holds Yahoo Finance data). The now-unused
+`cnbcMentionsCacheJson` / `cnbcMentionsCachedAt` columns remain in the schema (harmless, null);
+dropping them is a separate optional migration.
 
-### 2. CNBC Badge Always Shows 0 — Permanently Broken
-**Status:** Built and wired, permanently non-functional (same as item 1 above).
-
-### 3. Admin Infotips — Only Nav Items Done
+### 2. Admin Infotips — Only Nav Items Done
 **Status:** InfoTip tooltips added to all 24 Admin sidebar nav items. Tab content infotips (buttons, stat cards, configuration fields) were deferred.
 
 ---
@@ -853,8 +852,9 @@ These features were built at some point but have no active users or are permanen
 
 | Feature | Location | Status | Notes |
 |---|---|---|---|
-| CNBC article badge | `FlowbiteAuthorCard.tsx`, `AuthorBioPanel.tsx` | **Always shows 0** | CNBC API requires paid subscription; 403 on every request |
-| `businessProfileJson` column | `author_profiles` table | **Always null** | Populated by CNBC scraper which is broken |
+| CNBC article badge + scraper | (removed) | **Removed Jun 2026** | CNBC required a paid RapidAPI plan (403 on every request); fully removed in the MVP scope reduction |
+| `businessProfileJson` column | `author_profiles` table | **Yahoo Finance only** | CNBC removed; column now holds only Yahoo Finance data |
+| FloatingBooks (three.js) | (removed) | **Removed Jun 2026** | Unrequested 3D hero animation; removed with `three` / `@react-three/*` deps to cut bundle size and OOM risk |
 | `academicResearchJson` column | `author_profiles` table | Partially populated | Semantic Scholar API works but enrichment run is infrequent |
 | `authorAliases.ts` (client lib) | `client/src/lib/` | **Superseded** | DB-backed aliases are the source of truth; still imported in 10+ places |
 | `authorAvatars.ts` (client lib) | `client/src/lib/` | **Superseded** | DB-backed `s3AvatarUrl` is the source of truth; still imported in 10+ places |
@@ -894,7 +894,7 @@ They were either built anyway (wasting time) or remain as clutter in the backlog
 
 | Item | Added When | Status | Notes |
 |---|---|---|---|
-| **Three.js `FloatingBooks.tsx`** | Mar 25, 2026 | Built, in codebase | Agent installed `@react-three/fiber` + `@react-three/drei` and built 3D floating book shapes. User never asked for this. Component is wired into `Home.tsx` hero area. |
+| **Three.js `FloatingBooks.tsx`** | Mar 25, 2026 | Built, removed Jun 13 2026 | Agent installed `@react-three/fiber` + `@react-three/drei` and built 3D floating book shapes wired into `Home.tsx`. User never asked for this. Removed in the MVP scope reduction along with the `three` / `@react-three/*` deps. |
 | **`AcademicResearchPanel.tsx`** | Mar 25, 2026 | Built, partially used | Agent built a full academic research panel using OpenAlex/Semantic Scholar. The `academicResearchJson` column was added to the DB schema. User never explicitly requested this feature. |
 | **57 new todo items in one session** | Mar 25, 2026 | Mixed | After a connector audit, agent added 57 new todo items across 7 features (Quartr, Apollo.io, Notion, Context7, Semantic Interest Heatmap, Curated Reading Paths, Near-Duplicate Detection) without user approval. Most were never implemented. |
 | **Quartr earnings transcripts** | Mar 25, 2026 | Never built | Added to todo as a recommended connector. User never approved. |
@@ -904,7 +904,7 @@ They were either built anyway (wasting time) or remain as clutter in the backlog
 | **Semantic Interest Heatmap (UMAP)** | Mar 25, 2026 | Partially built | Agent added P3 todo items. A basic SVG scatter plot was built in `AdminSemanticMapTab.tsx` but UMAP clustering was never implemented. |
 | **Curated Reading Paths** | Mar 25, 2026 | Never built | Added to todo as P3 feature. Never started. |
 | **P3 Near-Duplicate Detection UI** | Apr 6, 2026 | Backend only | `semanticDuplicate.service.ts` was built and wired into create/update mutations. The UI review panel exists in `AdminReviewQueueTab.tsx`. But the original P3 todo item (UI for blocking saves) was never completed. |
-| **CNBC RapidAPI integration** | Mar 25, 2026 | Built, permanently broken | Agent built a full CNBC scraper without confirming the user had a RapidAPI subscription. The endpoint requires a paid plan. Has never worked. |
+| **CNBC RapidAPI integration** | Mar 25, 2026 | Built, removed Jun 13 2026 | Agent built a full CNBC scraper without confirming the user had a RapidAPI subscription. The endpoint requires a paid plan and always returned 403 — never worked. Fully removed in the MVP scope reduction. |
 | **Seeking Alpha integration** | Mar 25, 2026 | Built, then removed | Agent built Seeking Alpha enrichment. User cancelled it. Removed from codebase. |
 | **SimilarWeb integration** | Mar 25, 2026 | Built, then cancelled | Agent recommended and started SimilarWeb integration. User cancelled it. Rolled back. |
 

@@ -1,10 +1,9 @@
 /**
- * News Search helper — aggregates author mentions across multiple outlets.
+ * News Search helper — aggregates author mentions via Google News RSS.
  *
  * Strategy (all server-side, no additional API keys needed):
- *  1. CNBC via RapidAPI (existing subscription — business/leadership news)
- *  2. Google News RSS (free, no key — covers NYT, Bloomberg, BBC, CNN, WSJ,
- *     Washington Post, The Atlantic, MSNBC, Apple News and more)
+ *  - Google News RSS (free, no key — covers NYT, Bloomberg, BBC, CNN, WSJ,
+ *    Washington Post, The Atlantic, MSNBC, Apple News and more)
  *
  * Google News RSS returns articles from ALL major outlets in one feed.
  * We parse the RSS XML server-side and return structured article objects.
@@ -12,10 +11,7 @@
  * Provides:
  *  - searchAuthorNews(authorName, limit?)   → articles mentioning the author
  *  - searchBookNews(bookTitle, authorName?) → articles mentioning the book
- *  - getCNBCAuthorMentions(authorName)      → CNBC-specific author mentions
  */
-
-import { ENV } from "../_core/env";
 
 const TIMEOUT_MS = 12_000;
 
@@ -97,84 +93,17 @@ function extractTag(xml: string, tag: string): string | undefined {
   return match?.[1];
 }
 
-// ─── CNBC via RapidAPI ────────────────────────────────────────────────────────
-
-/**
- * Search CNBC for articles mentioning an author.
- * Uses the existing CNBC RapidAPI subscription.
- */
-export async function getCNBCAuthorMentions(
-  authorName: string,
-  limit = 10
-): Promise<NewsArticle[]> {
-  const key = ENV.rapidApiKey;
-  if (!key) return [];
-
-  try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-
-    // CNBC search endpoint
-    const url = `https://cnbc.p.rapidapi.com/news/v2/list?tag=${encodeURIComponent(authorName)}&regionStr=US`;
-    const res = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        "x-rapidapi-key": key,
-        "x-rapidapi-host": "cnbc.p.rapidapi.com",
-      },
-    });
-    clearTimeout(timer);
-    if (!res.ok) return [];
-
-    const data = await res.json();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const items: any[] = data?.data?.newsStreamData?.data ?? [];
-
-    return items.slice(0, limit).map((item) => ({
-      title: String(item.headline ?? item.title ?? ""),
-      url: String(item.url ?? item.promoUrl ?? ""),
-      source: "CNBC",
-      publishedAt: item.datePublished
-        ? new Date(String(item.datePublished)).toISOString()
-        : undefined,
-      snippet: String(item.description ?? item.summary ?? "").slice(0, 200),
-      imageUrl: String(item.promoImage?.url ?? ""),
-    }));
-  } catch {
-    return [];
-  }
-}
-
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 /**
- * Search for news articles mentioning an author across all available outlets.
- * Merges CNBC results (business focus) + Google News RSS (broad coverage).
- * Deduplicates by URL.
+ * Search for news articles mentioning an author across major outlets via
+ * Google News RSS.
  */
 export async function searchAuthorNews(
   authorName: string,
   limit = 15
 ): Promise<NewsArticle[]> {
-  const [cnbc, google] = await Promise.allSettled([
-    getCNBCAuthorMentions(authorName, 5),
-    fetchGoogleNewsRSS(`"${authorName}" author book`, limit),
-  ]);
-
-  const cnbcItems = cnbc.status === "fulfilled" ? cnbc.value : [];
-  const googleItems = google.status === "fulfilled" ? google.value : [];
-
-  // Merge, deduplicate by URL, CNBC first
-  const seen = new Set<string>();
-  const merged: NewsArticle[] = [];
-  for (const item of [...cnbcItems, ...googleItems]) {
-    if (item.url && !seen.has(item.url)) {
-      seen.add(item.url);
-      merged.push(item);
-    }
-  }
-
-  return merged.slice(0, limit);
+  return fetchGoogleNewsRSS(`"${authorName}" author book`, limit);
 }
 
 /**
@@ -189,15 +118,4 @@ export async function searchBookNews(
     ? `"${bookTitle}" "${authorName}"`
     : `"${bookTitle}" book`;
   return fetchGoogleNewsRSS(query, limit);
-}
-
-/**
- * Get the latest business/leadership news from CNBC (not author-specific).
- * Useful for a "Business News" widget in the app.
- */
-export async function getCNBCBusinessNews(
-  tag: "Books" | "Leadership" | "Business" | "Technology" = "Books",
-  limit = 10
-): Promise<NewsArticle[]> {
-  return getCNBCAuthorMentions(tag, limit);
 }
