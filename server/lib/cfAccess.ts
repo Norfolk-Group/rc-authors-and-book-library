@@ -54,6 +54,8 @@ export async function verifyCfAccessEmail(req: Request): Promise<string | null> 
     const { payload } = await jwtVerify(token, getJwks(), {
       issuer: teamDomain(),
       audience: ENV.cfAccessAud,
+      // Cloudflare Access signs with RS256; pin it to block algorithm confusion.
+      algorithms: ["RS256"],
     });
     const email = payload.email;
     return typeof email === "string" && email.length > 0 ? email : null;
