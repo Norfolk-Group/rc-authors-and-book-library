@@ -9,10 +9,18 @@ import { ENV } from "./_core/env";
 
 // ── Cloudflare R2 (S3-compatible) ─────────────────────────────────────────────
 
-/** R2 is active only when account id + credentials + bucket are all present. */
+/**
+ * R2 is active only when account id + credentials + bucket + public URL are all
+ * present. R2_PUBLIC_URL is included so a partial config falls back to Forge
+ * rather than uploading an object we then can't build a URL for (orphaned).
+ */
 function isR2Configured(): boolean {
   return Boolean(
-    ENV.r2AccountId && ENV.r2AccessKeyId && ENV.r2SecretAccessKey && ENV.r2Bucket
+    ENV.r2AccountId &&
+      ENV.r2AccessKeyId &&
+      ENV.r2SecretAccessKey &&
+      ENV.r2Bucket &&
+      ENV.r2PublicUrl
   );
 }
 

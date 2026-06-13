@@ -60,24 +60,28 @@ export async function exaSearch(
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-    const res = await fetch("https://api.exa.ai/search", {
-      method: "POST",
-      signal: controller.signal,
-      headers: {
-        "x-api-key": apiKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        query,
-        numResults,
-        // "auto" = balanced relevance/speed (Exa's recommended default).
-        type: "auto",
-        // Highlights = query-relevant excerpts; the token-efficient mode Exa
-        // recommends for agent/LLM workflows (vs. full `text`).
-        contents: { highlights: true },
-      }),
-    });
-    clearTimeout(timer);
+    let res: Response;
+    try {
+      res = await fetch("https://api.exa.ai/search", {
+        method: "POST",
+        signal: controller.signal,
+        headers: {
+          "x-api-key": apiKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          query,
+          numResults,
+          // "auto" = balanced relevance/speed (Exa's recommended default).
+          type: "auto",
+          // Highlights = query-relevant excerpts; the token-efficient mode Exa
+          // recommends for agent/LLM workflows (vs. full `text`).
+          contents: { highlights: true },
+        }),
+      });
+    } finally {
+      clearTimeout(timer);
+    }
     if (!res.ok) {
       console.warn(`[Exa] API error: ${res.status}`);
       return [];
@@ -114,28 +118,32 @@ export async function perplexityAnswer(
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-    const res = await fetch("https://api.perplexity.ai/chat/completions", {
-      method: "POST",
-      signal: controller.signal,
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "sonar-pro",
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are a research assistant. Answer the user's question concisely and accurately using current web sources.",
-          },
-          { role: "user", content: query },
-        ],
-        temperature: 0.2,
-        max_tokens: 1024,
-      }),
-    });
-    clearTimeout(timer);
+    let res: Response;
+    try {
+      res = await fetch("https://api.perplexity.ai/chat/completions", {
+        method: "POST",
+        signal: controller.signal,
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "sonar-pro",
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are a research assistant. Answer the user's question concisely and accurately using current web sources.",
+            },
+            { role: "user", content: query },
+          ],
+          temperature: 0.2,
+          max_tokens: 1024,
+        }),
+      });
+    } finally {
+      clearTimeout(timer);
+    }
     if (!res.ok) {
       console.warn(`[Perplexity] API error: ${res.status}`);
       return null;
