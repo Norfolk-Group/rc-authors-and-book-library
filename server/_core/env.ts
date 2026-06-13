@@ -29,6 +29,10 @@ export const ENV = {
   googleBooksApiKey: process.env.GOOGLE_BOOKS_API_KEY ?? "",
   omdbApiKey: process.env.OMDB_API_KEY ?? "",
   exaApiKey: process.env.EXA_API_KEY ?? "",
+  // Cloudflare Access (Zero Trust) edge OAuth gate. When both are set, a valid
+  // Cloudflare Access JWT authenticates the request as the owner (single-user).
+  cfAccessTeamDomain: process.env.CF_ACCESS_TEAM_DOMAIN ?? "",
+  cfAccessAud: process.env.CF_ACCESS_AUD ?? "",
   // Cloudflare R2 (S3-compatible object storage). When account id + credentials
   // + bucket are all set, storage.ts uses R2; otherwise it falls back to Forge.
   r2AccountId: process.env.R2_ACCOUNT_ID ?? "",
