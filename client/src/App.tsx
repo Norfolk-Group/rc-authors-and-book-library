@@ -22,6 +22,7 @@ const CookiePolicy = lazy(() => import("./pages/CookiePolicy"));
 const ReadingStats = lazy(() => import("./pages/ReadingStats"));
 const Login = lazy(() => import("./pages/Login"));
 const ThematicSearch = lazy(() => import("./pages/ThematicSearch"));
+const ResearchSearch = lazy(() => import("./pages/ResearchSearch"));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center h-screen text-muted-foreground">
@@ -101,6 +102,11 @@ function Router() {
       <Route path={"/discover"}>
         <Suspense fallback={<PageLoader />}>
           <ThematicSearch />
+        </Suspense>
+      </Route>
+      <Route path={"/research"}>
+        <Suspense fallback={<PageLoader />}>
+          <ResearchSearch />
         </Suspense>
       </Route>
       <Route path={"/admin"}>

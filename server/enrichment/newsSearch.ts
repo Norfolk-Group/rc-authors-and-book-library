@@ -1,17 +1,17 @@
 /**
- * News Search helper — aggregates author mentions via Google News RSS.
+ * News Search helper — aggregates author mentions across the web.
  *
- * Strategy (all server-side, no additional API keys needed):
+ * Strategy (all server-side):
  *  - Google News RSS (free, no key — covers NYT, Bloomberg, BBC, CNN, WSJ,
  *    Washington Post, The Atlantic, MSNBC, Apple News and more)
- *
- * Google News RSS returns articles from ALL major outlets in one feed.
- * We parse the RSS XML server-side and return structured article objects.
+ *  - Exa neural web search (EXA_API_KEY) — broader web coverage; degrades to
+ *    Google-only when no Exa key is configured
  *
  * Provides:
  *  - searchAuthorNews(authorName, limit?)   → articles mentioning the author
  *  - searchBookNews(bookTitle, authorName?) → articles mentioning the book
  */
+import { exaSearch } from "./webSearch";
 
 const TIMEOUT_MS = 12_000;
 
@@ -96,14 +96,42 @@ function extractTag(xml: string, tag: string): string | undefined {
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 /**
- * Search for news articles mentioning an author across major outlets via
- * Google News RSS.
+ * Search for news articles mentioning an author across the web.
+ * Merges Google News RSS (broad outlet coverage) + Exa neural web search.
+ * Deduplicates by URL; degrades to Google-only when no Exa key is configured.
  */
 export async function searchAuthorNews(
   authorName: string,
   limit = 15
 ): Promise<NewsArticle[]> {
-  return fetchGoogleNewsRSS(`"${authorName}" author book`, limit);
+  const [google, exa] = await Promise.allSettled([
+    fetchGoogleNewsRSS(`"${authorName}" author book`, limit),
+    exaSearch(`${authorName} author article interview profile`, 6),
+  ]);
+
+  const googleItems = google.status === "fulfilled" ? google.value : [];
+  const exaItems: NewsArticle[] =
+    exa.status === "fulfilled"
+      ? exa.value.map((r) => ({
+          title: r.title,
+          url: r.url,
+          source: "Web (Exa)",
+          publishedAt: r.publishedDate,
+          snippet: r.snippet,
+        }))
+      : [];
+
+  // Merge, deduplicate by URL — Google News first, then Exa web results
+  const seen = new Set<string>();
+  const merged: NewsArticle[] = [];
+  for (const item of [...googleItems, ...exaItems]) {
+    if (item.url && !seen.has(item.url)) {
+      seen.add(item.url);
+      merged.push(item);
+    }
+  }
+
+  return merged.slice(0, limit);
 }
 
 /**

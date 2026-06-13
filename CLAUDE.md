@@ -396,6 +396,7 @@ server/
     orchestrator.router.ts      ← Enrichment pipeline trigger/monitor
     humanReviewQueue.router.ts  ← Human review queue procedures
     vectorSearch.router.ts      ← Semantic search + Neon pgvector index management
+    webSearch.router.ts         ← Web research search (Exa neural search + Perplexity cited answers)
     favorites.router.ts         ← Favorites toggle/list
     scheduling.router.ts        ← Pipeline schedules + job history
     admin.router.ts             ← Admin utility procedures
@@ -447,6 +448,7 @@ shared/
 | `/book/:slug` | `BookDetail.tsx` | Deep-link book detail page |
 | `/compare` | `AuthorCompare.tsx` | Side-by-side author comparison |
 | `/leaderboard` | `Leaderboard.tsx` | Enrichment quality leaderboard |
+| `/research` | `ResearchSearch.tsx` | Web research search — Exa neural search + Perplexity cited answers (live web, distinct from `/discover` library search) |
 | `/chat/:slug` | `AuthorChatbot.tsx` | Author chatbot |
 | `/interests/heatmap` | `InterestHeatmap.tsx` | Interest heatmap |
 | `/interests/contrast` | `GroupContrast.tsx` | Group contrast view |
@@ -647,7 +649,8 @@ All secrets are injected by the Manus platform. Use `ENV` from `server/_core/env
 | `DROPBOX_BACKUP_FOLDER` | `/Apps NAI/RC Library App Data/Authors and Books Backup` |
 | `DROPBOX_INBOX_FOLDER` | `/Apps NAI/RC Library App Data/Books Content Entry Folder` |
 | `DROPBOX_AUTHORS_FOLDER` | `/Apps NAI/RC Library App Data/Authors Content Entry Folder` |
-| `PERPLEXITY_API_KEY` | Perplexity Sonar bio enrichment |
+| `PERPLEXITY_API_KEY` | Perplexity Sonar — bio enrichment + Web Research cited answers |
+| `EXA_API_KEY` | Exa neural web search (Web Research search `/research` + news enrichment boost) |
 | `REPLICATE_API_TOKEN` | Replicate flux-schnell avatars |
 | `TAVILY_API_KEY` | Tavily image search |
 | `YOUTUBE_API_KEY` | YouTube Data API v3 |
@@ -994,10 +997,11 @@ maps task types to optimal vendor/model combinations.
 | Replicate Flux | AI avatar generation (Tier 5) | `REPLICATE_API_TOKEN` |
 | Tavily | Web image search for avatars (Tier 2) | `TAVILY_API_KEY` |
 | Wikipedia / Wikidata | Author photos (Tier 3), bio data | None (public API) |
-| Perplexity | Rich bio generation | `PERPLEXITY_API_KEY` |
+| Perplexity | Rich bio generation + Web Research cited answers (`sonar-pro`) | `PERPLEXITY_API_KEY` |
 | Anthropic Claude Opus | RAG generation, Digital Me synthesis | `ANTHROPIC_API_KEY` |
 | Apify | Amazon book cover scraping | `APIFY_API_TOKEN` |
 | RapidAPI | Yahoo Finance stats | `RAPIDAPI_KEY` |
+| Exa | Neural web search — Web Research (`/research`) + author news enrichment | `EXA_API_KEY` |
 | Twitter Bearer | Twitter follower counts | `TWITTER_BEARER_TOKEN` |
 | YouTube Data API | Channel stats | `YOUTUBE_API_KEY` |
 | Dropbox OAuth 2 | S3-to-Dropbox sync target | `DROPBOX_APP_KEY`, `DROPBOX_APP_SECRET` |

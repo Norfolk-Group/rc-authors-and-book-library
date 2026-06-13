@@ -44,6 +44,7 @@ import { smartUploadRouter } from "./smartUpload.router";
 import { semanticMapRouter } from "./semanticMap.router";
 import { authorAliasesRouter } from "./authorAliases.router";
 import { readingPathRouter } from "./readingPath.router";
+import { webSearchRouter } from "./webSearch.router";
 
 export const appRouter = router({
   system: systemRouter,
@@ -109,6 +110,8 @@ export const appRouter = router({
   authorAliases: authorAliasesRouter,
   // ── Curated Reading Paths (Neon vector similarity + LLM rationale) ──────────
   readingPath: readingPathRouter,
+  // ── Web research search (Exa neural search + Perplexity cited answers) ──────
+  webSearch: webSearchRouter,
 });
 
 export type AppRouter = typeof appRouter;
