@@ -1,7 +1,66 @@
-// Preconfigured storage helpers for Manus WebDev templates
-// Uses the Biz-provided storage proxy (Authorization: Bearer <token>)
+// Storage helpers.
+//
+// Uses Cloudflare R2 (S3-compatible) when the R2_* env vars are configured;
+// otherwise falls back to the Manus Forge storage proxy (Authorization: Bearer).
+// The public API (storagePut / storageGet) is unchanged for both backends.
 
-import { ENV } from './_core/env';
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { ENV } from "./_core/env";
+
+// ── Cloudflare R2 (S3-compatible) ─────────────────────────────────────────────
+
+/** R2 is active only when account id + credentials + bucket are all present. */
+function isR2Configured(): boolean {
+  return Boolean(
+    ENV.r2AccountId && ENV.r2AccessKeyId && ENV.r2SecretAccessKey && ENV.r2Bucket
+  );
+}
+
+let _r2Client: S3Client | null = null;
+function getR2Client(): S3Client {
+  if (!_r2Client) {
+    _r2Client = new S3Client({
+      region: "auto",
+      endpoint: `https://${ENV.r2AccountId}.r2.cloudflarestorage.com`,
+      credentials: {
+        accessKeyId: ENV.r2AccessKeyId,
+        secretAccessKey: ENV.r2SecretAccessKey,
+      },
+    });
+  }
+  return _r2Client;
+}
+
+/** Public URL for an object — requires R2_PUBLIC_URL (r2.dev URL or custom domain). */
+function r2PublicUrl(key: string): string {
+  const base = ENV.r2PublicUrl.replace(/\/+$/, "");
+  if (!base) {
+    throw new Error(
+      "R2_PUBLIC_URL is not set — needed to build public file URLs. Enable public access on the bucket for an r2.dev URL, or attach a custom domain."
+    );
+  }
+  return `${base}/${normalizeKey(key)}`;
+}
+
+async function r2Put(
+  key: string,
+  data: Buffer | Uint8Array | string,
+  contentType: string
+): Promise<{ key: string; url: string }> {
+  const body =
+    typeof data === "string" ? Buffer.from(data) : Buffer.from(data as Uint8Array);
+  await getR2Client().send(
+    new PutObjectCommand({
+      Bucket: ENV.r2Bucket,
+      Key: key,
+      Body: body,
+      ContentType: contentType,
+    })
+  );
+  return { key, url: r2PublicUrl(key) };
+}
+
+// ── Manus Forge proxy (fallback) ──────────────────────────────────────────────
 
 type StorageConfig = { baseUrl: string; apiKey: string };
 
@@ -11,7 +70,7 @@ function getStorageConfig(): StorageConfig {
 
   if (!baseUrl || !apiKey) {
     throw new Error(
-      "Storage proxy credentials missing: set BUILT_IN_FORGE_API_URL and BUILT_IN_FORGE_API_KEY"
+      "No storage backend configured: set the R2_* vars (Cloudflare R2) or BUILT_IN_FORGE_API_URL/BUILT_IN_FORGE_API_KEY (Manus Forge)."
     );
   }
 
@@ -67,13 +126,21 @@ function buildAuthHeaders(apiKey: string): HeadersInit {
   return { Authorization: `Bearer ${apiKey}` };
 }
 
+// ── Public API ────────────────────────────────────────────────────────────────
+
 export async function storagePut(
   relKey: string,
   data: Buffer | Uint8Array | string,
   contentType = "application/octet-stream"
 ): Promise<{ key: string; url: string }> {
-  const { baseUrl, apiKey } = getStorageConfig();
   const key = normalizeKey(relKey);
+
+  if (isR2Configured()) {
+    return r2Put(key, data, contentType);
+  }
+
+  // Manus Forge proxy fallback
+  const { baseUrl, apiKey } = getStorageConfig();
   const uploadUrl = buildUploadUrl(baseUrl, key);
   const formData = toFormData(data, contentType, key.split("/").pop() ?? key);
   const response = await fetch(uploadUrl, {
@@ -92,9 +159,14 @@ export async function storagePut(
   return { key, url };
 }
 
-export async function storageGet(relKey: string): Promise<{ key: string; url: string; }> {
-  const { baseUrl, apiKey } = getStorageConfig();
+export async function storageGet(relKey: string): Promise<{ key: string; url: string }> {
   const key = normalizeKey(relKey);
+
+  if (isR2Configured()) {
+    return { key, url: r2PublicUrl(key) };
+  }
+
+  const { baseUrl, apiKey } = getStorageConfig();
   return {
     key,
     url: await buildDownloadUrl(baseUrl, key, apiKey),
