@@ -39,6 +39,7 @@ export interface WebResearchResult {
 interface ExaApiResult {
   title?: string;
   url?: string;
+  highlights?: string[];
   text?: string;
   publishedDate?: string;
   author?: string;
@@ -69,8 +70,11 @@ export async function exaSearch(
       body: JSON.stringify({
         query,
         numResults,
+        // "auto" = balanced relevance/speed (Exa's recommended default).
         type: "auto",
-        contents: { text: { maxCharacters: 500 } },
+        // Highlights = query-relevant excerpts; the token-efficient mode Exa
+        // recommends for agent/LLM workflows (vs. full `text`).
+        contents: { highlights: true },
       }),
     });
     clearTimeout(timer);
@@ -83,7 +87,7 @@ export async function exaSearch(
       .map((r) => ({
         title: r.title || r.url || "Untitled",
         url: r.url || "",
-        snippet: (r.text || "").replace(/\s+/g, " ").trim().slice(0, 300),
+        snippet: (r.highlights?.join(" … ") || r.text || "").replace(/\s+/g, " ").trim().slice(0, 300),
         publishedDate: r.publishedDate,
         author: r.author,
         score: r.score,

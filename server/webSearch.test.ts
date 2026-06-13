@@ -49,12 +49,12 @@ describe("exaSearch", () => {
           {
             title: "Deep Work",
             url: "https://example.com/deep-work",
-            text: "  A book about   focused success  ",
+            highlights: ["  A book about   focused success  "],
             publishedDate: "2024-01-01",
             author: "Cal Newport",
             score: 0.91,
           },
-          { title: "No URL", url: "", text: "dropped" },
+          { title: "No URL", url: "", highlights: ["dropped"] },
         ],
       }),
     } as Response);
