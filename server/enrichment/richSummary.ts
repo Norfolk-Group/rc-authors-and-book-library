@@ -80,7 +80,7 @@ Be thorough and specific. Include publication year if known.`;
         {
           role: "system",
           content:
-            "You are a thorough literary researcher with comprehensive knowledge of books, authors, and publishing. Provide detailed, factual information about books.",
+            "You are a thorough literary researcher with comprehensive knowledge of books, authors, and publishing. Provide detailed, factual information about books. Always respond in English.",
         },
         { role: "user", content: researchPrompt },
       ],
@@ -145,7 +145,7 @@ Rules:
         {
           role: "system",
           content:
-            "You are a professional book critic and literary editor who writes polished, accurate book profiles. You always return valid JSON.",
+            "You are a professional book critic and literary editor who writes polished, accurate book profiles. You always return valid JSON. Always write in English.",
         },
         { role: "user", content: synthesisPrompt },
       ],
