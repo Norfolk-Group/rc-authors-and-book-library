@@ -60,7 +60,9 @@ export async function verifyCfAccessEmail(req: Request): Promise<string | null> 
     const email = payload.email;
     return typeof email === "string" && email.length > 0 ? email : null;
   } catch (err) {
-    logger.warn("[CfAccess] JWT verification failed", err);
+    // Log only the message — jose's claim-validation errors carry a `.payload`
+    // with the decoded token (email/sub/country/…); never log the raw error.
+    logger.warn("[CfAccess] JWT verification failed:", (err as Error).message);
     return null;
   }
 }
@@ -71,18 +73,37 @@ export async function verifyCfAccessEmail(req: Request): Promise<string | null> 
  * Returns the owner User, or null when CF Access is disabled / the JWT is absent
  * or invalid.
  */
+// Short-lived cache of the resolved owner so a valid request doesn't hit the DB
+// (a write + a read) on every call — createContext runs per request. The JWT is
+// still verified every time; only the user lookup is cached.
+const OWNER_CACHE_TTL_MS = 5 * 60 * 1000;
+let ownerCache: { email: string; user: User; expires: number } | null = null;
+
 export async function resolveCfAccessOwner(req: Request): Promise<User | null> {
   const email = await verifyCfAccessEmail(req);
   if (!email) return null;
 
+  const now = Date.now();
+  if (ownerCache && ownerCache.email === email && ownerCache.expires > now) {
+    return ownerCache.user;
+  }
+
   const ownerOpenId = ENV.ownerOpenId || "owner";
-  await db.upsertUser({
-    openId: ownerOpenId,
-    email,
-    name: email,
-    loginMethod: "cloudflare",
-    lastSignedIn: new Date(),
-  });
-  const user = await db.getUserByOpenId(ownerOpenId);
-  return user ?? null;
+  try {
+    await db.upsertUser({
+      openId: ownerOpenId,
+      email,
+      name: email,
+      loginMethod: "cloudflare",
+      lastSignedIn: new Date(),
+    });
+    const user = await db.getUserByOpenId(ownerOpenId);
+    if (!user) return null;
+    ownerCache = { email, user, expires: now + OWNER_CACHE_TTL_MS };
+    return user;
+  } catch (err) {
+    // Surface DB / resolution failures instead of silently returning null.
+    logger.warn("[CfAccess] owner resolution failed:", (err as Error).message);
+    return null;
+  }
 }
