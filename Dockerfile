@@ -30,17 +30,15 @@ RUN pnpm build
 FROM node:20-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
-ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-RUN corepack enable
 
-# Production dependencies only. The server bundle is built with
-# `esbuild --packages=external`, so third-party packages are resolved from
-# node_modules at runtime (the app's own code is already bundled into dist).
-COPY package.json pnpm-lock.yaml ./
-COPY patches ./patches
-RUN pnpm install --prod --frozen-lockfile
-
-# Bring in the compiled app (server bundle + built client) from the builder stage.
+# The esbuild server bundle uses `--packages=external` and statically imports a
+# few BUILD-TIME packages (vite, @vitejs/plugin-react, @tailwindcss/vite,
+# vite-plugin-manus-runtime) at module load — even in production — so the runtime
+# needs the FULL dependency set, not a --prod subset. Copy the exact, already-
+# installed node_modules from the builder (pnpm's node_modules is self-contained)
+# plus the compiled app. package.json is needed at runtime for "type": "module".
+COPY package.json ./
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 
 # The server listens on PORT (defaults to 3000). Hosts like Railway/Render
