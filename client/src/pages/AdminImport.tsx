@@ -8,6 +8,7 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { LottieLoader } from "@/components/LottieLoader";
 
 // File types we import (matches the server allow-list). Audio/video/epub skipped.
 const DOC_EXTS = [".pdf", ".doc", ".docx"];
@@ -231,6 +232,8 @@ export default function AdminImport() {
           <Button disabled={busy} onClick={() => inputRef.current?.click()}>
             {busy ? "Working…" : "Choose folder"}
           </Button>
+
+          {busy && <LottieLoader size={72} className="py-2" />}
 
           {total > 0 && (
             <div className="space-y-2">

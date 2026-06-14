@@ -4,6 +4,7 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import { lazy, Suspense } from "react";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { LottieLoader } from "@/components/LottieLoader";
 
 const Home = lazy(() => import("./pages/Home"));
 const CommandPalette = lazy(() => import("@/components/CommandPalette").then(m => ({ default: m.CommandPalette })));
@@ -26,11 +27,8 @@ const ThematicSearch = lazy(() => import("./pages/ThematicSearch"));
 const ResearchSearch = lazy(() => import("./pages/ResearchSearch"));
 
 const PageLoader = () => (
-  <div className="flex items-center justify-center h-screen text-muted-foreground">
-    <div className="flex flex-col items-center gap-3">
-      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-      <span className="text-sm">Loading…</span>
-    </div>
+  <div className="flex items-center justify-center h-screen">
+    <LottieLoader label="Loading…" />
   </div>
 );
 
