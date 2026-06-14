@@ -211,16 +211,73 @@ const normalizeToolChoice = (
   return toolChoice;
 };
 
-const resolveApiUrl = () =>
-  ENV.forgeApiUrl && ENV.forgeApiUrl.trim().length > 0
-    ? `${ENV.forgeApiUrl.replace(/\/$/, "")}/v1/chat/completions`
-    : "https://forge.manus.im/v1/chat/completions";
+// ── Provider routing ────────────────────────────────────────────────────────
+// invokeLLM speaks the OpenAI /chat/completions shape. Every provider below
+// exposes an OpenAI-compatible endpoint, so routing is just picking the base
+// URL + API key by model name. This replaces the old Manus Forge gateway —
+// the app no longer depends on any Manus infrastructure for LLM calls.
 
-const assertApiKey = () => {
-  if (!ENV.forgeApiKey) {
-    throw new Error("OPENAI_API_KEY is not configured");
-  }
+type ProviderRoute = {
+  name: string;
+  url: string;
+  apiKey: string;
+  missingKeyEnv: string;
 };
+
+const DEFAULT_MODEL = "gemini-2.5-flash";
+
+function resolveProvider(model: string): ProviderRoute {
+  const m = model.toLowerCase();
+
+  // Qwen — Alibaba DashScope international (Singapore) endpoint.
+  if (m.startsWith("qwen")) {
+    return {
+      name: "qwen",
+      url: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions",
+      apiKey: ENV.dashscopeApiKey,
+      missingKeyEnv: "DASHSCOPE_API_KEY",
+    };
+  }
+
+  // Mistral (incl. Magistral / Ministral / Pixtral / Codestral / Devstral).
+  if (/^(mistral|magistral|ministral|pixtral|codestral|devstral|open-mistral|open-mixtral)/.test(m)) {
+    return {
+      name: "mistral",
+      url: "https://api.mistral.ai/v1/chat/completions",
+      apiKey: ENV.mistralApiKey,
+      missingKeyEnv: "MISTRAL_API_KEY",
+    };
+  }
+
+  // OpenAI (GPT family + o-series reasoning models).
+  if (/^(gpt|o1|o3|o4|chatgpt)/.test(m)) {
+    return {
+      name: "openai",
+      url: "https://api.openai.com/v1/chat/completions",
+      apiKey: ENV.openaiApiKey,
+      missingKeyEnv: "OPENAI_API_KEY",
+    };
+  }
+
+  // Anthropic Claude — optional. Uses Anthropic's OpenAI-compatible endpoint;
+  // only active when ANTHROPIC_API_KEY is set.
+  if (m.startsWith("claude")) {
+    return {
+      name: "anthropic",
+      url: "https://api.anthropic.com/v1/chat/completions",
+      apiKey: ENV.anthropicApiKey,
+      missingKeyEnv: "ANTHROPIC_API_KEY",
+    };
+  }
+
+  // Default: Google Gemini via its OpenAI-compatible endpoint.
+  return {
+    name: "gemini",
+    url: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+    apiKey: ENV.geminiApiKey,
+    missingKeyEnv: "GEMINI_API_KEY",
+  };
+}
 
 const normalizeResponseFormat = ({
   responseFormat,
@@ -268,8 +325,6 @@ const normalizeResponseFormat = ({
 };
 
 export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
-  assertApiKey();
-
   const {
     messages,
     tools,
@@ -280,10 +335,21 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     responseFormat,
     response_format,
     model,
+    maxTokens,
+    max_tokens,
   } = params;
 
+  const targetModel = model ?? DEFAULT_MODEL;
+  const provider = resolveProvider(targetModel);
+
+  if (!provider.apiKey) {
+    throw new Error(
+      `LLM provider "${provider.name}" is not configured: set ${provider.missingKeyEnv}`
+    );
+  }
+
   const payload: Record<string, unknown> = {
-    model: model ?? "gemini-2.5-flash",
+    model: targetModel,
     messages: messages.map(normalizeMessage),
   };
 
@@ -299,9 +365,14 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     payload.tool_choice = normalizedToolChoice;
   }
 
-  payload.max_tokens = 32768
-  payload.thinking = {
-    "budget_tokens": 128
+  // Token cap. 8192 is the safe common ceiling across all providers; rich bios
+  // and summaries fit comfortably. o-series OpenAI models require
+  // max_completion_tokens instead of max_tokens.
+  const tokenCap = maxTokens ?? max_tokens ?? 8192;
+  if (provider.name === "openai" && /^o[0-9]/.test(targetModel.toLowerCase())) {
+    payload.max_completion_tokens = tokenCap;
+  } else {
+    payload.max_tokens = tokenCap;
   }
 
   const normalizedResponseFormat = normalizeResponseFormat({
@@ -315,11 +386,11 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     payload.response_format = normalizedResponseFormat;
   }
 
-  const response = await fetch(resolveApiUrl(), {
+  const response = await fetch(provider.url, {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      authorization: `Bearer ${ENV.forgeApiKey}`,
+      authorization: `Bearer ${provider.apiKey}`,
     },
     body: JSON.stringify(payload),
   });
@@ -327,7 +398,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(
-      `LLM invoke failed: ${response.status} ${response.statusText} - ${errorText}`
+      `LLM invoke failed (${provider.name}/${targetModel}): ${response.status} ${response.statusText} - ${errorText}`
     );
   }
 

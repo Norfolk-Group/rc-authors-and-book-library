@@ -29,6 +29,14 @@ export const ENV = {
   googleBooksApiKey: process.env.GOOGLE_BOOKS_API_KEY ?? "",
   omdbApiKey: process.env.OMDB_API_KEY ?? "",
   exaApiKey: process.env.EXA_API_KEY ?? "",
+  // LLM provider keys (direct — replaces the Manus Forge gateway). invokeLLM
+  // routes to whichever provider matches the requested model name.
+  openaiApiKey: process.env.OPENAI_API_KEY ?? "",
+  mistralApiKey: process.env.MISTRAL_API_KEY ?? "",
+  // Qwen via Alibaba DashScope. Accept either name; DASHSCOPE_API_KEY is canonical.
+  dashscopeApiKey: process.env.DASHSCOPE_API_KEY ?? process.env.QWEN_API_KEY ?? "",
+  // Voyage AI — embeddings + reranking.
+  voyageApiKey: process.env.VOYAGE_API_KEY ?? "",
   // Cloudflare Access (Zero Trust) edge OAuth gate. When both are set, a valid
   // Cloudflare Access JWT authenticates the request as the owner (single-user).
   cfAccessTeamDomain: process.env.CF_ACCESS_TEAM_DOMAIN ?? "",
