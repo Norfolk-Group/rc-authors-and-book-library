@@ -66,6 +66,10 @@ const getArg = (name, def) => {
   return i !== -1 ? args[i + 1] : def;
 };
 const COMMIT = args.includes("--commit");
+// By default, keep only the single richest copy of each book (people often have
+// the same book as Binder PDF + Complete PDF + Transcript DOCX). --no-dedupe
+// indexes every copy.
+const DEDUPE = !args.includes("--no-dedupe");
 const GROUP = getArg("group", "super-conversations");
 const MANIFEST_PATH = getArg("manifest", "r2-upload-manifest.json");
 const ONLY_AUTHOR = getArg("author", null);
@@ -162,7 +166,8 @@ function chunkText(text, opts = {}) {
 // ── Parsing ──────────────────────────────────────────────────────────────────────
 async function parsePdf(buf) {
   const { extractText, getDocumentProxy } = await import("unpdf");
-  const doc = await getDocumentProxy(new Uint8Array(buf));
+  // verbosity: 0 (errors only) silences pdf.js's noisy per-glyph font warnings.
+  const doc = await getDocumentProxy(new Uint8Array(buf), { verbosity: 0 });
   const { text } = await extractText(doc, { mergePages: true });
   return Array.isArray(text) ? text.join("\n\n") : (text || "");
 }
@@ -353,7 +358,7 @@ async function main() {
   const neon = COMMIT ? new Client({ connectionString: process.env.NEON_DATABASE_URL }) : null;
   if (neon) await neon.connect();
 
-  const report = { authorsMatched: 0, authorsUnmatched: [], filesParsed: 0, filesEmpty: [], imagesSkipped: 0, ocrNeeded: [], chunks: 0, vectors: 0, errors: [] };
+  const report = { authorsMatched: 0, authorsUnmatched: [], filesParsed: 0, filesEmpty: [], imagesSkipped: 0, ocrNeeded: [], duplicatesSkipped: 0, chunks: 0, vectors: 0, errors: [] };
   let processed = 0;
 
   for (const folderName of groupAuthors) {
@@ -368,6 +373,8 @@ async function main() {
     const books = await mysqlQuery(pool, `SELECT id, bookTitle FROM book_profiles WHERE authorName = ?`, [author.authorName]);
     console.log(`\n■ ${folderName} → author#${author.id} "${author.authorName}"  (${files.length} file(s), ${books.length} book row(s))`);
 
+    // Phase 1 — parse + chunk every candidate file for this author.
+    const candidates = [];
     for (const f of files) {
       if (LIMIT !== null && processed >= LIMIT) break;
       processed++;
@@ -392,34 +399,63 @@ async function main() {
       const matched = matchBook(fname, bookTitleHints(f.entry.sourcePaths), books);
       const kind = detectSourceKind(fname, matched && matched.book);
       const chunks = chunkText(text);
-      report.chunks += chunks.length;
       const sha12 = (f.entry.sha256 || crypto.createHash("sha256").update(fname).digest("hex")).slice(0, 12);
-      const matchLabel = matched ? `book#${matched.book.id} "${matched.book.bookTitle}" (${matched.score.toFixed(2)})` : "no book match";
-      console.log(`    ✓ ${fname} — ${kind}, ${chunks.length} chunks, ${matchLabel}`);
+      candidates.push({ fname, sha12, matched, kind, chunks, url: f.entry.url || null });
+    }
+
+    // Phase 2 — dedupe book copies: keep the single richest copy per book row;
+    // keep every owner_notes and unmatched doc. (Disabled with --no-dedupe.)
+    const skipDup = new Set();
+    if (DEDUPE) {
+      const bestByBook = new Map(); // bookId -> index of the richest "book" candidate
+      candidates.forEach((c, i) => {
+        if (c.kind !== "book" || !c.matched) return;
+        const key = c.matched.book.id;
+        const prev = bestByBook.get(key);
+        if (prev === undefined || candidates[prev].chunks.length < c.chunks.length) {
+          if (prev !== undefined) skipDup.add(prev);
+          bestByBook.set(key, i);
+        } else {
+          skipDup.add(i);
+        }
+      });
+    }
+
+    // Phase 3 — report and (on --commit) embed the kept candidates.
+    for (let i = 0; i < candidates.length; i++) {
+      const c = candidates[i];
+      const matchLabel = c.matched ? `book#${c.matched.book.id} "${c.matched.book.bookTitle}" (${c.matched.score.toFixed(2)})` : "no book match";
+      if (skipDup.has(i)) {
+        report.duplicatesSkipped++;
+        console.log(`    ⊘ ${c.fname} — duplicate of ${matchLabel}, ${c.chunks.length} chunks skipped`);
+        continue;
+      }
+      report.chunks += c.chunks.length;
+      console.log(`    ✓ ${c.fname} — ${c.kind}, ${c.chunks.length} chunks, ${matchLabel}`);
 
       if (!COMMIT) continue;
 
-      for (const ch of chunks) {
+      for (const ch of c.chunks) {
         try {
           const embedding = await embedText(ch.text);
           await upsertChunk(neon, {
-            id: `a${author.id}-${sha12}-c${ch.index}`,
+            id: `a${author.id}-${c.sha12}-c${ch.index}`,
             namespace: `author_${author.id}`,
-            content_type: kind,
-            source_id: matched ? `book-${matched.book.id}` : `file-${sha12}`,
-            title: matched ? matched.book.bookTitle : fname,
+            content_type: c.kind,
+            source_id: c.matched ? `book-${c.matched.book.id}` : `file-${c.sha12}`,
+            title: c.matched ? c.matched.book.bookTitle : c.fname,
             author_name: author.authorName,
             source: GROUP,
-            url: f.entry.url || null,
+            url: c.url,
             chunk_index: ch.index,
-            chunk_total: chunks.length,
+            chunk_total: c.chunks.length,
             text: ch.text,
-            category: matched ? `book-${matched.book.id}` : null,
+            category: c.matched ? `book-${c.matched.book.id}` : null,
             embedding,
           });
           report.vectors++;
         } catch (e) {
-          report.errors.push(`${fname} chunk ${ch.index}: ${e.message}`);
+          report.errors.push(`${c.fname} chunk ${ch.index}: ${e.message}`);
         }
       }
     }
@@ -432,7 +468,8 @@ async function main() {
   if (report.authorsUnmatched.length) console.log(`Authors UNMATCHED ....... ${report.authorsUnmatched.join(", ")}`);
   console.log(`Files parsed ............ ${report.filesParsed}`);
   console.log(`Images skipped .......... ${report.imagesSkipped}`);
-  console.log(`Chunks .................. ${report.chunks}`);
+  if (DEDUPE) console.log(`Duplicate copies skipped  ${report.duplicatesSkipped}`);
+  console.log(`Chunks (to index) ....... ${report.chunks}`);
   if (COMMIT) console.log(`Vectors written ......... ${report.vectors}`);
   if (report.ocrNeeded.length) {
     console.log(`\nFlagged for OCR (${report.ocrNeeded.length}):`);
