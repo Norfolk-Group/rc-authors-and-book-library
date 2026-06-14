@@ -17,6 +17,18 @@ if (dsn) {
     environment: process.env.NODE_ENV ?? "development",
     tracesSampleRate: 0.1,
     sendDefaultPii: false,
+    // Strip request bodies before any event leaves the server. tRPC inputs to
+    // enrichment procedures can contain author bios, book summaries, and raw
+    // document text — none of which should be forwarded to Sentry. The Node
+    // SDK's RequestDataIntegration attaches the body by default, and
+    // sendDefaultPii:false does not suppress it, so we redact it explicitly.
+    beforeSend(event) {
+      if (event.request) {
+        event.request.data = "[redacted]";
+        if (event.request.cookies) event.request.cookies = { redacted: "true" };
+      }
+      return event;
+    },
   });
   console.info("[Sentry] Server error monitoring enabled");
 }
