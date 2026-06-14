@@ -59,6 +59,8 @@ export async function notifyOwner(
   payload: NotificationPayload
 ): Promise<boolean> {
   const { title, content } = validatePayload(payload);
-  console.info(`[Notification] Owner alert — ${title}: ${content}`);
+  // Log only the title and content length — the body may contain document text
+  // or other sensitive data that should not land in the log store.
+  console.info(`[Notification] Owner alert — ${title} (${content.length} chars)`);
   return true;
 }

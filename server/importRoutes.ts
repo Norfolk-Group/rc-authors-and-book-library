@@ -101,7 +101,7 @@ export function registerImportRoutes(app: Express): void {
       const { url } = await storagePut(key, file.buffer, contentType);
       res.json({ skipped: false, key, url });
     } catch (err) {
-      console.error(`[Import] upload failed for ${file.originalname}:`, err);
+      console.error("[Import] upload failed for", file.originalname, err);
       res.status(500).json({ error: err instanceof Error ? err.message : "upload failed" });
     }
   });
