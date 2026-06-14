@@ -197,11 +197,38 @@ function jaccard(a, b) {
   const uni = new Set([...A, ...B]).size;
   return uni ? inter / uni : 0;
 }
-function matchBook(filename, books) {
+// Category subfolders that are NOT book titles (so we never mistake one for a title).
+const GENERIC_FOLDERS = new Set([
+  "binder", "book pdf", "book", "complete book in pdf", "knowledge base",
+  "transcript doc", "transcript pdf", "transcript", "pdf extra", "pdf", "doc",
+  "docx", "audio", "video", "epub", "images", "cover", "covers",
+]);
+// Recover candidate book-title strings from a file's source paths. The folder
+// layout usually encodes the title better than the (often cryptic) filename:
+//   Authors\<author> - <desc>\<Title>\<category>\file  ->  <Title>
+//   Books\<Title> by <author>\<category>\file          ->  <Title>
+function bookTitleHints(sourcePaths) {
+  const hints = [];
+  for (const p of sourcePaths || []) {
+    const s = segs(p);
+    const top = (s[0] || "").toLowerCase();
+    if (top === "authors" && s[2] && !GENERIC_FOLDERS.has(s[2].toLowerCase())) {
+      hints.push(s[2]);
+    } else if (top === "books" && s[1] && !/^xx\b/i.test(s[1])) {
+      hints.push(s[1].split(/\s+by\s+/i)[0].trim());
+    }
+  }
+  return hints;
+}
+// Match a file to a book row using the title hints first, then the filename.
+function matchBook(filename, hints, books) {
+  const candidates = [...(hints || []), filename];
   let best = null, score = 0;
   for (const b of books) {
-    const s = jaccard(filename, b.bookTitle);
-    if (s > score) { score = s; best = b; }
+    for (const c of candidates) {
+      const s = jaccard(c, b.bookTitle);
+      if (s > score) { score = s; best = b; }
+    }
   }
   return score >= 0.4 ? { book: best, score } : null;
 }
@@ -230,9 +257,39 @@ async function resolveAuthor(pool, folderName) {
 
 // ── Manifest filtering ───────────────────────────────────────────────────────────
 function segs(p) { return String(p).split(/[\\/]/).filter(Boolean); }
+
+// Normalize a person name for tolerant comparison: lowercase, drop periods/
+// underscores, strip other punctuation, collapse whitespace.
+function normName(s) {
+  return String(s).toLowerCase().replace(/[._]/g, " ").replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+}
+// On-disk Authors\ folders are named "<Author Name> - <description>" (separator
+// is a hyphen, en-dash, or em-dash with surrounding spaces). Recover just the
+// author-name portion the user typed.
+function authorNameFromFolder(folderSeg) {
+  return String(folderSeg).split(/\s+[-–—]\s+/)[0].trim();
+}
+// Map a recovered folder author name to a group author. Matches on equality,
+// prefix, or first+last name tokens ("Daniel Siegel" ~ "Daniel J. Siegel").
+function matchGroupAuthor(folderAuthor, groupAuthors) {
+  const fn = normName(folderAuthor);
+  if (!fn) return null;
+  for (const g of groupAuthors) {
+    const gn = normName(g);
+    if (fn === gn || fn.startsWith(gn + " ") || gn.startsWith(fn + " ")) return g;
+  }
+  const ft = fn.split(" ");
+  for (const g of groupAuthors) {
+    const gt = normName(g).split(" ");
+    if (ft.length >= 2 && gt.length >= 2 && ft[0] === gt[0] && ft[ft.length - 1] === gt[gt.length - 1]) return g;
+  }
+  return null;
+}
 function authorOfSourcePath(p, groupAuthors) {
   const s = segs(p);
-  if (s.length >= 2 && s[0].toLowerCase() === "authors" && groupAuthors.includes(s[1])) return s[1];
+  if (s.length >= 2 && s[0].toLowerCase() === "authors") {
+    return matchGroupAuthor(authorNameFromFolder(s[1]), groupAuthors);
+  }
   return null;
 }
 
@@ -332,7 +389,7 @@ async function main() {
       }
       report.filesParsed++;
 
-      const matched = matchBook(fname, books);
+      const matched = matchBook(fname, bookTitleHints(f.entry.sourcePaths), books);
       const kind = detectSourceKind(fname, matched && matched.book);
       const chunks = chunkText(text);
       report.chunks += chunks.length;
