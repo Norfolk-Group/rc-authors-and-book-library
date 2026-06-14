@@ -8,6 +8,10 @@ import App from "./App";
 import { getLoginUrl } from "./const";
 import "./index.css";
 import { AppSettingsProvider } from "@/contexts/AppSettingsContext";
+import { initSentry } from "@/lib/sentry";
+
+// Initialize error monitoring before anything renders (no-op without a DSN).
+initSentry();
 
 const queryClient = new QueryClient();
 

@@ -37,6 +37,9 @@ export const ENV = {
   dashscopeApiKey: process.env.DASHSCOPE_API_KEY ?? process.env.QWEN_API_KEY ?? "",
   // Voyage AI — embeddings + reranking.
   voyageApiKey: process.env.VOYAGE_API_KEY ?? "",
+  // Sentry error monitoring (server). Init happens in server/instrument.ts; this
+  // is exported for any app code that needs to know whether Sentry is enabled.
+  sentryDsn: process.env.SENTRY_DSN ?? "",
   // Cloudflare Access (Zero Trust) edge OAuth gate. When both are set, a valid
   // Cloudflare Access JWT authenticates the request as the owner (single-user).
   cfAccessTeamDomain: process.env.CF_ACCESS_TEAM_DOMAIN ?? "",

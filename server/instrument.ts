@@ -1,0 +1,24 @@
+// Sentry server-side instrumentation.
+//
+// Imported FIRST in server/_core/index.ts so Sentry initializes before Express
+// and other modules load (required for auto-instrumentation). No-op unless
+// SENTRY_DSN is set, so it's safe to ship before the DSN is configured.
+//
+// dotenv is loaded here (before reading SENTRY_DSN) so the value is available
+// even though this runs ahead of the app's own dotenv import.
+import "dotenv/config";
+import * as Sentry from "@sentry/node";
+
+const dsn = process.env.SENTRY_DSN;
+
+if (dsn) {
+  Sentry.init({
+    dsn,
+    environment: process.env.NODE_ENV ?? "development",
+    tracesSampleRate: 0.1,
+    sendDefaultPii: false,
+  });
+  console.info("[Sentry] Server error monitoring enabled");
+}
+
+export { Sentry };

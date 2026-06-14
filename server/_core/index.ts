@@ -1,7 +1,10 @@
+// Sentry must initialize before anything else loads (no-op unless SENTRY_DSN set).
+import "../instrument";
 import "dotenv/config";
 import express from "express";
 import { createServer } from "http";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
+import * as Sentry from "@sentry/node";
 import { registerOAuthRoutes } from "./oauth";
 import { registerDropboxOAuthRoutes } from "../dropboxOAuthRoutes";
 import { registerSmartUploadRoutes } from "../smartUploadRoutes";
@@ -34,6 +37,12 @@ async function startServer() {
       allowMethodOverride: true,
     })
   );
+  // Sentry error handler — after the API routes, before the static/SPA fallback.
+  // Captures errors thrown by the routes above. No-op unless SENTRY_DSN is set.
+  if (process.env.SENTRY_DSN) {
+    Sentry.setupExpressErrorHandler(app);
+  }
+
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);
