@@ -49,11 +49,26 @@ async function main() {
     process.exit(1);
   }
 
-  // TiDB Cloud Serverless requires TLS (same as server/db.ts).
-  const conn = await mysql.createConnection({
-    uri: url,
-    ssl: { minVersion: "TLSv1.2" },
-  });
+  // Parse the URL into plain components and apply TLS ourselves. This avoids
+  // mysql2 mis-handling an embedded `?ssl={...}` query param (TiDB connection
+  // strings often include one) and sidesteps all URI-parsing quirks.
+  let cfg;
+  try {
+    const u = new URL(url);
+    cfg = {
+      host: u.hostname,
+      port: u.port ? Number(u.port) : 3306,
+      user: decodeURIComponent(u.username),
+      password: decodeURIComponent(u.password),
+      database: u.pathname.replace(/^\//, ""),
+      ssl: { minVersion: "TLSv1.2" }, // TiDB Cloud Serverless requires TLS
+    };
+  } catch (e) {
+    console.error("ERROR: DATABASE_URL is not a valid connection string.");
+    process.exit(1);
+  }
+
+  const conn = await mysql.createConnection(cfg);
 
   try {
     // ── Raw totals ────────────────────────────────────────────────────────────
