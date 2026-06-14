@@ -5,6 +5,7 @@ import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { registerDropboxOAuthRoutes } from "../dropboxOAuthRoutes";
 import { registerSmartUploadRoutes } from "../smartUploadRoutes";
+import { registerImportRoutes } from "../importRoutes";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
@@ -22,6 +23,8 @@ async function startServer() {
   registerDropboxOAuthRoutes(app);
   // Smart Upload: POST /api/upload/smart
   registerSmartUploadRoutes(app);
+  // Library Import: POST /api/import/check | /upload | /finalize (bulk R2 import)
+  registerImportRoutes(app);
   // tRPC API
   app.use(
     "/api/trpc",

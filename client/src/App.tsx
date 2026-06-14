@@ -9,6 +9,7 @@ const Home = lazy(() => import("./pages/Home"));
 const CommandPalette = lazy(() => import("@/components/CommandPalette").then(m => ({ default: m.CommandPalette })));
 
 const Admin = lazy(() => import("./pages/Admin"));
+const AdminImport = lazy(() => import("./pages/AdminImport"));
 const AuthorDetail = lazy(() => import("./pages/AuthorDetail"));
 const AuthorCompare = lazy(() => import("./pages/AuthorCompare"));
 const Leaderboard = lazy(() => import("./pages/Leaderboard"));
@@ -107,6 +108,11 @@ function Router() {
       <Route path={"/research"}>
         <Suspense fallback={<PageLoader />}>
           <ResearchSearch />
+        </Suspense>
+      </Route>
+      <Route path={"/admin/import"}>
+        <Suspense fallback={<PageLoader />}>
+          <AdminImport />
         </Suspense>
       </Route>
       <Route path={"/admin"}>
