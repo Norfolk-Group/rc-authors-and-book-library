@@ -91,6 +91,17 @@ function getR2() {
     console.error(`\nERROR: missing R2 env vars: ${missing.join(", ")}\nSet them in PowerShell (see header of this script), then re-run.\n`);
     process.exit(1);
   }
+  // Catch the common mistake of pasting the example placeholders ('...') instead
+  // of the real values — otherwise the endpoint becomes "....r2.cloudflarestorage.com".
+  const placeholder = need.filter((k) => /\.\.\.|^<.*>$/.test(process.env[k]));
+  if (placeholder.length) {
+    console.error(`\nERROR: these R2 vars still hold placeholder text, not real values: ${placeholder.join(", ")}\nOpen Railway → Variables, click each value to reveal it, and paste the ACTUAL value (not the '...' from the example).\n`);
+    process.exit(1);
+  }
+  if (!/^https?:\/\//.test(process.env.R2_PUBLIC_URL)) {
+    console.error(`\nERROR: R2_PUBLIC_URL must start with https:// (got "${process.env.R2_PUBLIC_URL}").\n`);
+    process.exit(1);
+  }
   const client = new S3Client({
     region: "auto",
     endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
@@ -189,6 +200,7 @@ async function main() {
   let uploaded = 0;
   let skipped = 0;
   let i = 0;
+  let consecutiveFails = 0;
   for (const [sha, info] of byHash) {
     i++;
     const entry = manifest.find((m) => m.sha256 === sha);
@@ -208,9 +220,15 @@ async function main() {
         uploaded++;
       }
       entry.url = `${r2.publicBase}/${key}`;
+      consecutiveFails = 0;
     } catch (e) {
       console.error(`  ✗ failed ${key} (${entry.originalFilename}): ${e.message}`);
       entry.error = e.message;
+      consecutiveFails++;
+      if (consecutiveFails >= 3) {
+        console.error(`\nAborting after ${consecutiveFails} uploads failed in a row (${e.message}).\nMost likely the R2 credentials or endpoint are wrong — re-check the 5 R2_* values (especially R2_ACCOUNT_ID) and re-run.\n`);
+        process.exit(1);
+      }
     }
     if (i % 25 === 0 || i === byHash.size) {
       console.log(`  [${i}/${byHash.size}] uploaded=${uploaded} skipped=${skipped}`);
