@@ -32,22 +32,22 @@ Last cleaned: Jun 15, 2026
 
 ---
 
-## Code Cleanup
-
-- [ ] Delete `client/src/lib/authorAliases.ts` (superseded by DB; still imported in 10+ places — refactor callers first)
-- [ ] Delete `client/src/lib/authorAvatars.ts` (superseded by DB; still imported in 10+ places — refactor callers first)
-- [ ] Write vitest tests for Dropbox ingestion pipeline (remaining gap)
-
----
-
 ## Remaining Deferred Items
 
 - [ ] A1: Add Zod schemas for all JSON blob columns in authorProfiles (23 columns — large task)
 - [ ] A5: Split drizzle/schema.ts into domain files (risky — touches all imports)
 - [ ] Q1: Standardize error handling — critical ops throw, reads return typed Result (broad pattern change)
-- [ ] Add infotips to Admin tab content: buttons, stat cards, configuration fields
-- [ ] Add orchestrator first-run guidance card (shows when no jobs have run yet)
 - [ ] Semantic Interest Heatmap: cluster authors/books by vector similarity with UMAP (P3)
+
+---
+
+## Completed (Jun 15, 2026 Session — Continued)
+
+- [x] Deleted `client/src/lib/authorAliases.ts` — useAuthorAliases hook uses empty fallback; DB map is sole source
+- [x] Deleted `client/src/lib/authorAvatars.ts` — all 8 callers refactored; AuthorCompare + Leaderboard use getAvatarMap query
+- [x] Write vitest tests for Dropbox ingestion pipeline — 29 pure-function tests added (normalizeTitle, normalizeIsbn, normalizeFilename, similarityScore, sanitizeFilename); 45 tests total
+- [x] Add infotips to Admin tab content — ReviewQueue stat cards (Chatbot Ready, High Quality, Pending Review) + Run AI Scan button; S3AuditTab section header
+- [x] Orchestrator first-run guidance card — verified already implemented (no jobs → Clock icon + Run All Pipelines Now CTA)
 
 ---
 
