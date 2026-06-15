@@ -161,7 +161,8 @@ export async function chatWithParticipant(
     system,
     tools: [searchToolFor(p)],
     messages,
-    maxTokens: opts.maxTokens ?? 2048,
+    // Headroom so adaptive-thinking tokens don't crowd out the answer.
+    maxTokens: opts.maxTokens ?? 4096,
   });
 }
 

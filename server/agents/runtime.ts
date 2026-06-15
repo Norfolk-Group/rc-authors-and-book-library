@@ -87,14 +87,19 @@ export async function runAgent(opts: RunAgentOptions): Promise<RunAgentResult> {
   let toolCalls = 0;
 
   for (let round = 0; round <= maxRounds; round++) {
-    const resp = await c.messages.create({
-      model: AGENT_MODEL,
-      max_tokens: opts.maxTokens ?? 4096,
-      thinking: { type: "adaptive" },
-      system: opts.system,
-      messages,
-      ...(toolDefs.length ? { tools: toolDefs } : {}),
-    });
+    // Stream and assemble the final message. Long turns (the Book Writer can run
+    // many tool rounds at a high max_tokens) would otherwise risk exceeding the
+    // non-streaming request timeout; .finalMessage() yields the same Message.
+    const resp = await c.messages
+      .stream({
+        model: AGENT_MODEL,
+        max_tokens: opts.maxTokens ?? 4096,
+        thinking: { type: "adaptive" },
+        system: opts.system,
+        messages,
+        ...(toolDefs.length ? { tools: toolDefs } : {}),
+      })
+      .finalMessage();
 
     if (resp.stop_reason === "tool_use") {
       // Last allowed round: don't run another tool cycle whose results we'd never
