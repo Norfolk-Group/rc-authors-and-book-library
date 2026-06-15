@@ -37,13 +37,7 @@ import {
   Info,
 } from "lucide-react";
 
-/**
- * Feature flag: route conversations through "Virgilio" (the Claude Managed
- * Agents conversational agent, `chatV2`) instead of the legacy stateless `chat`.
- * Keep FALSE until a live smoke test of `chatV2` passes in a key-bearing
- * environment — then flip to true to activate stateful, grounded conversations.
- */
-const VIRGILIO_ENABLED = false;
+const VIRGILIO_ENABLED = true;
 
 interface Message {
   role: "user" | "assistant";
