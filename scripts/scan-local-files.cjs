@@ -203,13 +203,16 @@ async function main() {
   let docBytes = 0;
   for (const f of docs) {
     let size = 0;
+    let h;
     try {
       size = fs.statSync(f).size;
-    } catch {
-      /* ignore */
+      h = hashFile(f);
+    } catch (e) {
+      // Skip locked/unreadable files instead of aborting the whole read-only audit.
+      console.warn(`  (skipped unreadable file: ${f} — ${e.message})`);
+      continue;
     }
     docBytes += size;
-    const h = hashFile(f);
     if (!byHash.has(h)) byHash.set(h, []);
     byHash.get(h).push(f);
   }

@@ -61,7 +61,7 @@
     "drizzle-orm": "^0.44.5",
     "express": "^4.21.2",
     "flowbite": "^4.0.1",
-    "flowbite-react": "^0.12.17",
+    "flowbite-react": "0.12.16",
     "framer-motion": "^12.23.22",
     "jose": "6.1.0",
     "jsbarcode": "^3.12.3",
@@ -87,7 +87,7 @@
     "tailwindcss-animate": "^1.0.7",
     "unpdf": "^1.6.2",
     "vaul": "^1.1.2",
-    "vite": "^6.4.1",
+    "vite": "6.4.1",
     "vite-plugin-manus-runtime": "^0.0.57",
     "wouter": "^3.3.5",
     "zod": "^4.1.12"

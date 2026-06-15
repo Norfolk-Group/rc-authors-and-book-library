@@ -10,8 +10,9 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { LottieLoader } from "@/components/LottieLoader";
 
-// File types we import (matches the server allow-list). Audio/video/epub skipped.
-const DOC_EXTS = [".pdf", ".doc", ".docx"];
+// File types we import (matches the server allow-list). Legacy .doc is excluded
+// (the indexer only parses .docx); audio/video/epub skipped.
+const DOC_EXTS = [".pdf", ".docx"];
 const IMG_EXTS = [".jpg", ".jpeg", ".png", ".webp", ".gif", ".tif", ".tiff", ".bmp"];
 const ALLOWED = new Set([...DOC_EXTS, ...IMG_EXTS]);
 
@@ -78,7 +79,7 @@ export default function AdminImport() {
     // 1. Filter to allowed types
     const picked = Array.from(fileList).filter((f) => ALLOWED.has(extOf(f.name)));
     if (picked.length === 0) {
-      setFatal("No PDF, DOC, DOCX, or image files found in that folder.");
+      setFatal("No PDF, DOCX, or image files found in that folder.");
       setPhase("error");
       return;
     }
@@ -111,6 +112,10 @@ export default function AdminImport() {
       setHashed(done);
     }
     const entries = Array.from(byHash.values());
+    // Reset progress totals to the deduped set so percentages are accurate
+    // (the pre-dedupe count can leave progress stuck below 100%).
+    setTotal(entries.length);
+    setTotalBytes(entries.reduce((s, e) => s + e.sizeBytes, 0));
 
     // 3. Ask the server which already exist
     setPhase("checking");
@@ -191,10 +196,17 @@ export default function AdminImport() {
           })),
         }),
       });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const data = await resp.json();
-      setManifestKey(data.manifestKey ?? null);
+      if (!data.manifestKey) throw new Error("finalize response missing manifestKey");
+      setManifestKey(data.manifestKey);
     } catch (e) {
+      // Files uploaded fine, but without a persisted manifest the match/index step
+      // can't run — treat as fatal so the user knows to re-run finalization.
       setErrors((prev) => [...prev, `finalize failed: ${(e as Error).message}`]);
+      setFatal("Files uploaded, but writing the manifest failed. Re-run to finalize.");
+      setPhase("error");
+      return;
     }
     setPhase("done");
   }, []);
@@ -213,7 +225,7 @@ export default function AdminImport() {
           <CardTitle>Import Library Files</CardTitle>
           <CardDescription>
             Select your <code>Authors_and_Books</code> folder. The browser hashes each file and
-            uploads PDFs, DOCs, DOCX, and images straight to cloud storage — duplicates are
+            uploads PDFs, DOCX, and images straight to cloud storage — duplicates are
             collapsed automatically and audio/video/EPUB are skipped. Nothing is stored on this
             device and no credentials are needed.
           </CardDescription>
@@ -224,6 +236,10 @@ export default function AdminImport() {
             type="file"
             multiple
             className="hidden"
+            onClick={(e) => {
+              // Clear so re-selecting the same folder still fires onChange (retry/resume).
+              (e.currentTarget as HTMLInputElement).value = "";
+            }}
             onChange={(e) => {
               if (e.target.files && e.target.files.length) run(e.target.files);
             }}

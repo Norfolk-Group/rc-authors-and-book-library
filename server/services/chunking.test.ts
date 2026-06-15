@@ -49,12 +49,13 @@ describe("chunkText", () => {
   });
 
   it("merges tiny trailing fragments instead of emitting runts", () => {
-    // Build a text just over the target so the natural split would leave a
-    // very short remainder; the merger should fold it into the previous chunk.
-    const main = "word ".repeat(800); // ~4000 chars
+    // Text just over the 3200-char target with NO overlap, so the final slice is
+    // genuinely a tiny trailing fragment — the path the runt-merge must handle.
+    const main = "word ".repeat(650); // ~3250 chars
     const tail = "tiny tail.";
-    const chunks = chunkText(main + tail, { targetTokens: 800, overlapTokens: 50, minTokens: 100 });
-    const last = chunks[chunks.length - 1];
-    expect(last.text.length).toBeGreaterThan(400); // not a runt
+    const chunks = chunkText(main + tail, { targetTokens: 800, overlapTokens: 0, minTokens: 100 });
+    expect(chunks).toHaveLength(1); // runt folded into the previous chunk
+    expect(chunks[0].text).toContain("tiny tail");
+    expect(chunks[0].text.length).toBeGreaterThan(400); // not a runt
   });
 });

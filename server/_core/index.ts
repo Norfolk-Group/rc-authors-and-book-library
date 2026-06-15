@@ -5,6 +5,7 @@ import express from "express";
 import { createServer } from "http";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import * as Sentry from "@sentry/node";
+import { ENV } from "./env";
 import { registerOAuthRoutes } from "./oauth";
 import { registerDropboxOAuthRoutes } from "../dropboxOAuthRoutes";
 import { registerSmartUploadRoutes } from "../smartUploadRoutes";
@@ -39,7 +40,7 @@ async function startServer() {
   );
   // Sentry error handler — after the API routes, before the static/SPA fallback.
   // Captures errors thrown by the routes above. No-op unless SENTRY_DSN is set.
-  if (process.env.SENTRY_DSN) {
+  if (ENV.sentryDsn) {
     Sentry.setupExpressErrorHandler(app);
   }
 

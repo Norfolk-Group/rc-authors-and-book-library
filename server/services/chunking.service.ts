@@ -77,6 +77,14 @@ export function chunkText(text: string, options: ChunkOptions = {}): Chunk[] {
   const overlapTokens = options.overlapTokens ?? 100;
   const minTokens = options.minTokens ?? 80;
 
+  // Guard against pathological option combinations that would otherwise degrade
+  // into infinite/empty slicing.
+  if (targetTokens <= 0) throw new Error("chunkText: targetTokens must be > 0");
+  if (overlapTokens < 0 || overlapTokens >= targetTokens) {
+    throw new Error("chunkText: overlapTokens must be >= 0 and < targetTokens");
+  }
+  if (minTokens < 0) throw new Error("chunkText: minTokens must be >= 0");
+
   const targetChars = targetTokens * CHARS_PER_TOKEN;
   const overlapChars = overlapTokens * CHARS_PER_TOKEN;
   const minChars = minTokens * CHARS_PER_TOKEN;

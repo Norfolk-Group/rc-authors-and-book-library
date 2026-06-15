@@ -8,8 +8,10 @@
 // even though this runs ahead of the app's own dotenv import.
 import "dotenv/config";
 import * as Sentry from "@sentry/node";
+import { ENV } from "./_core/env";
+import { logger } from "./lib/logger";
 
-const dsn = process.env.SENTRY_DSN;
+const dsn = ENV.sentryDsn;
 
 if (dsn) {
   Sentry.init({
@@ -30,7 +32,7 @@ if (dsn) {
       return event;
     },
   });
-  console.info("[Sentry] Server error monitoring enabled");
+  logger.info("[Sentry] Server error monitoring enabled");
 }
 
 export { Sentry };

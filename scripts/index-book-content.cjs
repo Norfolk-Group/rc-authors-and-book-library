@@ -484,7 +484,9 @@ async function main() {
 
   if (neon) await neon.end();
   pool.end();
-  process.exit(0);
+  // Fail loudly for automation: a real commit that recorded errors is a partial
+  // index, not a success. Dry runs stay informational (exit 0).
+  process.exit(COMMIT && report.errors.length ? 1 : 0);
 }
 
 main().catch((e) => { console.error("Fatal:", e.message); process.exit(1); });

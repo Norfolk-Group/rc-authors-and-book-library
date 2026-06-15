@@ -16,6 +16,7 @@
 
 import * as mammoth from "mammoth";
 import { ocrPdfFromUrl } from "./mistralOCR.service";
+import { logger } from "../lib/logger";
 
 // Below this many characters per page, treat the text layer as unreliable and
 // fall back to OCR. ~120 chars/page is a low but reasonable threshold (a normal
@@ -61,7 +62,7 @@ export async function parsePdf(
       }
     } catch (err) {
       // OCR failure is non-fatal — return whatever the text layer gave us.
-      console.warn("[documentParse] OCR fallback failed:", (err as Error).message);
+      logger.warn("[documentParse] OCR fallback failed:", (err as Error).message);
     }
   }
   return { text, source: "pdf-text-layer", pageCount };

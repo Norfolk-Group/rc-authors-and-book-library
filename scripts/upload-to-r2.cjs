@@ -98,7 +98,7 @@ function getR2() {
     console.error(`\nERROR: these R2 vars still hold placeholder text, not real values: ${placeholder.join(", ")}\nOpen Railway → Variables, click each value to reveal it, and paste the ACTUAL value (not the '...' from the example).\n`);
     process.exit(1);
   }
-  if (!/^https?:\/\//.test(process.env.R2_PUBLIC_URL)) {
+  if (!/^https:\/\//.test(process.env.R2_PUBLIC_URL)) {
     console.error(`\nERROR: R2_PUBLIC_URL must start with https:// (got "${process.env.R2_PUBLIC_URL}").\n`);
     process.exit(1);
   }
@@ -158,7 +158,10 @@ async function main() {
     const sha = crypto.createHash("sha256").update(buf).digest("hex");
     const rel = path.relative(root, f);
     if (!byHash.has(sha)) {
-      byHash.set(sha, { ext, size: buf.length, files: [rel], _buf: buf });
+      // Store the path, not the bytes — buffering every unique file would hold
+      // much of the library in heap before uploads start. We re-read (stream)
+      // each file at upload time instead.
+      byHash.set(sha, { ext, size: buf.length, files: [rel], absPath: f });
       totalBytes += buf.length;
     } else {
       byHash.get(sha).files.push(rel);
@@ -213,7 +216,8 @@ async function main() {
           new PutObjectCommand({
             Bucket: r2.bucket,
             Key: key,
-            Body: info._buf,
+            Body: fs.createReadStream(info.absPath),
+            ContentLength: info.size,
             ContentType: entry.contentType,
           })
         );

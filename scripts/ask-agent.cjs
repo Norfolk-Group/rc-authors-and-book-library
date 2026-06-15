@@ -137,6 +137,10 @@ async function main() {
   if (!process.env.NEON_DATABASE_URL) { console.error("ERROR: NEON_DATABASE_URL is required."); process.exit(1); }
   if (!process.env.GEMINI_API_KEY) { console.error("ERROR: GEMINI_API_KEY is required."); process.exit(1); }
   if (!AUTHOR && AUTHOR_ID === null) { console.error("ERROR: pass --author \"Name\" or --author-id N."); process.exit(1); }
+  if (AUTHOR_ID === null && AUTHOR && !process.env.DATABASE_URL) {
+    console.error("ERROR: DATABASE_URL is required to resolve --author by name. Set it, or pass --author-id to skip the MySQL lookup.");
+    process.exit(1);
+  }
 
   // Resolve the agent.
   let authorId = AUTHOR_ID;

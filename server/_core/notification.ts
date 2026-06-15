@@ -1,4 +1,5 @@
 import { TRPCError } from "@trpc/server";
+import { logger } from "../lib/logger";
 
 export type NotificationPayload = {
   title: string;
@@ -61,6 +62,6 @@ export async function notifyOwner(
   const { title, content } = validatePayload(payload);
   // Log only the title and content length — the body may contain document text
   // or other sensitive data that should not land in the log store.
-  console.info(`[Notification] Owner alert — ${title} (${content.length} chars)`);
+  logger.info(`[Notification] Owner alert — ${title} (${content.length} chars)`);
   return true;
 }

@@ -43,17 +43,33 @@ function authHeaders(): Record<string, string> {
   };
 }
 
+// OCR of a multi-page PDF is slow, so this is more generous than the embed timeout.
+const MISTRAL_OCR_TIMEOUT_MS = 120000;
+
 async function callOcr(documentField: Record<string, unknown>): Promise<string> {
-  const resp = await fetch(`${MISTRAL_API_BASE}/ocr`, {
-    method: "POST",
-    headers: authHeaders(),
-    body: JSON.stringify({
-      model: MISTRAL_OCR_MODEL,
-      document: documentField,
-      // Markdown output is the most useful for downstream chunking.
-      include_image_base64: false,
-    }),
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), MISTRAL_OCR_TIMEOUT_MS);
+  let resp: Response;
+  try {
+    resp = await fetch(`${MISTRAL_API_BASE}/ocr`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({
+        model: MISTRAL_OCR_MODEL,
+        document: documentField,
+        // Markdown output is the most useful for downstream chunking.
+        include_image_base64: false,
+      }),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    if ((err as Error).name === "AbortError") {
+      throw new Error(`Mistral OCR timed out after ${MISTRAL_OCR_TIMEOUT_MS}ms`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
   if (!resp.ok) {
     const text = await resp.text().catch(() => "");
     throw new Error(`Mistral OCR failed: ${resp.status} ${resp.statusText} - ${text}`);

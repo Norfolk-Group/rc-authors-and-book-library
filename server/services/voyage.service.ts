@@ -18,6 +18,7 @@
  */
 
 import { ENV } from "../_core/env";
+import { parallelBatch } from "../lib/parallelBatch";
 
 export const VOYAGE_EMBED_MODEL = "voyage-4";
 export const VOYAGE_RERANK_MODEL = "rerank-2.5-lite";
@@ -37,12 +38,27 @@ function authHeaders(): Record<string, string> {
   };
 }
 
+const VOYAGE_TIMEOUT_MS = 30000;
+
 async function callVoyage<T>(path: string, body: unknown): Promise<T> {
-  const resp = await fetch(`${VOYAGE_API_BASE}${path}`, {
-    method: "POST",
-    headers: authHeaders(),
-    body: JSON.stringify(body),
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), VOYAGE_TIMEOUT_MS);
+  let resp: Response;
+  try {
+    resp = await fetch(`${VOYAGE_API_BASE}${path}`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    if ((err as Error).name === "AbortError") {
+      throw new Error(`Voyage ${path} timed out after ${VOYAGE_TIMEOUT_MS}ms`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
   if (!resp.ok) {
     const text = await resp.text().catch(() => "");
     throw new Error(`Voyage ${path} failed: ${resp.status} ${resp.statusText} - ${text}`);
@@ -69,8 +85,10 @@ export async function voyageEmbedOne(
     input_type: inputType,
   });
   const values = data?.[0]?.embedding;
-  if (!values || values.length === 0) {
-    throw new Error("Voyage embedding returned empty values");
+  if (!values || values.length !== VOYAGE_EMBED_DIMENSION) {
+    throw new Error(
+      `Voyage embedding returned ${values?.length ?? 0} dims (expected ${VOYAGE_EMBED_DIMENSION})`
+    );
   }
   return values;
 }
@@ -85,18 +103,34 @@ export async function voyageEmbedBatch(
 ): Promise<number[][]> {
   if (texts.length === 0) return [];
   const BATCH = 64;
-  const out: number[][] = [];
+  // Index-tagged batches so we can reassemble in original order regardless of
+  // completion order, run through the shared concurrency primitive.
+  const batches: Array<{ idx: number; slice: string[] }> = [];
   for (let i = 0; i < texts.length; i += BATCH) {
-    const slice = texts.slice(i, i + BATCH);
+    batches.push({ idx: i, slice: texts.slice(i, i + BATCH) });
+  }
+  const summary = await parallelBatch(batches, 2, async ({ idx, slice }) => {
     const { data } = await callVoyage<VoyageEmbedResponse>("/embeddings", {
       model: VOYAGE_EMBED_MODEL,
       input: slice,
       input_type: inputType,
     });
-    // Response order is guaranteed by `index`; sort defensively.
     const ordered = [...data].sort((a, b) => a.index - b.index);
-    for (const row of ordered) out.push(row.embedding);
-    if (i + BATCH < texts.length) await new Promise((r) => setTimeout(r, 150));
+    if (ordered.length !== slice.length) {
+      throw new Error(`Voyage batch count mismatch: expected ${slice.length}, got ${ordered.length}`);
+    }
+    for (const row of ordered) {
+      if (!row.embedding || row.embedding.length !== VOYAGE_EMBED_DIMENSION) {
+        throw new Error(`Voyage embedding dimension mismatch (expected ${VOYAGE_EMBED_DIMENSION})`);
+      }
+    }
+    return { idx, embeddings: ordered.map((r) => r.embedding) };
+  });
+  const failed = summary.results.find((r) => r.error);
+  if (failed) throw new Error(failed.error);
+  const out: number[][] = [];
+  for (const r of summary.results.slice().sort((a, b) => a.result!.idx - b.result!.idx)) {
+    out.push(...r.result!.embeddings);
   }
   return out;
 }
