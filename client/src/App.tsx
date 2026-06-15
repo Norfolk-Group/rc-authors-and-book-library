@@ -4,11 +4,13 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import { lazy, Suspense } from "react";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { LottieLoader } from "@/components/LottieLoader";
 
 const Home = lazy(() => import("./pages/Home"));
 const CommandPalette = lazy(() => import("@/components/CommandPalette").then(m => ({ default: m.CommandPalette })));
 
 const Admin = lazy(() => import("./pages/Admin"));
+const AdminImport = lazy(() => import("./pages/AdminImport"));
 const AuthorDetail = lazy(() => import("./pages/AuthorDetail"));
 const AuthorCompare = lazy(() => import("./pages/AuthorCompare"));
 const Leaderboard = lazy(() => import("./pages/Leaderboard"));
@@ -23,13 +25,11 @@ const ReadingStats = lazy(() => import("./pages/ReadingStats"));
 const Login = lazy(() => import("./pages/Login"));
 const ThematicSearch = lazy(() => import("./pages/ThematicSearch"));
 const ResearchSearch = lazy(() => import("./pages/ResearchSearch"));
+const SuperConversations = lazy(() => import("./pages/SuperConversations"));
 
 const PageLoader = () => (
-  <div className="flex items-center justify-center h-screen text-muted-foreground">
-    <div className="flex flex-col items-center gap-3">
-      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-      <span className="text-sm">Loading…</span>
-    </div>
+  <div className="flex items-center justify-center h-screen">
+    <LottieLoader label="Loading…" />
   </div>
 );
 
@@ -107,6 +107,16 @@ function Router() {
       <Route path={"/research"}>
         <Suspense fallback={<PageLoader />}>
           <ResearchSearch />
+        </Suspense>
+      </Route>
+      <Route path={"/conversations"}>
+        <Suspense fallback={<PageLoader />}>
+          <SuperConversations />
+        </Suspense>
+      </Route>
+      <Route path={"/admin/import"}>
+        <Suspense fallback={<PageLoader />}>
+          <AdminImport />
         </Suspense>
       </Route>
       <Route path={"/admin"}>

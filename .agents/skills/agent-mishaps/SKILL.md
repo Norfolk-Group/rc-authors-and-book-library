@@ -154,3 +154,75 @@ deployment build environment.
 and lazy-loaded , , and  (the three.js component).
 **Rule:** Always lazy-load heavy pages and 3D/animation libraries. Never let three.js be in the
 main bundle.
+
+---
+
+## Railway Migration Failures (Jun 2026)
+
+### "Cannot find package 'vite'" Boot Crash
+Railway's Nixpacks build runner prunes `devDependencies` before starting the server. The server
+bundle (`esbuild --packages=external`) statically imports vite-related packages at load time.
+They were in `devDependencies` — not present at runtime — causing an immediate crash.
+**Fix:** Moved `vite`, `@vitejs/plugin-react`, `@tailwindcss/vite`, `vite-plugin-manus-runtime`,
+`@builder.io/vite-plugin-jsx-loc` from `devDependencies` to `dependencies`. Also updated the
+Dockerfile runtime stage to copy full `node_modules` from the builder (not `--prod` install).
+**Rule:** Any package that the server process imports at runtime must be in `dependencies`.
+
+### 502 Bad Gateway — findAvailablePort() Race
+The original `server/_core/index.ts` called `findAvailablePort()` to probe for a free port.
+Railway pre-allocates `$PORT` before the process starts. The port probe bumped the server off
+that port, causing Railway's proxy to get no response → 502.
+**Fix:** Removed `findAvailablePort()` entirely. Bind directly: `server.listen(parseInt(process.env.PORT || "3000", 10))`.
+**Rule:** Never use findAvailablePort() or similar probing on Railway. Bind directly to `$PORT`.
+
+### TiDB Data Not Loading (Silent TLS Failure)
+The Drizzle setup used `drizzle(process.env.DATABASE_URL)` with the default mysql2 pool.
+mysql2 with a bare URI string leaves SSL off. TiDB Cloud Serverless requires TLS — the
+connection appeared to succeed but returned no data.
+**Fix:** Use an explicit `mysql.createPool({ uri, ssl: { minVersion: "TLSv1.2" } })`.
+
+### Blank Screen #1 — Invalid URL on Login Page
+`getLoginUrl()` was called eagerly as a default argument in `useAuth`. When `VITE_OAUTH_PORTAL_URL`
+is absent (Railway deployment, no Manus OAuth), the function called `new URL("undefined/app-auth")`
+which threw "Invalid URL" and crashed the entire React app.
+**Fix:** Added early return `if (!oauthPortalUrl || !appId) return "/"` to `client/src/const.ts`.
+
+### Blank Screen #2 — manualChunks Circular Chunk Dependencies
+In production builds, `vite.config.ts` had `manualChunks` grouping vendor libs into
+`vendor-react`, `vendor-misc`, `vendor-radix`. This created mutual circular dependencies between
+chunks. The `vendor-radix` chunk tried to initialize while `vendor-react` wasn't yet resolved,
+leaving `React.forwardRef` undefined. Console: "Cannot read properties of undefined (reading 'forwardRef')".
+**Fix:** Removed `manualChunks` entirely. Rollup's automatic chunking has 0 mutual cycles.
+**Rule:** Never add manualChunks to this project's vite.config.ts.
+
+### R2 Orphan-Object Bug
+`isR2Configured()` checked only 4 of the 5 R2 env vars — it omitted `R2_PUBLIC_URL`. An
+upload would succeed (bytes written to R2), then throw when building the return URL, orphaning
+the object with no reference stored in the DB.
+**Fix:** Added `R2_PUBLIC_URL` to the `isR2Configured()` check.
+
+### Cloudflare Access Policy — Auth Method Instead of Emails
+The CF Access application policy Include rule was set to "Authentication Method" (pwd/sms/mfa/otp)
+instead of "Emails". This meant the policy allowed anyone who authenticated — not just
+the owner's email. Users also could not receive the email OTP (they got a policy mismatch error).
+**Fix:** Change the policy Include rule to "Emails" selector with the specific allowed email list.
+
+### SONAR_API_KEY vs PERPLEXITY_API_KEY Mismatch
+User saved the Perplexity API key in Railway as `SONAR_API_KEY`. The codebase reads `PERPLEXITY_API_KEY`.
+The key was silently absent, causing web research features to fail with no error.
+**Fix:** User renamed the Railway variable from `SONAR_API_KEY` to `PERPLEXITY_API_KEY`.
+**Rule:** Always verify the exact variable name the code reads before asking the user to save a secret.
+
+### CF Access JWT PII Leak in Logs
+`jose` (the JWT library) attaches the decoded token payload to `JWTClaimValidationFailed` errors.
+Logging `error` directly would have logged the user's email and other JWT claims.
+**Fix:** Log only `(err as Error).message` — never log the raw error object from jose.
+
+### Spanish Content in Enriched Bios/Summaries
+Enrichment prompts in `richBio.ts` and `richSummary.ts` had no language constraint. When an
+author's name is Spanish or the input bio came from a Spanish source, the LLM mirrored the
+language and produced Spanish output that appeared in the library UI.
+**Fix (Jun 13, 2026):** Added "Always respond in English." to all 4 system prompts in
+`richBio.ts` (research + synthesis passes) and `richSummary.ts` (research + synthesis passes).
+To fix already-stored Spanish content: re-run `enrich-rich-bios` and `enrich-rich-summaries`
+pipelines in Admin → Intelligence Dashboard.

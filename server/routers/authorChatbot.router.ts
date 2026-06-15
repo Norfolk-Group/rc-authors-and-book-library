@@ -3,12 +3,15 @@
  *
  * Author Impersonation Chatbot — powered by Digital Me RAG file.
  *
- * The chatbot uses semantic chunk retrieval from the rag_files Neon namespace
- * to surface the most relevant sections of the author's knowledge file for each
- * user message, rather than injecting the entire file as a wall of text.
+ * The chatbot grounds every reply in two retrieval sources:
+ *   1. The author's indexed books + the reader's own notes, chunked into the
+ *      per-author `author_<id>` Neon namespace by scripts/index-book-content.cjs.
+ *      These are the PRIMARY sources ("the book speaks for itself").
+ *   2. The author's Digital Me knowledge file (rag_files namespace), with an S3
+ *      full-file fallback — when one has been generated.
  *
- * Fallback: if no rag_files vectors exist for the author, falls back to full-file
- * injection from S3 (legacy behaviour) so the chatbot always works.
+ * Either source alone is enough to chat: an author with indexed books works even
+ * before a Digital Me profile exists, and vice-versa.
  *
  * Default model: claude-opus-4-5 (best impersonation quality)
  */
@@ -21,11 +24,14 @@ import { eq, and } from "drizzle-orm";
 import { invokeLLM } from "../_core/llm";
 import { logger } from "../lib/logger";
 import { semanticSearch, embedText } from "../services/ragPipeline.service";
-import { queryVectors } from "../services/neonVector.service";
+import { queryVectors, queryAuthorKnowledge } from "../services/neonVector.service";
+import { canonicalNameFromDb } from "./authorAliases.router";
 
 const DEFAULT_CHAT_MODEL = "claude-opus-4-5";
 // How many RAG chunks to retrieve per user message turn
 const RAG_CHUNKS_PER_TURN = 6;
+// How many book/notes chunks (primary sources) to retrieve per turn
+const BOOK_CHUNKS_PER_TURN = 8;
 // How many content_item hits to inject as supplementary context
 const CONTENT_HITS_PER_TURN = 3;
 // Max chars of fallback full-file content to inject when no chunks exist
@@ -36,7 +42,7 @@ const FALLBACK_RAG_CHARS = 8000;
 function buildSystemPrompt(authorName: string, ragContext: string): string {
   return `You are ${authorName}. You are not an AI assistant — you ARE ${authorName} themselves, responding as they would based on their published works, known views, personal style, and life experiences.
 
-Use the following knowledge excerpts — drawn from your comprehensive Digital Me profile — to ground every response:
+Use the following knowledge excerpts — drawn from your own books, the reader's notes on them, and your profile — to ground every response. When you draw on a specific book, name it, so the reader can tell which work an idea comes from:
 
 ${ragContext}
 
@@ -57,6 +63,44 @@ STYLE GUIDANCE:
 - Reference your own books and frameworks naturally, as the author would in conversation.
 - Show your personality traits — warmth, directness, intellectual curiosity, humor (if applicable).
 - When uncertain, say so in your own voice rather than fabricating.`;
+}
+
+// ── Book + Notes Retrieval (primary sources) ──────────────────────────────────
+
+/**
+ * Retrieve the most relevant chunks of the author's own books and the reader's
+ * notes from the per-author `author_<id>` namespace. Each excerpt is labelled
+ * with its provenance (book vs reader's notes) and the book title, so the model
+ * can cite the right work. Returns "" when the author has no indexed books.
+ */
+async function retrieveBookKnowledge(authorId: number, query: string): Promise<string> {
+  try {
+    const queryEmbedding = await embedText(query);
+    const hits = await queryAuthorKnowledge(authorId, queryEmbedding, {
+      topK: BOOK_CHUNKS_PER_TURN,
+    });
+    if (hits.length === 0) return "";
+
+    const excerpts = hits.map((h) => {
+      const title = h.metadata.title || "Untitled";
+      // contentType for the per-author namespace is "book" | "owner_notes" | "doc"
+      // (wider than the typed union), so compare as a string.
+      const kind = String(h.metadata.contentType);
+      const label =
+        kind === "owner_notes"
+          ? `Reader's notes on "${title}"`
+          : kind === "book"
+          ? `From your book "${title}"`
+          : `From "${title}"`;
+      return `[${label}]\n${h.metadata.text}`;
+    });
+
+    logger.info(`[authorChatbot] Retrieved ${hits.length} book/notes chunks from author_${authorId}`);
+    return "PRIMARY SOURCES — your books and the reader's notes on them:\n\n" + excerpts.join("\n\n");
+  } catch (err) {
+    logger.warn(`[authorChatbot] book/notes retrieval failed (non-fatal):`, err);
+    return "";
+  }
 }
 
 // ── RAG Context Retrieval ─────────────────────────────────────────────────────
@@ -131,39 +175,46 @@ export const authorChatbotRouter = router({
       const db = await getDb();
       if (!db) throw new Error("Database unavailable");
 
-      // Check RAG profile exists
+      // Normalize alias variants (e.g. Drive-folder suffixes) to the canonical
+      // name used by author_profiles and the indexed vectors before any lookup.
+      const authorName = await canonicalNameFromDb(input.authorName);
+
+      // Resolve the author id — needed to read the per-author book/notes namespace.
+      const authorRow = await db
+        .select({ id: authorProfiles.id })
+        .from(authorProfiles)
+        .where(eq(authorProfiles.authorName, authorName))
+        .limit(1);
+      const authorId = authorRow[0]?.id ?? null;
+
+      // Digital Me profile is now optional: indexed books can stand in for it.
       const ragRows = await db
         .select({ ragFileUrl: authorRagProfiles.ragFileUrl, ragStatus: authorRagProfiles.ragStatus })
         .from(authorRagProfiles)
         .where(and(
-          eq(authorRagProfiles.authorName, input.authorName),
+          eq(authorRagProfiles.authorName, authorName),
           eq(authorRagProfiles.ragStatus, "ready")
         ))
         .limit(1);
 
-      if (!ragRows[0]) {
-        return {
-          success: false,
-          message: `The Digital Me for ${input.authorName} has not been generated yet. Please generate it in the Admin Console first.`,
-          reply: null,
-        };
-      }
-
       // Get the last user message to use as the retrieval query
       const lastUserMsg = [...input.messages].reverse().find(m => m.role === "user");
-      const retrievalQuery = lastUserMsg?.content ?? input.authorName;
+      const retrievalQuery = lastUserMsg?.content ?? authorName;
 
-      // Retrieve relevant RAG chunks (P0 fix: chunk retrieval instead of full-file injection)
-      const ragContext = await retrieveRagContext(
-        input.authorName,
-        retrievalQuery,
-        ragRows[0].ragFileUrl ?? null
-      );
+      // PRIMARY: the author's own books + the reader's notes (per-author namespace).
+      const bookKnowledge = authorId != null
+        ? await retrieveBookKnowledge(authorId, retrievalQuery)
+        : "";
 
-      if (!ragContext) {
+      // SECONDARY: Digital Me chunk retrieval (with S3 full-file fallback).
+      const ragContext = ragRows[0]
+        ? await retrieveRagContext(authorName, retrievalQuery, ragRows[0].ragFileUrl ?? null)
+        : "";
+
+      if (!bookKnowledge && !ragContext) {
         return {
           success: false,
-          message: "Failed to load author knowledge. Please try again.",
+          message: `No knowledge base for ${authorName} yet. Index their books (Super Conversations pipeline) or generate a Digital Me profile in the Admin Console first.`,
           reply: null,
         };
       }
@@ -175,21 +226,25 @@ export const authorChatbotRouter = router({
           const contentHits = await semanticSearch({
             query: lastUserMsg.content,
             namespace: "content_items",
-            filterAuthor: input.authorName,
+            filterAuthor: authorName,
             topK: CONTENT_HITS_PER_TURN,
           });
           if (contentHits.length > 0) {
             supplementaryContext = "\n\n---\nSUPPLEMENTARY CONTENT (articles, podcasts, talks):\n" +
               contentHits.map((h, i) => `[${i + 1}] ${h.snippet}`).join("\n");
-            logger.info(`[authorChatbot] Injected ${contentHits.length} content_items hits for "${input.authorName}"`);
+            logger.info(`[authorChatbot] Injected ${contentHits.length} content_items hits for "${authorName}"`);
           }
         }
       } catch (err) {
         logger.warn(`[authorChatbot] Content items search failed (non-fatal):`, err);
       }
 
-      // Build system prompt with retrieved chunks + supplementary context
-      const systemPrompt = buildSystemPrompt(input.authorName, ragContext + supplementaryContext);
+      // Build system prompt: primary book/notes sources first, then Digital Me
+      // chunks, then supplementary content items.
+      const combinedContext = [bookKnowledge, ragContext, supplementaryContext]
+        .filter(Boolean)
+        .join("\n\n");
+      const systemPrompt = buildSystemPrompt(authorName, combinedContext);
 
       // Call LLM
       const response = await invokeLLM({
@@ -202,8 +257,8 @@ export const authorChatbotRouter = router({
 
       const content = response?.choices?.[0]?.message?.content;
       const reply = typeof content === "string" ? content : "I'm unable to respond right now. Please try again.";
-      logger.info(`[authorChatbot] Chat response for "${input.authorName}": ${reply.length} chars`);
-      return { success: true, reply, authorName: input.authorName };
+      logger.info(`[authorChatbot] Chat response for "${authorName}": ${reply.length} chars`);
+      return { success: true, reply, authorName };
     }),
 
   /**
@@ -214,6 +269,7 @@ export const authorChatbotRouter = router({
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) return null;
+      const authorName = await canonicalNameFromDb(input.authorName);
       const [profileRow, ragRow] = await Promise.all([
         db
           .select({
@@ -223,7 +279,7 @@ export const authorChatbotRouter = router({
             avatarUrl: authorProfiles.avatarUrl,
           })
           .from(authorProfiles)
-          .where(eq(authorProfiles.authorName, input.authorName))
+          .where(eq(authorProfiles.authorName, authorName))
           .limit(1),
         db
           .select({
@@ -233,7 +289,7 @@ export const authorChatbotRouter = router({
             ragWordCount: authorRagProfiles.ragWordCount,
           })
           .from(authorRagProfiles)
-          .where(eq(authorRagProfiles.authorName, input.authorName))
+          .where(eq(authorRagProfiles.authorName, authorName))
           .limit(1),
       ]);
       if (!profileRow[0]) return null;
@@ -262,28 +318,41 @@ export const authorChatbotRouter = router({
       const db = await getDb();
       if (!db) throw new Error("Database unavailable");
 
+      const authorName = await canonicalNameFromDb(input.authorName);
+
+      const authorRow = await db
+        .select({ id: authorProfiles.id })
+        .from(authorProfiles)
+        .where(eq(authorProfiles.authorName, authorName))
+        .limit(1);
+      const authorId = authorRow[0]?.id ?? null;
+
       const ragRows = await db
         .select({ ragFileUrl: authorRagProfiles.ragFileUrl, ragStatus: authorRagProfiles.ragStatus })
         .from(authorRagProfiles)
         .where(and(
-          eq(authorRagProfiles.authorName, input.authorName),
+          eq(authorRagProfiles.authorName, authorName),
           eq(authorRagProfiles.ragStatus, "ready")
         ))
         .limit(1);
 
-      if (!ragRows[0]?.ragFileUrl) {
-        return { reply: `Hello. I'm ${input.authorName}. My Digital Me profile hasn't been generated yet — please ask an admin to generate it first.` };
+      // For the opening message, retrieve chunks about the author's identity and key ideas
+      const openingQuery = `${authorName} identity key ideas books personality introduction`;
+      const bookKnowledge = authorId != null
+        ? await retrieveBookKnowledge(authorId, openingQuery)
+        : "";
+      const ragContext = ragRows[0]?.ragFileUrl
+        ? await retrieveRagContext(authorName, openingQuery, ragRows[0].ragFileUrl)
+        : "";
+
+      if (!bookKnowledge && !ragContext) {
+        return { reply: `Hello. I'm ${authorName}. My knowledge base hasn't been built yet — please index my books or generate my Digital Me profile first.` };
       }
 
-      // For the opening message, retrieve chunks about the author's identity and key ideas
-      const openingQuery = `${input.authorName} identity key ideas books personality introduction`;
-      const ragContext = await retrieveRagContext(
-        input.authorName,
-        openingQuery,
-        ragRows[0].ragFileUrl ?? null
+      const systemPrompt = buildSystemPrompt(
+        authorName,
+        [bookKnowledge, ragContext].filter(Boolean).join("\n\n")
       );
-
-      const systemPrompt = buildSystemPrompt(input.authorName, ragContext);
       const response = await invokeLLM({
         model: input.model,
         messages: [
@@ -296,6 +365,6 @@ export const authorChatbotRouter = router({
       });
 
       const content = response?.choices?.[0]?.message?.content;
-      return { reply: typeof content === "string" ? content : `Hello, I'm ${input.authorName}.` };
+      return { reply: typeof content === "string" ? content : `Hello, I'm ${authorName}.` };
     }),
 });

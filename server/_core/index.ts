@@ -1,10 +1,15 @@
+// Sentry must initialize before anything else loads (no-op unless SENTRY_DSN set).
+import "../instrument";
 import "dotenv/config";
 import express from "express";
 import { createServer } from "http";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
+import * as Sentry from "@sentry/node";
+import { ENV } from "./env";
 import { registerOAuthRoutes } from "./oauth";
 import { registerDropboxOAuthRoutes } from "../dropboxOAuthRoutes";
 import { registerSmartUploadRoutes } from "../smartUploadRoutes";
+import { registerImportRoutes } from "../importRoutes";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
@@ -22,6 +27,8 @@ async function startServer() {
   registerDropboxOAuthRoutes(app);
   // Smart Upload: POST /api/upload/smart
   registerSmartUploadRoutes(app);
+  // Library Import: POST /api/import/check | /upload | /finalize (bulk R2 import)
+  registerImportRoutes(app);
   // tRPC API
   app.use(
     "/api/trpc",
@@ -31,6 +38,12 @@ async function startServer() {
       allowMethodOverride: true,
     })
   );
+  // Sentry error handler — after the API routes, before the static/SPA fallback.
+  // Captures errors thrown by the routes above. No-op unless SENTRY_DSN is set.
+  if (ENV.sentryDsn) {
+    Sentry.setupExpressErrorHandler(app);
+  }
+
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);

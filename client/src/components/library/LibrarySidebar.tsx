@@ -32,6 +32,7 @@ import {
   TrendingUp,
   Brain,
   Globe,
+  Sparkles,
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
@@ -271,6 +272,11 @@ export function LibrarySidebar({
 
         {/* Footer links */}
         <div className="mt-3 pt-3 border-t border-border/50">
+          <a href="/conversations" className="w-full flex items-center gap-2 text-xs px-2 py-1.5 rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/60">
+            <Sparkles className="w-3.5 h-3.5 flex-shrink-0" />
+            Super Conversations
+            <ChevronRight className="w-3 h-3 ml-auto opacity-50" />
+          </a>
           <a href="/discover" className="w-full flex items-center gap-2 text-xs px-2 py-1.5 rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/60">
             <Brain className="w-3.5 h-3.5 flex-shrink-0" />
             Thematic Discover

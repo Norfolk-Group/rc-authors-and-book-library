@@ -3,8 +3,9 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import fs from "node:fs";
 import path from "node:path";
-import { defineConfig, type Plugin, type ViteDevServer } from "vite";
+import { defineConfig, type Plugin, type PluginOption, type ViteDevServer } from "vite";
 import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
+import { sentryVitePlugin } from "@sentry/vite-plugin";
 
 // =============================================================================
 // Manus Debug Collector - Vite Plugin
@@ -150,7 +151,35 @@ function vitePluginManusDebugCollector(): Plugin {
   };
 }
 
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector()];
+// Browser source-map upload to Sentry. The plugin is only loaded when
+// SENTRY_AUTH_TOKEN + SENTRY_ORG + SENTRY_PROJECT are all set, so this is a
+// complete no-op (and source maps aren't even generated) until Sentry is
+// configured — safe to ship as-is. When enabled, it uploads source maps for
+// readable production stack traces, then deletes them so they aren't served.
+const sentryAuthToken = process.env.SENTRY_AUTH_TOKEN;
+const sentryOrg = process.env.SENTRY_ORG;
+const sentryProject = process.env.SENTRY_PROJECT;
+const sentryEnabled = Boolean(sentryAuthToken && sentryOrg && sentryProject);
+
+const plugins: PluginOption[] = [
+  react(),
+  tailwindcss(),
+  jsxLocPlugin(),
+  vitePluginManusRuntime(),
+  vitePluginManusDebugCollector(),
+];
+
+if (sentryEnabled) {
+  // Append last so the plugin sees the final emitted bundle + source maps.
+  plugins.push(
+    ...sentryVitePlugin({
+      org: sentryOrg,
+      project: sentryProject,
+      authToken: sentryAuthToken,
+      sourcemaps: { filesToDeleteAfterUpload: ["**/*.map"] },
+    }),
+  );
+}
 
 export default defineConfig({
   plugins,
@@ -168,6 +197,9 @@ export default defineConfig({
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
     chunkSizeWarningLimit: 1000,
+    // Only emit source maps when we're going to upload + delete them (above),
+    // so production never serves .map files unless Sentry is configured.
+    sourcemap: sentryEnabled,
     // NOTE: no manualChunks. Hand-grouping these interdependent vendor libraries
     // (react <-> misc <-> radix <-> charts) produced circular chunk dependencies
     // that left React.forwardRef undefined at runtime (a white screen in the

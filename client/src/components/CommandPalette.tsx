@@ -146,6 +146,7 @@ export function CommandPalette({ onNavigateAuthor, onNavigateBook }: CommandPale
 
   const pages = [
     { label: "Home — Authors", path: "/", icon: Users },
+    { label: "Super Conversations", path: "/conversations", icon: ArrowRight },
     { label: "Leaderboard", path: "/leaderboard", icon: ArrowRight },
     { label: "Reading Stats", path: "/stats", icon: ArrowRight },
     { label: "Admin Console", path: "/admin", icon: ArrowRight },

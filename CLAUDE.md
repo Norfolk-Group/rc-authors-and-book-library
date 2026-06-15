@@ -611,6 +611,47 @@ Admin feature (`/admin` → Media → Smart Upload) for AI-powered file ingestio
 
 ---
 
+## Super Conversations Agents (Jun 15, 2026)
+
+A three-tier agent system that lets the reader talk to their books — and that
+ultimately drafts a book called *Super Conversations* by interviewing those
+agents. Built on the official Anthropic SDK (`@anthropic-ai/sdk`, **Claude API +
+tool use**, model `claude-opus-4-8`, adaptive thinking) — a **self-hosted**
+agent loop, not Managed Agents, because every tool is a query against our own
+Neon pgvector or a call to one of our other agents (no Anthropic-hosted
+container needed).
+
+| Tier | Agent | Knowledge | Tool |
+|---|---|---|---|
+| 1 | **Book agent** | one book's chunks + the reader's notes on it | `search_sources` scoped to `category = book-<id>` |
+| 2 | **Author agent** | the author's whole indexed corpus | `search_sources` over the author's namespace |
+| 3 | **Book Writer** | — | `interview_book_agent` / `interview_author_agent` (calls tiers 1–2 at full parity) |
+
+**Knowledge source:** the per-author `author_<id>` Neon namespaces populated by
+`scripts/index-book-content.cjs` (books + owner notes; `content_type` =
+`book` \| `owner_notes` \| `doc`). New vector-service helpers: `queryAuthorKnowledge`,
+`getAuthorBookFacets`, `getAuthorKnowledgeCounts`.
+
+**Identity:** every agent gets a deterministic male/female **Italian persona
+name** (e.g. "Lucia Moretti") from `server/agents/identity.ts`, and an avatar URL
+from the committed `server/agents/agentAvatars.ts` registry.
+
+**Files:** `server/agents/{identity,retrieval,runtime,personas,agentAvatars}.ts`;
+tRPC `server/routers/superConversations.router.ts` (`listAgents`, `chatBookAgent`,
+`chatAuthorAgent`, `writeSection` [admin]). The existing **author chatbot**
+(`authorChatbot.router.ts`) is now also grounded in these `author_<id>`
+namespaces (books + notes as primary sources), and no longer hard-requires a
+"Digital Me" profile when indexed books exist.
+
+**Status (committed + type-checked, NOT yet live-verified):** the server layer
+compiles with 0 TS errors and is wired into `appRouter`. Still pending: (a) a
+live run against Neon + Anthropic to confirm retrieval/answers (needs creds +
+the ~6.7k Super Conversations vectors confirmed in Neon); (b) **avatar
+generation** — `agentAvatars.ts` is empty, so `avatarUrl` is `null` until a
+photorealistic-portrait batch job populates it; (c) client UI.
+
+---
+
 ## Enrichment Pipelines
 
 All pipelines are managed by `server/services/enrichmentOrchestrator.service.ts` and

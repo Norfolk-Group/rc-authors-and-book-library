@@ -4,7 +4,7 @@
 // otherwise falls back to the Manus Forge storage proxy (Authorization: Bearer).
 // The public API (storagePut / storageGet) is unchanged for both backends.
 
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 import { ENV } from "./_core/env";
 
 // ── Cloudflare R2 (S3-compatible) ─────────────────────────────────────────────
@@ -179,4 +179,31 @@ export async function storageGet(relKey: string): Promise<{ key: string; url: st
     key,
     url: await buildDownloadUrl(baseUrl, key, apiKey),
   };
+}
+
+/**
+ * Check whether an object already exists in storage (R2 only). Used by the
+ * library importer to skip files already uploaded so an interrupted import
+ * resumes cheaply. Returns false when R2 is not configured (Forge has no cheap
+ * existence check).
+ */
+export async function storageExists(relKey: string): Promise<boolean> {
+  const key = normalizeKey(relKey);
+  if (!isR2Configured()) return false;
+  try {
+    await getR2Client().send(
+      new HeadObjectCommand({ Bucket: ENV.r2Bucket, Key: key })
+    );
+    return true;
+  } catch (err) {
+    const e = err as { $metadata?: { httpStatusCode?: number }; name?: string };
+    if (
+      e?.$metadata?.httpStatusCode === 404 ||
+      e?.name === "NotFound" ||
+      e?.name === "NoSuchKey"
+    ) {
+      return false;
+    }
+    throw err;
+  }
 }

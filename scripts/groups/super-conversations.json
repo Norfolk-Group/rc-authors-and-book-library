@@ -1,0 +1,27 @@
+{
+  "key": "super-conversations",
+  "label": "Super Conversations group",
+  "createdAt": "2026-06-14",
+  "note": "First batch of author agents. Folder names below are matched against the `Authors\\<name>\\` prefix in r2-upload-manifest.json sourcePaths, and resolved to author_profiles rows by name.",
+  "authors": [
+    "Adam Grant",
+    "Annie Duke",
+    "Charles Duhigg",
+    "Chris Voss",
+    "Daniel Siegel",
+    "David Brooks",
+    "David N. Schwartz",
+    "David Nihill",
+    "Fred Dust",
+    "Jeff Shannon",
+    "Jim Camp",
+    "Kelly Leonard and Tom Yorton",
+    "Kim Scott",
+    "Leil Lowndes",
+    "Nixaly Leonardo",
+    "Robert B. Cialdini",
+    "Shankar Vedantam",
+    "Simon Sinek",
+    "Sue Hawkes"
+  ]
+}

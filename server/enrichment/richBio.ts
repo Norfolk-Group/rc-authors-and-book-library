@@ -61,7 +61,7 @@ Be thorough and factual. Include dates and organizations wherever possible.`;
         {
           role: "system",
           content:
-            "You are a thorough research assistant with access to comprehensive knowledge about public figures, authors, and thought leaders. Provide detailed, factual information.",
+            "You are a thorough research assistant with access to comprehensive knowledge about public figures, authors, and thought leaders. Provide detailed, factual information. Always respond in English.",
         },
         { role: "user", content: researchPrompt },
       ],
@@ -108,7 +108,7 @@ Rules:
         {
           role: "system",
           content:
-            "You are a professional biographer who writes polished, accurate author profiles for library and academic contexts. You always return valid JSON.",
+            "You are a professional biographer who writes polished, accurate author profiles for library and academic contexts. You always return valid JSON. Always write in English.",
         },
         { role: "user", content: synthesisPrompt },
       ],
