@@ -17,6 +17,7 @@
  * non-trivial, multi-step reasoning).
  */
 import Anthropic from "@anthropic-ai/sdk";
+import { ENV } from "../_core/env";
 import { logger } from "../lib/logger";
 
 export const AGENT_MODEL = "claude-opus-4-8";
@@ -24,10 +25,10 @@ export const AGENT_MODEL = "claude-opus-4-8";
 let _client: Anthropic | null = null;
 function client(): Anthropic {
   if (!_client) {
-    if (!process.env.ANTHROPIC_API_KEY) {
+    if (!ENV.anthropicApiKey) {
       throw new Error("ANTHROPIC_API_KEY is not configured");
     }
-    _client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    _client = new Anthropic({ apiKey: ENV.anthropicApiKey });
   }
   return _client;
 }
@@ -96,6 +97,9 @@ export async function runAgent(opts: RunAgentOptions): Promise<RunAgentResult> {
     });
 
     if (resp.stop_reason === "tool_use") {
+      // Last allowed round: don't run another tool cycle whose results we'd never
+      // feed back — stop here so the cap is a true ceiling (round 0..maxRounds-1).
+      if (round === maxRounds) break;
       // Preserve the full assistant turn (incl. thinking blocks) before answering tools.
       messages.push({ role: "assistant", content: resp.content });
       const toolResults: Anthropic.ToolResultBlockParam[] = [];

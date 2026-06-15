@@ -15,88 +15,25 @@
  * ids → participants and shapes the responses for the client.
  */
 import { z } from "zod";
-import { promises as fsp } from "node:fs";
-import path from "node:path";
 import { protectedProcedure, adminProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 import { authorProfiles, bookProfiles } from "../../drizzle/schema";
-import { eq, inArray } from "drizzle-orm";
+import { inArray } from "drizzle-orm";
 import { logger } from "../lib/logger";
+import { parallelBatch } from "../lib/parallelBatch";
 import { getAuthorKnowledgeCounts, getAuthorBookFacets } from "../services/neonVector.service";
+import { chatWithParticipant, runBookWriter, makeAuthorParticipant, makeBookParticipant, type Participant } from "../agents/personas";
 import {
-  makeBookParticipant,
-  makeAuthorParticipant,
-  chatWithParticipant,
-  runBookWriter,
-  type BookParticipant,
-  type AuthorParticipant,
-  type Participant,
-} from "../agents/personas";
-import type { AgentIdentity } from "../agents/identity";
+  identityDTO,
+  resolveBookParticipant,
+  resolveAuthorParticipant,
+  loadStyleGuide,
+} from "../agents/participantResolvers";
 
 const messagesInput = z
   .array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().min(1) }))
   .min(1)
   .max(50);
-
-function identityDTO(id: AgentIdentity) {
-  return {
-    key: id.key,
-    displayName: id.displayName,
-    gender: id.gender,
-    avatarUrl: id.avatarUrl,
-    subjectName: id.subjectName,
-  };
-}
-
-// ── Super Conversations voice/methodology (steers the Book Writer's prose) ──────
-let _styleGuide: string | null | undefined;
-async function loadStyleGuide(): Promise<string | undefined> {
-  if (_styleGuide !== undefined) return _styleGuide ?? undefined;
-  try {
-    const p = path.join(process.cwd(), "docs", "super-conversations-voice-and-tone.md");
-    _styleGuide = await fsp.readFile(p, "utf8");
-  } catch {
-    _styleGuide = null;
-  }
-  return _styleGuide ?? undefined;
-}
-
-// ── DB id → participant resolvers ───────────────────────────────────────────────
-async function resolveBookParticipant(bookId: number): Promise<BookParticipant | null> {
-  const db = await getDb();
-  if (!db) return null;
-  const [book] = await db
-    .select({ id: bookProfiles.id, bookTitle: bookProfiles.bookTitle, authorName: bookProfiles.authorName })
-    .from(bookProfiles)
-    .where(eq(bookProfiles.id, bookId))
-    .limit(1);
-  if (!book || !book.authorName) return null;
-  const [author] = await db
-    .select({ id: authorProfiles.id })
-    .from(authorProfiles)
-    .where(eq(authorProfiles.authorName, book.authorName))
-    .limit(1);
-  if (!author) return null;
-  return makeBookParticipant({
-    authorId: author.id,
-    bookId: book.id,
-    bookTitle: book.bookTitle,
-    authorName: book.authorName,
-  });
-}
-
-async function resolveAuthorParticipant(authorId: number): Promise<AuthorParticipant | null> {
-  const db = await getDb();
-  if (!db) return null;
-  const [author] = await db
-    .select({ id: authorProfiles.id, authorName: authorProfiles.authorName })
-    .from(authorProfiles)
-    .where(eq(authorProfiles.id, authorId))
-    .limit(1);
-  if (!author) return null;
-  return makeAuthorParticipant({ authorId: author.id, authorName: author.authorName });
-}
 
 export const superConversationsRouter = router({
   /** List the Book and Author agents backed by indexed knowledge in Neon. */
@@ -135,12 +72,7 @@ export const superConversationsRouter = router({
       for (const bookId of facets[authorId] ?? []) {
         const b = bookById.get(bookId);
         if (!b || !b.authorName) continue;
-        const p = makeBookParticipant({
-          authorId,
-          bookId,
-          bookTitle: b.bookTitle,
-          authorName: b.authorName,
-        });
+        const p = makeBookParticipant({ authorId, bookId, bookTitle: b.bookTitle, authorName: b.authorName });
         books.push({ bookId, authorId, ...identityDTO(p.identity) });
       }
     }
@@ -184,15 +116,15 @@ export const superConversationsRouter = router({
       })
     )
     .mutation(async ({ input }) => {
-      const roster: Participant[] = [];
-      for (const bookId of input.bookIds ?? []) {
-        const p = await resolveBookParticipant(bookId);
-        if (p) roster.push(p);
-      }
-      for (const authorId of input.authorIds ?? []) {
-        const p = await resolveAuthorParticipant(authorId);
-        if (p) roster.push(p);
-      }
+      // Resolve participants concurrently (bounded) rather than serially.
+      const [books, authors] = await Promise.all([
+        parallelBatch(input.bookIds ?? [], 2, (bookId) => resolveBookParticipant(bookId)),
+        parallelBatch(input.authorIds ?? [], 2, (authorId) => resolveAuthorParticipant(authorId)),
+      ]);
+      const roster: Participant[] = [...books.results, ...authors.results]
+        .map((r) => r.result)
+        .filter((p): p is Participant => Boolean(p));
+
       if (roster.length === 0) {
         return { success: false as const, message: "Select at least one book or author agent with indexed content.", draft: null };
       }

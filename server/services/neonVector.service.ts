@@ -24,8 +24,20 @@ export const NEON_TABLE_NAME = "vector_embeddings";
 export const EMBEDDING_DIMENSION = 1536; // Gemini text-embedding-004 truncated
 export type ContentNamespace = "articles" | "books" | "authors" | "content_items" | "rag_files";
 
+// All content_type values that can appear in vector_embeddings. The curated
+// namespaces use the first five; the per-author knowledge namespaces (written by
+// scripts/index-book-content.cjs) add "owner_notes" and "doc".
+export type VectorContentType =
+  | "article"
+  | "book"
+  | "author"
+  | "content_item"
+  | "rag_file"
+  | "owner_notes"
+  | "doc";
+
 export type VectorMetadata = {
-  contentType: "article" | "book" | "author" | "content_item" | "rag_file";
+  contentType: VectorContentType;
   sourceId: string;
   title: string;
   authorName?: string;
@@ -284,7 +296,7 @@ function mapRow(r: any): QueryResult {
 export async function queryAuthorKnowledge(
   authorId: number,
   queryEmbedding: number[],
-  options: { topK?: number; category?: string; contentTypes?: string[] } = {}
+  options: { topK?: number; category?: string; contentTypes?: VectorContentType[] } = {}
 ): Promise<QueryResult[]> {
   const sql = getSql();
   const topK = options.topK ?? 8;
