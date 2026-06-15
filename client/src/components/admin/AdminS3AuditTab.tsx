@@ -24,6 +24,7 @@ import {
 } from "@phosphor-icons/react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { InfoTip } from "@/components/admin/InfoTip";
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
@@ -103,6 +104,7 @@ export function AdminS3AuditTab() {
               <CardTitle className="text-base flex items-center gap-2">
                 <CloudArrowUp className="w-5 h-5 text-blue-500" />
                 S3 CDN Coverage Audit
+                <InfoTip text="Audits all author avatar and book cover images. 'On S3' = hosted on the Manus CloudFront CDN (fast, stable). 'Not on S3' = still pointing to an external URL (Wikipedia, Goodreads, etc.) that may expire or break." />
               </CardTitle>
               <CardDescription className="mt-1 text-xs">
                 Identifies author avatars and book covers that are not yet mirrored to the S3 CDN.

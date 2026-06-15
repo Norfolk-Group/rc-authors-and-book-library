@@ -39,6 +39,7 @@ import {
   Play,
   BarChart3,
 } from "lucide-react";
+import { InfoTip } from "@/components/admin/InfoTip";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -333,7 +334,10 @@ function ChatbotCandidatesTab() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{chatbotReady.length}</p>
-                <p className="text-xs text-muted-foreground">Chatbot Ready</p>
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  Chatbot Ready
+                  <InfoTip text="Authors with RAG readiness ≥ 50 and at least one indexed RAG file. These authors can power the AI chatbot." size={11} />
+                </p>
               </div>
             </div>
           </CardContent>
@@ -346,7 +350,10 @@ function ChatbotCandidatesTab() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{highQuality.length}</p>
-                <p className="text-xs text-muted-foreground">High Quality</p>
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  High Quality
+                  <InfoTip text="Authors with RAG readiness ≥ 75 — sufficient content depth for high-quality chatbot responses." size={11} />
+                </p>
               </div>
             </div>
           </CardContent>
@@ -359,7 +366,10 @@ function ChatbotCandidatesTab() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{items.length}</p>
-                <p className="text-xs text-muted-foreground">Pending Review</p>
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  Pending Review
+                  <InfoTip text="Items flagged by the AI scan that need a human approve/reject decision before the chatbot is enabled." size={11} />
+                </p>
               </div>
             </div>
           </CardContent>
@@ -374,16 +384,19 @@ function ChatbotCandidatesTab() {
             Authors with RAG readiness score ≥ 50 are flagged for chatbot enablement review.
           </p>
         </div>
-        <Button
-          size="sm"
-          variant="outline"
-          className="gap-2"
-          disabled={scanning}
-          onClick={handleScan}
-        >
-          {scanning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-          Run AI Scan
-        </Button>
+        <div className="flex items-center gap-2">
+          <InfoTip text="Checks all authors against the RAG readiness threshold (≥ 50). Authors that pass are added to the pending review queue for human approval before chatbot is enabled." side="left" />
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-2"
+            disabled={scanning}
+            onClick={handleScan}
+          >
+            {scanning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+            Run AI Scan
+          </Button>
+        </div>
       </div>
 
       {/* Pending review items */}

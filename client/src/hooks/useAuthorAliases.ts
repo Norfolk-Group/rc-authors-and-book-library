@@ -24,7 +24,6 @@
 
 import { useMemo } from "react";
 import { trpc } from "@/lib/trpc";
-import { AUTHOR_ALIASES } from "@/lib/authorAliases";
 
 /**
  * Resolve a raw name using a given alias map.
@@ -57,8 +56,7 @@ export function useAuthorAliases() {
     if (serverMap && Object.keys(serverMap).length > 0) {
       return serverMap;
     }
-    // Fallback to hardcoded map while server map is loading
-    return AUTHOR_ALIASES;
+    return {};
   }, [serverMap]);
 
   const canonicalName = useMemo(

@@ -46,7 +46,6 @@ import {
 } from "lucide-react";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { LazyImage } from "@/components/ui/LazyImage";
-import { getAuthorAvatar } from "@/lib/authorAvatars";
 import { useAuthorAliases } from "@/hooks/useAuthorAliases";
 import {
   CATEGORY_ICONS,
@@ -246,8 +245,7 @@ export function FlowbiteAuthorCard({
   const specialty = author.name.includes(" - ")
     ? author.name.slice(author.name.indexOf(" - ") + 3)
     : "";
-  const avatarUrl =
-    dbAvatarMap?.get(displayName.toLowerCase()) ?? getAuthorAvatar(displayName) ?? null;
+  const avatarUrl = dbAvatarMap?.get(displayName.toLowerCase()) ?? null;
   const hasBooks = author.books && author.books.length > 0;
 
   // Category color for left border stripe

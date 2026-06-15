@@ -49,7 +49,6 @@ import {
 } from "lucide-react";
 import { AUTHORS, CATEGORY_COLORS } from "@/lib/libraryData";
 import { useAuthorAliases } from "@/hooks/useAuthorAliases";
-import { getAuthorAvatar } from "@/lib/authorAvatars";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { fireConfetti } from "@/hooks/useConfetti";
 import authorBios from "@/lib/authorBios.json";
@@ -410,7 +409,6 @@ export default function AuthorDetail() {
     ? author.name.slice(author.name.indexOf(" - ") + 3)
     : "";
   const color = author ? (CATEGORY_COLORS[author.category] ?? "hsl(var(--muted-foreground))") : "hsl(var(--muted-foreground))";
-  const avatarUrl = getAuthorAvatar(displayName);
   const driveUrl = author ? `https://drive.google.com/drive/folders/${author.id}?view=grid` : null;
 
   const jsonBio = (authorBios as Record<string, string>)[displayName] ?? null;
@@ -454,7 +452,7 @@ export default function AuthorDetail() {
   }, [jsonBio, isLoading, profile]);
 
   const effectiveAvatarUrl =
-    generatedPhotoUrl ?? profile?.s3AvatarUrl ?? profile?.avatarUrl ?? avatarUrl;
+    generatedPhotoUrl ?? profile?.s3AvatarUrl ?? profile?.avatarUrl ?? undefined;
 
   // Parse social stats
   const socialStats: SocialStatsResult | null = useMemo(() => {

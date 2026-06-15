@@ -11,7 +11,6 @@ import { AvatarUpload } from "@/components/AvatarUpload";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { BookSubfolderRow } from "@/components/library/LibraryPrimitives";
 import { AuthorCardActions } from "@/components/AuthorCardActions";
-import { getAuthorAvatar } from "@/lib/authorAvatars";
 import { useAuthorAliases } from "@/hooks/useAuthorAliases";
 import { isLikelyAuthorName } from "../../../../shared/authorNameValidator";
 import { AlertTriangle } from "lucide-react";
@@ -83,7 +82,7 @@ export const AuthorCard = memo(function AuthorCard({ author, query, onBioClick, 
   const specialty = author.name.includes(" - ") ? author.name.slice(author.name.indexOf(" - ") + 3) : "";
   const [liveAvatarUrl, setLiveAvatarUrl] = useState<string | null>(null);
   const [avatarRegenerating, setAvatarRegenerating] = useState(false);
-  const avatarUrl = liveAvatarUrl ?? dbAvatarMap?.get(displayName.toLowerCase()) ?? getAuthorAvatar(displayName);
+  const avatarUrl = liveAvatarUrl ?? dbAvatarMap?.get(displayName.toLowerCase());
   const hasBooks = author.books && author.books.length > 0;
   // Guardrail: flag cards whose name looks like a book title or topic phrase
   const isSuspiciousName = !isLikelyAuthorName(displayName);
