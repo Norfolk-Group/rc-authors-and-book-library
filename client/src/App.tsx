@@ -25,6 +25,7 @@ const ReadingStats = lazy(() => import("./pages/ReadingStats"));
 const Login = lazy(() => import("./pages/Login"));
 const ThematicSearch = lazy(() => import("./pages/ThematicSearch"));
 const ResearchSearch = lazy(() => import("./pages/ResearchSearch"));
+const SuperConversations = lazy(() => import("./pages/SuperConversations"));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center h-screen">
@@ -106,6 +107,11 @@ function Router() {
       <Route path={"/research"}>
         <Suspense fallback={<PageLoader />}>
           <ResearchSearch />
+        </Suspense>
+      </Route>
+      <Route path={"/conversations"}>
+        <Suspense fallback={<PageLoader />}>
+          <SuperConversations />
         </Suspense>
       </Route>
       <Route path={"/admin/import"}>
