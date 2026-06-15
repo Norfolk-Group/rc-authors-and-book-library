@@ -34,9 +34,9 @@ Last cleaned: Jun 15, 2026
 
 ## Remaining Deferred Items
 
-- [ ] A1: Add Zod schemas for all JSON blob columns in authorProfiles (23 columns — large task)
+- [x] A1: Add Zod schemas for all JSON blob columns in authorProfiles (25 columns) — `shared/authorProfileSchemas.ts`
 - [ ] A5: Split drizzle/schema.ts into domain files (risky — touches all imports)
-- [ ] Q1: Standardize error handling — critical ops throw, reads return typed Result (broad pattern change)
+- [x] Q1: Standardize error handling — all fire-and-forget Neon re-index and near-dup check calls now use `logger.warn` instead of silent `.catch(() => {})` (9 sites across 5 files)
 - [ ] Semantic Interest Heatmap: cluster authors/books by vector similarity with UMAP (P3)
 
 ---

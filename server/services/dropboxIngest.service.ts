@@ -22,6 +22,7 @@
  */
 
 import { getDb } from "../db";
+import { logger } from "../lib/logger";
 import {
   authorProfiles,
   bookProfiles,
@@ -515,7 +516,7 @@ export async function ingestDropboxFile(
 
       // 8. Fetch book cover from Amazon (async, non-blocking) — skip for duplicates
       if (fetchBookCover && bookProfileId && !duplicateInfo.isDuplicate) {
-        fetchAndMirrorBookCover(metadata.bookTitle, primaryAuthor, bookProfileId).catch(() => {});
+        fetchAndMirrorBookCover(metadata.bookTitle, primaryAuthor, bookProfileId).catch(e => logger.warn("[dropboxIngest] book cover fetch failed", e));
       }
     }
 

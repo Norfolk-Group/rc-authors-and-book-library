@@ -111,7 +111,7 @@ const authorProfilesCoreRouter = router({
         .limit(1);
       // Re-index in Neon with fresh bio
       if (updated[0]?.bio) {
-        indexAuthorIncremental(updated[0].id, updated[0].authorName, updated[0].bio, updated[0].richBioJson).catch(() => {});
+        indexAuthorIncremental(updated[0].id, updated[0].authorName, updated[0].bio, updated[0].richBioJson).catch(e => logger.warn("[enrichBio] Neon re-index failed", e));
       }
       return { success: true, cached: false, profile: updated[0] ?? null };
     }),
@@ -442,7 +442,7 @@ const authorProfilesCoreRouter = router({
         indexAuthorIncremental(created.id, created.authorName, created.bio, created.richBioJson, {
           category: primaryCategory,
           enrichedAt: created.enrichedAt?.toISOString(),
-        }).catch(() => {});
+        }).catch(e => logger.warn("[createAuthor] Neon re-index failed", e));
         // P3: Near-duplicate detection — fire-and-forget, flags similar authors in review queue
         checkAuthorDuplicate(created.authorName).catch((e) =>
           logger.warn("[createAuthor] near-dup check failed", e)
@@ -516,7 +516,7 @@ const authorProfilesCoreRouter = router({
         indexAuthorIncremental(updated.id, updated.authorName, updated.bio, updated.richBioJson, {
           category: primaryCategory,
           enrichedAt: updated.enrichedAt?.toISOString(),
-        }).catch(() => {});
+        }).catch(e => logger.warn("[updateAuthor] Neon re-index failed", e));
         // P3: Near-duplicate detection after bio update
         checkAuthorDuplicate(updated.authorName).catch((e) =>
           logger.warn("[updateAuthor] near-dup check failed", e)

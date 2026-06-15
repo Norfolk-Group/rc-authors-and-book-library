@@ -6,6 +6,7 @@
  */
 import { z } from "zod";
 import { publicProcedure, protectedProcedure, adminProcedure, router } from "../_core/trpc";
+import { logger } from "../lib/logger";
 
 /// CRUD handlers
 import {
@@ -182,7 +183,7 @@ export const bookProfilesRouter = router({
       const result = await handleCreateBook(input);
       // Fire-and-forget: index in Neon and check for near-duplicates
       if (result) {
-        indexBookIncremental(result.id, result.bookTitle, result.authorName, result.summary, result.keyThemes).catch(() => {});
+        indexBookIncremental(result.id, result.bookTitle, result.authorName, result.summary, result.keyThemes).catch(e => logger.warn("[createBook] Neon re-index failed", e));
       }
       return result;
     }),
@@ -208,7 +209,7 @@ export const bookProfilesRouter = router({
       const result = await handleUpdateBook(input);
       // Fire-and-forget: re-index in Neon after update
       if (result) {
-        indexBookIncremental(result.id, result.bookTitle, result.authorName, result.summary, result.keyThemes).catch(() => {});
+        indexBookIncremental(result.id, result.bookTitle, result.authorName, result.summary, result.keyThemes).catch(e => logger.warn("[updateBook] Neon re-index failed", e));
       }
       return result;
     }),

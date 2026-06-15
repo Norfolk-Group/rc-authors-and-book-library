@@ -29,6 +29,7 @@
  */
 
 import { getDb } from "../db";
+import { logger } from "../lib/logger";
 import {
   authorProfiles,
   authorRagProfiles,
@@ -154,7 +155,7 @@ async function runBioEnrichment(progress: JobProgress, batchSize: number, concur
               .set({ bio: stats.extract, enrichedAt: new Date() })
               .where(eq(authorProfiles.authorName, author.authorName));
             // Re-index in Neon so the author vector stays fresh
-            indexAuthorIncremental(author.id, author.authorName, stats.extract).catch(() => {});
+            indexAuthorIncremental(author.id, author.authorName, stats.extract).catch(e => logger.warn("[wikipedia-bio] Neon re-index failed", e));
           }
           progress.succeeded++;
         } catch {
@@ -257,7 +258,7 @@ async function runRichBioEnrichment(progress: JobProgress, batchSize: number, co
           .set({ richBioJson: JSON.stringify(richBio), enrichedAt: new Date() })
           .where(eq(authorProfiles.authorName, author.authorName));
         // Re-index in Neon using the richer fullBio text
-        indexAuthorIncremental(author.id, author.authorName, author.bio, JSON.stringify(richBio)).catch(() => {});
+        indexAuthorIncremental(author.id, author.authorName, author.bio, JSON.stringify(richBio)).catch(e => logger.warn("[rich-bio] Neon re-index failed", e));
       }
       progress.succeeded++;
     } catch {
@@ -351,7 +352,7 @@ async function runRichSummaryEnrichment(progress: JobProgress, batchSize: number
           .where(eq(bookProfiles.id, book.id));
         // Re-index in Neon using the richer summary text
         const richText = richSummary.fullSummary ?? book.summary ?? "";
-        indexBookIncremental(book.id, book.bookTitle, book.authorName, richText).catch(() => {});
+        indexBookIncremental(book.id, book.bookTitle, book.authorName, richText).catch(e => logger.warn("[rich-summary] Neon re-index failed", e));
       }
       progress.succeeded++;
     } catch {

@@ -3,6 +3,7 @@ import { bookProfiles } from "../../../drizzle/schema";
 import { eq, inArray, isNotNull } from "drizzle-orm";
 import { indexBookIncremental } from "../../services/incrementalIndex.service";
 import { checkBookDuplicate } from "../../services/semanticDuplicate.service";
+import { logger } from "../logger";
 
 export async function handleGet(input: { bookTitle: string }) {
   const db = await getDb();
@@ -126,7 +127,7 @@ export async function handleCreateBook(input: {
   const created = rows[0];
   // P3: Near-duplicate detection — fire-and-forget, flags similar books in review queue
   if (created) {
-    checkBookDuplicate(created.bookTitle).catch(() => {});
+    checkBookDuplicate(created.bookTitle).catch(e => logger.warn("[createBook] near-dup check failed", e));
   }
   return created;
 }
@@ -178,9 +179,9 @@ export async function handleUpdateBook(input: {
   const updated = rows[0] ?? null;
   // Re-index in Neon if semantic content changed
   if (updated && (input.summary !== undefined || input.keyThemes !== undefined)) {
-    indexBookIncremental(updated.id, updated.bookTitle, updated.authorName, updated.summary, updated.keyThemes ?? undefined).catch(() => {});
+    indexBookIncremental(updated.id, updated.bookTitle, updated.authorName, updated.summary, updated.keyThemes ?? undefined).catch(e => logger.warn("[updateBook] Neon re-index failed", e));
     // P3: Near-duplicate detection after summary update
-    checkBookDuplicate(updated.bookTitle).catch(() => {});
+    checkBookDuplicate(updated.bookTitle).catch(e => logger.warn("[updateBook] near-dup check failed", e));
   }
   return updated;
 }
