@@ -37,7 +37,7 @@ Last cleaned: Jun 15, 2026
 - [x] A1: Add Zod schemas for all JSON blob columns in authorProfiles (25 columns) — `shared/authorProfileSchemas.ts`
 - [x] A5: Split drizzle/schema.ts into domain files — 25 tables moved into `drizzle/schema/{core,authors,books,content,enrichment,engagement,media,sync}.ts`; `schema.ts` is now a re-export barrel (zero importer changes; drizzle-kit verified discovering all 25 tables)
 - [x] Q1: Standardize error handling — all fire-and-forget Neon re-index and near-dup check calls now use `logger.warn` instead of silent `.catch(() => {})` (9 sites across 5 files)
-- [ ] Semantic Interest Heatmap: cluster authors/books by vector similarity with UMAP (P3)
+- [x] Semantic Interest Heatmap: UMAP projection implemented — `server/lib/semanticProjection.ts` (umap-js, L2-normalized cosine, seeded/deterministic); replaces the old PCA power-iteration in `semanticMap.router.ts`
 
 ---
 

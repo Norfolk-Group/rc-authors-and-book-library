@@ -9,8 +9,9 @@
  *      Returns in < 200ms.
  *
  *   2. Full semantic (on demand): Embeds each author's bio text, then runs a
- *      simple PCA-style 2D projection. Returns in ~30-60s for 100 authors.
- *      Only triggered by the "Compute Semantic Map" button in the UI.
+ *      UMAP 2D projection so semantically similar authors cluster together.
+ *      Returns in ~30-60s for 100 authors. Only triggered by the
+ *      "Compute Semantic Map" button in the UI.
  */
 
 import { z } from "zod";
@@ -19,6 +20,7 @@ import { getDb } from "../db";
 import { authorProfiles, bookProfiles } from "../../drizzle/schema";
 import { sql } from "drizzle-orm";
 import { embedText } from "../services/ragPipeline.service";
+import { projectTo2D } from "../lib/semanticProjection";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -105,65 +107,6 @@ function parsePrimaryTag(tagsJson: string | null): string {
   return "Uncategorized";
 }
 
-// ── PCA helpers (for semantic mode) ──────────────────────────────────────────
-
-/** Simple PCA: project N-dim vectors to 2D using first two principal components */
-function pca2D(vectors: number[][]): Array<{ x: number; y: number }> {
-  if (vectors.length === 0) return [];
-  const n = vectors.length;
-  const d = vectors[0].length;
-
-  // Compute mean
-  const mean = new Array(d).fill(0) as number[];
-  for (const v of vectors) for (let j = 0; j < d; j++) mean[j] += v[j] / n;
-
-  // Center vectors
-  const centered = vectors.map(v => v.map((x, j) => x - mean[j]));
-
-  // Power iteration for first two PCs (simplified, 20 iterations each)
-  function powerIterate(data: number[][], exclude?: number[]): number[] {
-    let pc = new Array(d).fill(0).map((_: number, i: number) => (i === 0 ? 1 : 0)) as number[];
-    for (let iter = 0; iter < 20; iter++) {
-      // Project: Av = X^T (X v)
-      const proj = data.map(row => row.reduce((s, x, j) => s + x * pc[j], 0));
-      let newPc = new Array(d).fill(0) as number[];
-      for (let i = 0; i < n; i++) for (let j = 0; j < d; j++) newPc[j] += data[i][j] * proj[i];
-      // Deflate if we have a component to exclude
-      if (exclude) {
-        const dot = newPc.reduce((s, x, j) => s + x * exclude[j], 0);
-        newPc = newPc.map((x, j) => x - dot * exclude[j]);
-      }
-      // Normalize
-      const norm = Math.sqrt(newPc.reduce((s, x) => s + x * x, 0));
-      if (norm < 1e-10) break;
-      pc = newPc.map(x => x / norm);
-    }
-    return pc;
-  }
-
-  const pc1 = powerIterate(centered);
-  const pc2 = powerIterate(centered, pc1);
-
-  // Project all points
-  const coords = centered.map(v => ({
-    x: v.reduce((s, x, j) => s + x * pc1[j], 0),
-    y: v.reduce((s, x, j) => s + x * pc2[j], 0),
-  }));
-
-  // Normalize to [0.05, 0.95]
-  const xs = coords.map(c => c.x);
-  const ys = coords.map(c => c.y);
-  const xMin = Math.min(...xs), xMax = Math.max(...xs);
-  const yMin = Math.min(...ys), yMax = Math.max(...ys);
-  const xRange = xMax - xMin || 1;
-  const yRange = yMax - yMin || 1;
-
-  return coords.map(c => ({
-    x: 0.05 + (c.x - xMin) / xRange * 0.90,
-    y: 0.05 + (c.y - yMin) / yRange * 0.90,
-  }));
-}
-
 // ── Router ────────────────────────────────────────────────────────────────────
 
 export const semanticMapRouter = router({
@@ -227,7 +170,7 @@ export const semanticMapRouter = router({
   }),
 
   /**
-   * Full semantic map using Gemini embeddings + PCA.
+   * Full semantic map using Gemini embeddings + UMAP.
    * Expensive — only call on demand (button click).
    * Limits to top 100 authors with bios to keep latency reasonable.
    */
@@ -287,9 +230,9 @@ export const semanticMapRouter = router({
         return { points: [], categories: [], mode: "semantic", computedAt: new Date().toISOString() };
       }
 
-      // Run PCA
+      // Run UMAP dimensionality reduction (1536-dim → 2D)
       const vectorMatrix = embeddings.map(e => e.vector);
-      const coords2D = pca2D(vectorMatrix);
+      const coords2D = projectTo2D(vectorMatrix);
 
       const categorySet = new Set<string>();
       const points: SemanticMapPoint[] = embeddings.map((e, i) => {
