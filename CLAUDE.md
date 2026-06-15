@@ -423,8 +423,17 @@ server/
     llmCatalogue.ts             ← Multi-vendor LLM catalogue (13 vendors, 47 models)
 
 drizzle/
-  schema.ts                     ← All table definitions (25 tables, migration 0045 = latest)
-  migrations/                   ← Auto-generated migration files (0000–0045)
+  schema.ts                     ← Re-export barrel (drizzle-kit entry point; keeps all imports stable)
+  schema/                       ← Domain table files (25 tables total):
+    core.ts                     ←   users, adminActionLog, appSettings, apiRegistry
+    authors.ts                  ←   authorProfiles, authorRagProfiles, authorSubscriptions, authorAliases
+    books.ts                    ←   bookProfiles
+    content.ts                  ←   contentItems, authorContentLinks, contentFiles, ingestSources, magazineArticles
+    enrichment.ts               ←   enrichmentSchedules, enrichmentJobs, humanReviewQueue
+    engagement.ts               ←   favorites, userInterests, authorInterestScores, tags
+    media.ts                    ←   dropboxFolderConfigs, smartUploads
+    sync.ts                     ←   syncStatus, syncJobs
+  migrations/                   ← Auto-generated migration files (0000–0047)
 
 scripts/
   reindex_pg.cjs                ← Pure-Node re-indexing script (no tsx, uses pg + Gemini REST)
