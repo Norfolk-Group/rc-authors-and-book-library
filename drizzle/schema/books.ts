@@ -31,6 +31,8 @@ export const bookProfiles = mysqlTable("book_profiles", {
   s3CoverUrl: varchar("s3CoverUrl", { length: 1024 }),
   /** S3 key for the mirrored cover (used for deduplication/cleanup) */
   s3CoverKey: varchar("s3CoverKey", { length: 512 }),
+  /** S3 CDN URL for the book PDF (migrated from Dropbox/Drive) */
+  s3PdfUrl: varchar("s3PdfUrl", { length: 1024 }),
   /** Published date string, e.g. "2023-04-18" */
   publishedDate: varchar("publishedDate", { length: 32 }),
   /** ISBN-13 */

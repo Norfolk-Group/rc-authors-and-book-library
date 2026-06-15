@@ -384,21 +384,6 @@ const OPTIONAL_DEPENDENCIES: Dependency[] = [
     docsUrl: "https://docs.github.com/en/rest",
   },
   {
-    id: "google_drive",
-    name: "Google Drive",
-    type: "optional",
-    description:
-      "Document archive for author content — transcripts, papers, chapter samples. Uses gws CLI (sandbox-only).",
-    features: [
-      "Author document archive",
-      "Library folder scanning",
-      "Avatar/cover Drive backup",
-    ],
-    envVars: ["DRIVE_AUTHORS_FOLDER_ID", "DRIVE_BOOKS_AUDIO_FOLDER_ID", "DRIVE_AVATARS_FOLDER_ID"],
-    requiresKey: false,
-    docsUrl: "https://drive.google.com",
-  },
-  {
     id: "notion",
     name: "Notion",
     type: "optional",

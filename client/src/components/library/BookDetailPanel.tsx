@@ -77,7 +77,6 @@ export function BookDetailPanel({ book, onClose, variant = 'full', asDialog = fa
   const color = CATEGORY_COLORS[book.category] ?? "hsl(var(--muted-foreground))";
   const iconName = CATEGORY_ICONS[book.category] ?? "book-open";
   const Icon = ICON_MAP[iconName] ?? BookMarkedIcon;
-  const driveUrl = `https://drive.google.com/drive/folders/${book.id}?view=grid`;
   const dashIdx = book.name.indexOf(" - ");
   const displayTitle = dashIdx !== -1 ? book.name.slice(0, dashIdx) : book.name;
   const bookAuthor = dashIdx !== -1 ? book.name.slice(dashIdx + 3) : "";
@@ -209,11 +208,13 @@ export function BookDetailPanel({ book, onClose, variant = 'full', asDialog = fa
           )}
           {/* Action links */}
           <div className="flex flex-col gap-1.5 mt-1">
-            <a href={driveUrl} target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline">
-              <ExternalLink className="w-3 h-3 flex-shrink-0" />
-              Open in Google Drive
-            </a>
+            {profile?.s3PdfUrl && (
+              <a href={profile.s3PdfUrl} target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline">
+                <File className="w-3 h-3 flex-shrink-0" />
+                Download PDF
+              </a>
+            )}
             <a href={amazonUrl} target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline">
               <ShoppingCart className="w-3 h-3 flex-shrink-0" />
@@ -513,14 +514,10 @@ export function BookDetailPanel({ book, onClose, variant = 'full', asDialog = fa
             const iconKey = CONTENT_TYPE_ICONS[type] ?? "file";
             const CtIcon = CT_ICON_MAP[iconKey] ?? File;
             const ctColor = CONTENT_TYPE_COLORS[type] ?? null;
-            const subfolderUrl = `https://drive.google.com/drive/folders/${book.id}?view=grid`;
             return (
-              <a
+              <div
                 key={type}
-                href={subfolderUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted/60 transition-colors group"
+                className="flex items-center gap-3 px-3 py-2 rounded-lg bg-muted/30"
               >
                 <div
                   className={`w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0 ${!ctColor ? "bg-muted" : ""}`}
@@ -535,8 +532,7 @@ export function BookDetailPanel({ book, onClose, variant = 'full', asDialog = fa
                   <p className="text-sm font-medium capitalize">{type}</p>
                 </div>
                 <span className="text-xs text-muted-foreground font-medium">{count} file{count !== 1 ? "s" : ""}</span>
-                <ExternalLink className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-60" />
-              </a>
+              </div>
             );
           })}
         </div>
@@ -566,16 +562,18 @@ export function BookDetailPanel({ book, onClose, variant = 'full', asDialog = fa
         </div>
       )}
 
-      {/* Open in Drive */}
-      <a
-        href={driveUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-sm font-medium border border-border hover:bg-muted transition-colors"
-      >
-        <ExternalLink className="w-3.5 h-3.5" />
-        Open in Google Drive
-      </a>
+      {/* PDF download */}
+      {profile?.s3PdfUrl && (
+        <a
+          href={profile.s3PdfUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-sm font-medium border border-border hover:bg-muted transition-colors"
+        >
+          <File className="w-3.5 h-3.5" />
+          Download PDF
+        </a>
+      )}
 
       {/* Close button */}
       <button

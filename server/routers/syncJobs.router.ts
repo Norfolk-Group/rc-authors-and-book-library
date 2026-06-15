@@ -37,11 +37,7 @@ import { eq, desc } from "drizzle-orm";
 import { getDropboxToken, getDropboxConnectionStatus } from "../dropboxAuth";
 import {
   uploadToDropbox,
-  uploadToDrive,
-  getOrCreateDriveFolder,
-  getDriveAccessToken,
   uploadMetadataSidecarToDropbox,
-  uploadMetadataSidecarToDrive,
   generateBookMetadata,
   slugify,
 } from "../syncEngine";
@@ -86,7 +82,7 @@ export const syncJobsRouter = router({
   triggerSync: publicProcedure
     .input(
       z.object({
-        target: z.enum(["dropbox", "google_drive", "both"]),
+        target: z.enum(["dropbox"]),
         scope: z.string().default("all"),
         contentTypes: z
           .array(z.enum(["avatars", "books", "audio", "rag_files"]))
@@ -99,27 +95,10 @@ export const syncJobsRouter = router({
       const db = await getDb();
       if (!db) return { success: false, message: "Database unavailable" };
 
-      // Check credentials
       let dropboxToken: string | null = null;
-      if (input.target === "dropbox" || input.target === "both") {
-        try { dropboxToken = await getDropboxToken(); } catch { dropboxToken = null; }
-      }
-      const driveParentId = process.env.GOOGLE_DRIVE_PARENT_FOLDER_ID;
-      let driveToken: string | null = null;
-      if (input.target === "google_drive" || input.target === "both") {
-        driveToken = await getDriveAccessToken();
-      }
-
-      if ((input.target === "dropbox" || input.target === "both") && !dropboxToken) {
+      try { dropboxToken = await getDropboxToken(); } catch { dropboxToken = null; }
+      if (!dropboxToken) {
         return { success: false, message: "Dropbox is not connected. Please connect via Admin → Sync → Connect Dropbox." };
-      }
-      if ((input.target === "google_drive" || input.target === "both") && (!driveToken || !driveParentId)) {
-        return {
-          success: false,
-          message: !driveParentId
-            ? "GOOGLE_DRIVE_PARENT_FOLDER_ID not configured. Add it in Admin → Settings."
-            : "Google Drive access token not available. Set GOOGLE_DRIVE_ACCESS_TOKEN in secrets or ensure gws CLI is authenticated.",
-        };
       }
 
       // Create job record
@@ -136,8 +115,6 @@ export const syncJobsRouter = router({
       runSyncJob(jobId, {
         ...input,
         dropboxToken: dropboxToken ?? "",
-        driveToken: driveToken ?? "",
-        driveParentId: driveParentId ?? "",
       }).catch(async (err) => {
         const db2 = await getDb();
         if (!db2) return;
@@ -172,28 +149,11 @@ export const syncJobsRouter = router({
     }),
 
   /**
-   * Get Google Drive connection status.
-   */
-  getDriveStatus: publicProcedure
-    .query(async () => {
-      const token = await getDriveAccessToken();
-      const parentId = process.env.GOOGLE_DRIVE_PARENT_FOLDER_ID;
-      return {
-        connected: !!(token && parentId),
-        hasAccessToken: !!token,
-        hasParentFolderId: !!parentId,
-        parentFolderId: parentId ?? null,
-      };
-    }),
-
-  /**
-   * Generate _metadata.json sidecars for all books without uploading other files.
-   * Useful for updating metadata after enrichment runs.
+   * Generate _metadata.json sidecars for all books (Dropbox only).
    */
   generateSidecars: publicProcedure
     .input(
       z.object({
-        target: z.enum(["dropbox", "google_drive", "both"]),
         scope: z.string().default("all"),
         overwrite: z.boolean().default(true),
       })
@@ -203,23 +163,9 @@ export const syncJobsRouter = router({
       if (!db) return { success: false, message: "Database unavailable" };
 
       let dropboxToken: string | null = null;
-      if (input.target === "dropbox" || input.target === "both") {
-        try { dropboxToken = await getDropboxToken(); } catch { dropboxToken = null; }
-      }
-      const driveParentId = process.env.GOOGLE_DRIVE_PARENT_FOLDER_ID;
-      let driveToken: string | null = null;
-      if (input.target === "google_drive" || input.target === "both") {
-        driveToken = await getDriveAccessToken();
-      }
+      try { dropboxToken = await getDropboxToken(); } catch { dropboxToken = null; }
+      if (!dropboxToken) return { success: false, message: "Dropbox not connected." };
 
-      if ((input.target === "dropbox" || input.target === "both") && !dropboxToken) {
-        return { success: false, message: "Dropbox not connected." };
-      }
-      if ((input.target === "google_drive" || input.target === "both") && (!driveToken || !driveParentId)) {
-        return { success: false, message: "Google Drive not configured." };
-      }
-
-      // Fetch all books
       let authorFilter: string[] | null = null;
       if (input.scope !== "all") {
         authorFilter = input.scope.split(",").map((s) => s.trim()).filter(Boolean);
@@ -252,31 +198,14 @@ export const syncJobsRouter = router({
           keyThemesJson: null,
         });
 
-        if (input.target === "dropbox" || input.target === "both") {
-          const result = await uploadMetadataSidecarToDropbox(
-            dropboxToken!,
-            authorSlug,
-            bookSlug,
-            metadata,
-            input.overwrite
-          );
-          if (result.success) synced++; else failed++;
-        }
-
-        if (input.target === "google_drive" || input.target === "both") {
-          // Create author/books folder structure in Drive
-          const authorFolderId = await getOrCreateDriveFolder(driveToken!, driveParentId!, authorSlug);
-          if (authorFolderId) {
-            const booksFolderId = await getOrCreateDriveFolder(driveToken!, authorFolderId, "books");
-            if (booksFolderId) {
-              const bookFolderId = await getOrCreateDriveFolder(driveToken!, booksFolderId, bookSlug);
-              if (bookFolderId) {
-                const result = await uploadMetadataSidecarToDrive(driveToken!, bookFolderId, metadata);
-                if (result.success) synced++; else failed++;
-              }
-            }
-          }
-        }
+        const result = await uploadMetadataSidecarToDropbox(
+          dropboxToken,
+          authorSlug,
+          bookSlug,
+          metadata,
+          input.overwrite
+        );
+        if (result.success) synced++; else failed++;
       }
 
       return { success: true, synced, failed };
@@ -285,14 +214,12 @@ export const syncJobsRouter = router({
 
 // ── Async sync runner ─────────────────────────────────────────────────────────
 interface SyncJobInput {
-  target: "dropbox" | "google_drive" | "both";
+  target: "dropbox";
   scope: string;
   contentTypes: string[];
   overwrite: boolean;
   generateSidecars: boolean;
   dropboxToken: string;
-  driveToken: string;
-  driveParentId: string;
 }
 
 interface SyncFile {
@@ -414,19 +341,6 @@ async function runSyncJob(jobId: number, input: SyncJobInput) {
   let bytes = 0;
   const fileResults: { s3Url: string; targetPath: string; status: string; error?: string; bytes?: number }[] = [];
 
-  // ── Drive folder cache (avoid repeated API calls for the same author) ───────
-  const driveFolderCache = new Map<string, string>(); // "authorSlug/contentType" → folderId
-
-  async function getDriveFolderId(authorSlug: string, contentType: string): Promise<string | null> {
-    const cacheKey = `${authorSlug}/${contentType}`;
-    if (driveFolderCache.has(cacheKey)) return driveFolderCache.get(cacheKey)!;
-    const authorFolderId = await getOrCreateDriveFolder(input.driveToken, input.driveParentId, authorSlug);
-    if (!authorFolderId) return null;
-    const typeFolderId = await getOrCreateDriveFolder(input.driveToken, authorFolderId, contentType);
-    if (typeFolderId) driveFolderCache.set(cacheKey, typeFolderId);
-    return typeFolderId;
-  }
-
   // ── Process files ──────────────────────────────────────────────────────────
 
   for (const file of files) {
@@ -437,94 +351,41 @@ async function runSyncJob(jobId: number, input: SyncJobInput) {
     const authorSlug = slugify(file.authorName ?? "unknown");
     const targetPath = `/${authorSlug}/${file.contentType}/${file.fileName}`;
 
-    // ── Dropbox upload ─────────────────────────────────────────────────────
-    if (input.target === "dropbox" || input.target === "both") {
-      const result = await uploadToDropbox(
-        input.dropboxToken,
-        targetPath,
-        file.s3Url,
-        input.overwrite
-      );
-      if (result.success) {
-        synced++;
-        bytes += result.bytes ?? 0;
-        fileResults.push({ s3Url: file.s3Url, targetPath, status: "synced", bytes: result.bytes });
+    const result = await uploadToDropbox(
+      input.dropboxToken,
+      targetPath,
+      file.s3Url,
+      input.overwrite
+    );
+    if (result.success) {
+      synced++;
+      bytes += result.bytes ?? 0;
+      fileResults.push({ s3Url: file.s3Url, targetPath, status: "synced", bytes: result.bytes });
 
-        // Generate _metadata.json sidecar for books
-        if (file.contentType === "books" && input.generateSidecars && file.bookRecord) {
-          const bookSlug = slugify(file.bookRecord.bookTitle ?? "book");
-          const metadata = generateBookMetadata({
-            bookTitle: file.bookRecord.bookTitle ?? "Unknown",
-            authorName: file.bookRecord.authorName,
-            isbn: file.bookRecord.isbn,
-            rating: file.bookRecord.rating,
-            ratingCount: file.bookRecord.ratingCount,
-            summary: file.bookRecord.summary,
-            s3CoverUrl: file.bookRecord.s3CoverUrl,
-            amazonUrl: file.bookRecord.amazonUrl,
-            goodreadsUrl: file.bookRecord.goodreadsUrl,
-            wikipediaUrl: file.bookRecord.wikipediaUrl,
-            publishedDate: file.bookRecord.publishedDate,
-            format: file.bookRecord.format,
-            possessionStatus: file.bookRecord.possessionStatus,
-            keyThemesJson: null,
-          });
-          await uploadMetadataSidecarToDropbox(input.dropboxToken, authorSlug, bookSlug, metadata, true);
-        }
-      } else {
-        failed++;
-        fileResults.push({ s3Url: file.s3Url, targetPath, status: "failed", error: result.error });
+      // Generate _metadata.json sidecar for books
+      if (file.contentType === "books" && input.generateSidecars && file.bookRecord) {
+        const bookSlug = slugify(file.bookRecord.bookTitle ?? "book");
+        const metadata = generateBookMetadata({
+          bookTitle: file.bookRecord.bookTitle ?? "Unknown",
+          authorName: file.bookRecord.authorName,
+          isbn: file.bookRecord.isbn,
+          rating: file.bookRecord.rating,
+          ratingCount: file.bookRecord.ratingCount,
+          summary: file.bookRecord.summary,
+          s3CoverUrl: file.bookRecord.s3CoverUrl,
+          amazonUrl: file.bookRecord.amazonUrl,
+          goodreadsUrl: file.bookRecord.goodreadsUrl,
+          wikipediaUrl: file.bookRecord.wikipediaUrl,
+          publishedDate: file.bookRecord.publishedDate,
+          format: file.bookRecord.format,
+          possessionStatus: file.bookRecord.possessionStatus,
+          keyThemesJson: null,
+        });
+        await uploadMetadataSidecarToDropbox(input.dropboxToken, authorSlug, bookSlug, metadata, true);
       }
-    }
-
-    // ── Google Drive upload ────────────────────────────────────────────────
-    if (input.target === "google_drive" || input.target === "both") {
-      const folderId = await getDriveFolderId(authorSlug, file.contentType);
-      if (!folderId) {
-        if (input.target === "google_drive") failed++;
-        fileResults.push({ s3Url: file.s3Url, targetPath: `Drive/${targetPath}`, status: "failed", error: "Could not create Drive folder" });
-      } else {
-        const result = await uploadToDrive(
-          input.driveToken,
-          folderId,
-          file.fileName,
-          file.s3Url,
-          file.mimeType
-        );
-        if (result.success) {
-          if (input.target === "google_drive") synced++;
-          bytes += result.bytes ?? 0;
-          fileResults.push({ s3Url: file.s3Url, targetPath: `Drive/${targetPath}`, status: "synced", bytes: result.bytes });
-
-          // Generate _metadata.json sidecar for books in Drive
-          if (file.contentType === "books" && input.generateSidecars && file.bookRecord) {
-            const bookSlug = slugify(file.bookRecord.bookTitle ?? "book");
-            const bookFolderId = await getDriveFolderId(authorSlug, `books/${bookSlug}`);
-            if (bookFolderId) {
-              const metadata = generateBookMetadata({
-                bookTitle: file.bookRecord.bookTitle ?? "Unknown",
-                authorName: file.bookRecord.authorName,
-                isbn: file.bookRecord.isbn,
-                rating: file.bookRecord.rating,
-                ratingCount: file.bookRecord.ratingCount,
-                summary: file.bookRecord.summary,
-                s3CoverUrl: file.bookRecord.s3CoverUrl,
-                amazonUrl: file.bookRecord.amazonUrl,
-                goodreadsUrl: file.bookRecord.goodreadsUrl,
-                wikipediaUrl: file.bookRecord.wikipediaUrl,
-                publishedDate: file.bookRecord.publishedDate,
-                format: file.bookRecord.format,
-                possessionStatus: file.bookRecord.possessionStatus,
-                keyThemesJson: null,
-              });
-              await uploadMetadataSidecarToDrive(input.driveToken, bookFolderId, metadata);
-            }
-          }
-        } else {
-          if (input.target === "google_drive") failed++;
-          fileResults.push({ s3Url: file.s3Url, targetPath: `Drive/${targetPath}`, status: "failed", error: result.error });
-        }
-      }
+    } else {
+      failed++;
+      fileResults.push({ s3Url: file.s3Url, targetPath, status: "failed", error: result.error });
     }
 
     // Update progress every 5 files

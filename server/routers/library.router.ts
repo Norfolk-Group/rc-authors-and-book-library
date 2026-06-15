@@ -502,37 +502,15 @@ export const libraryRouter = router({
     }
   }),
 
-  regenerate: adminProcedure.mutation(async () => {
-    const startTime = Date.now();
-
-    try {
-      // Scan Authors
-      const { authors, books } = scanAuthors();
-
-      // Scan Books Audio
-      const audioBooks = scanAudio();
-
-      // Write files
-      const libraryTs = generateLibraryTs(authors, books);
-      const audioTs = generateAudioTs(audioBooks);
-
-      fs.writeFileSync(LIBRARY_DATA_PATH, libraryTs, "utf8");
-      fs.writeFileSync(AUDIO_DATA_PATH, audioTs, "utf8");
-
-      const elapsed = Math.round((Date.now() - startTime) / 1000);
-
-      return {
-        success: true,
-        stats: {
-          authors: authors.length,
-          books: books.length,
-          audioBooks: audioBooks.length,
-          elapsedSeconds: elapsed,
-        },
-      };
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      return { success: false, error: message, stats: null };
-    }
+  regenerate: adminProcedure.mutation(async (): Promise<{
+    success: boolean;
+    error?: string;
+    stats: { authors: number; books: number; audioBooks: number; elapsedSeconds: number } | null;
+  }> => {
+    return {
+      success: false,
+      error: "Google Drive scanner removed. Add files via Admin → Media → Smart Upload (Dropbox → S3).",
+      stats: null,
+    };
   }),
 });
