@@ -7,8 +7,9 @@
  * only when the config (model/system/tools) changes — detected via a config hash.
  *
  * Agents defined here:
- *   - Virgilio  (AUTHOR_AGENT_KEY)     — author conversational agent (Opus)
- *   - Researcher (RESEARCHER_AGENT_KEY) — avatar research task agent (Sonnet)
+ *   - Virgilio           (AUTHOR_AGENT_KEY)              — author conversational agent (Opus)
+ *   - Researcher         (RESEARCHER_AGENT_KEY)           — avatar research task agent (Sonnet)
+ *   - Super Conversations (SUPER_CONVERSATIONS_AGENT_KEY) — book ghostwriter (Sonnet)
  */
 import crypto from "crypto";
 import { eq } from "drizzle-orm";
@@ -26,6 +27,11 @@ import {
   RESEARCHER_AGENT_SYSTEM,
   RESEARCHER_AGENT_TOOLS,
 } from "./researcherAgent";
+import {
+  SUPER_CONVERSATIONS_AGENT_KEY,
+  SUPER_CONVERSATIONS_AGENT_SYSTEM,
+  SUPER_CONVERSATIONS_AGENT_TOOLS,
+} from "./superConversationsAgent";
 import { logger } from "../../lib/logger";
 
 /** Display name of the conversational agent. */
@@ -205,5 +211,81 @@ export async function ensureResearcherAgent(): Promise<ProvisionedAgent> {
   }
 
   logger.info(`[managedAgents] Provisioned researcher agent ${agentId} v${version} (env ${environmentId})`);
+  return { agentId, agentVersion: version, environmentId };
+}
+
+/**
+ * Ensure the Super Conversations ghostwriter agent exists and return its IDs.
+ * Pure writing agent — no custom tools; uses Sonnet for quality + speed.
+ */
+export async function ensureSuperConversationsAgent(): Promise<ProvisionedAgent> {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const client = getManagedAgentsClient();
+
+  const model = await getSonnetModel();
+  const system = SUPER_CONVERSATIONS_AGENT_SYSTEM;
+  const tools = SUPER_CONVERSATIONS_AGENT_TOOLS;
+  const hash = configHash(model, system, tools);
+
+  const [row] = await db
+    .select()
+    .from(managedAgents)
+    .where(eq(managedAgents.agentKey, SUPER_CONVERSATIONS_AGENT_KEY))
+    .limit(1);
+
+  if (row?.agentId && row.environmentId && row.configHash === hash) {
+    return {
+      agentId: row.agentId,
+      agentVersion: row.agentVersion ? Number(row.agentVersion) : undefined,
+      environmentId: row.environmentId,
+    };
+  }
+
+  const environmentId =
+    row?.environmentId ??
+    (
+      await client.beta.environments.create({
+        name: `rc-library-${SUPER_CONVERSATIONS_AGENT_KEY}`,
+        config: { type: "cloud", networking: { type: "unrestricted" } },
+      })
+    ).id;
+
+  const agentName = "Super Conversations — Ghostwriter";
+
+  let agentId = row?.agentId;
+  let version: number;
+  if (agentId) {
+    const currentVersion = row?.agentVersion
+      ? Number(row.agentVersion)
+      : (await client.beta.agents.retrieve(agentId)).version;
+    const updated = await client.beta.agents.update(agentId, {
+      version: currentVersion,
+      name: agentName,
+      model,
+      system,
+      tools,
+    });
+    version = updated.version;
+  } else {
+    const created = await client.beta.agents.create({ name: agentName, model, system, tools });
+    agentId = created.id;
+    version = created.version;
+  }
+
+  const values = {
+    agentId,
+    agentVersion: String(version),
+    environmentId,
+    model,
+    configHash: hash,
+  };
+  if (row) {
+    await db.update(managedAgents).set(values).where(eq(managedAgents.agentKey, SUPER_CONVERSATIONS_AGENT_KEY));
+  } else {
+    await db.insert(managedAgents).values({ agentKey: SUPER_CONVERSATIONS_AGENT_KEY, ...values });
+  }
+
+  logger.info(`[managedAgents] Provisioned Super Conversations ghostwriter ${agentId} v${version} (env ${environmentId})`);
   return { agentId, agentVersion: version, environmentId };
 }
