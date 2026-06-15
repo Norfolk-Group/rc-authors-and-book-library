@@ -888,6 +888,23 @@ These features were built at some point but have no active users or are permanen
 
 ---
 
+## Conversational Agent — "Virgilio" (Claude Managed Agents)
+
+`server/services/managedAgents/` builds **Virgilio**, the author conversational agent, on Claude's Managed Agents API (`@anthropic-ai/sdk` ≥ 0.104, beta `managed-agents-2026-04-01`). It's the best-in-class successor to the stateless `authorChatbot.chat` RAG chatbot.
+
+| File | Role |
+|---|---|
+| `client.ts` | Lazy beta-capable Anthropic client |
+| `provision.ts` | `ensureAuthorAgent()` — idempotent agent+environment creation, cached in the `managed_agents` table; `BOT_NAME = "Virgilio"` |
+| `authorAgent.ts` | One agent embodies whichever author a session is about; best-in-class system prompt (context-first, verifiable citations, anti-fabrication) + host-side `retrieve_author_knowledge` tool (reuses Neon RAG) |
+| `runSession.ts` | `runConversationTurn()` — stream-first, host-side custom-tool handling, correct idle gate, wall-clock timeout; sessions are stateful (pass `sessionId` back for multi-turn memory) |
+
+- **Pattern:** create the agent ONCE (reused by ID), open a Session per conversation. Model comes from `getOpusModel()` (resolver). The specific author is set per session via an operator `system.message`.
+- **tRPC:** `authorChatbot.chatV2` exposes it. **Not yet wired into the UI** (`AuthorChatbot.tsx` still calls `chat`) — activate after a live smoke test in a key-bearing environment.
+- Migration `0048` adds the `managed_agents` table.
+
+---
+
 ## Agent Skills (in `.agents/skills/`)
 
 These app-specific skills document repeatable patterns for this codebase:

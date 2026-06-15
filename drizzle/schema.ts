@@ -14,8 +14,9 @@
  *   content.ts     — contentItems, authorContentLinks, contentFiles, ingestSources, magazineArticles
  *   enrichment.ts  — enrichmentSchedules, enrichmentJobs, humanReviewQueue
  *   engagement.ts  — favorites, userInterests, authorInterestScores, tags
- *   media.ts       — dropboxFolderConfigs, smartUploads
- *   sync.ts        — syncStatus, syncJobs
+ *   media.ts          — dropboxFolderConfigs, smartUploads
+ *   sync.ts           — syncStatus, syncJobs
+ *   managedAgents.ts  — managedAgents
  */
 
 export * from "./schema/core";
@@ -26,3 +27,4 @@ export * from "./schema/enrichment";
 export * from "./schema/engagement";
 export * from "./schema/media";
 export * from "./schema/sync";
+export * from "./schema/managedAgents";
