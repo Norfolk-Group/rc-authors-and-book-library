@@ -409,7 +409,7 @@ async function buildAuthorDescriptionWithGemini(
   userMessage: string,
   researchModel = "gemini-2.5-flash"
 ): Promise<AuthorDescription | null> {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = ENV.geminiApiKey;
   if (!apiKey) {
     console.error("[authorResearcher] GEMINI_API_KEY not set");
     return null;

@@ -12,7 +12,7 @@
 
 export const ANTHROPIC_MODELS = {
   /** Smart Upload file classification — needs strong vision + reasoning. */
-  fileClassifier: "claude-opus-4-5",
+  fileClassifier: "claude-opus-4-8",
   /** Author photo / appearance vision analysis. */
-  authorResearch: "claude-sonnet-4-5-20250929",
+  authorResearch: "claude-sonnet-4-6",
 } as const;
