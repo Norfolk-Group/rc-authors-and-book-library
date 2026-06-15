@@ -24,6 +24,7 @@ const Login = lazy(() => import("./pages/Login"));
 const ThematicSearch = lazy(() => import("./pages/ThematicSearch"));
 const ResearchSearch = lazy(() => import("./pages/ResearchSearch"));
 const SuperConversationsWriter = lazy(() => import("./pages/SuperConversationsWriter"));
+const BookChatbot = lazy(() => import("./pages/BookChatbot"));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center h-screen text-muted-foreground" role="status" aria-label="Loading page">
@@ -113,6 +114,11 @@ function Router() {
       <Route path={"/write"}>
         <Suspense fallback={<PageLoader />}>
           <SuperConversationsWriter />
+        </Suspense>
+      </Route>
+      <Route path={"/book-chat/:slug"}>
+        <Suspense fallback={<PageLoader />}>
+          <BookChatbot />
         </Suspense>
       </Route>
       <Route path={"/admin"}>

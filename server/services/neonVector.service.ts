@@ -217,9 +217,11 @@ export async function queryVectors(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const queryParams: any[] = [embStr, namespace];
   let pIdx = 3;
+  const sourceId = resolveFilter(filter["sourceId"]);
   if (category)    { whereParts.push(`category = $${pIdx++}`);    queryParams.push(category); }
   if (authorName)  { whereParts.push(`author_name = $${pIdx++}`); queryParams.push(authorName); }
   if (title)       { whereParts.push(`title = $${pIdx++}`);       queryParams.push(title); }
+  if (sourceId)    { whereParts.push(`source_id = $${pIdx++}`);   queryParams.push(sourceId); }
   queryParams.push(topK);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

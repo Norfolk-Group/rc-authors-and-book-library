@@ -1,20 +1,19 @@
 /**
- * AuthorChatbot.tsx
+ * BookChatbot.tsx
  *
- * Full-screen author impersonation chatbot.
- * The author speaks as themselves, grounded in their Digital Me RAG file.
+ * Book & Author conversational chatbot — powered by the Opus managed book agent.
+ * The agent answers questions about a specific book AND the author's full catalog,
+ * grounding every answer via host-side retrieval tools (no hallucination).
  *
- * Route: /chat/:slug
- * - slug is the URL-encoded author name
+ * Route: /book-chat/:slug
+ * - slug is the URL-encoded book title
  *
  * Features:
- *   - Author avatar + name in header with "Speaking as {Author}" badge
- *   - Multi-turn conversation with message history
- *   - Opening message from the author on first load
- *   - Reset conversation button
- *   - Disclaimer banner
- *   - Keyboard: Enter to send, Shift+Enter for newline
- *   - Escape key returns to previous page
+ *   - Book cover + title + author in header
+ *   - Opening message seeds the managed-agents session (no split-brain)
+ *   - Multi-turn conversation with server-side memory (sessionId threaded)
+ *   - Reset clears conversation and starts a fresh session
+ *   - Keyboard: Enter to send, Shift+Enter for newline, Esc to go back
  */
 
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -30,14 +29,12 @@ import {
   Send,
   RefreshCw,
   Loader2,
-  Brain,
+  BookOpen,
   AlertCircle,
   User,
   MessageSquare,
   Info,
 } from "lucide-react";
-
-const VIRGILIO_ENABLED = true;
 
 interface Message {
   role: "user" | "assistant";
@@ -45,26 +42,22 @@ interface Message {
   timestamp: Date;
 }
 
-function MessageBubble({ message, authorName, avatarUrl }: {
+function MessageBubble({ message, coverUrl }: {
   message: Message;
-  authorName: string;
-  avatarUrl?: string | null;
+  coverUrl?: string | null;
 }) {
   const isUser = message.role === "user";
   return (
     <div className={`flex gap-3 ${isUser ? "flex-row-reverse" : "flex-row"}`}>
-      {/* Avatar */}
       <div className="flex-shrink-0 w-8 h-8 rounded-full overflow-hidden bg-muted flex items-center justify-center">
         {isUser ? (
           <User className="w-4 h-4 text-muted-foreground" />
-        ) : avatarUrl ? (
-          <LazyImage src={avatarUrl} alt={authorName} className="w-full h-full object-cover" eager />
+        ) : coverUrl ? (
+          <LazyImage src={coverUrl} alt="book cover" className="w-full h-full object-cover" eager />
         ) : (
-          <Brain className="w-4 h-4 text-primary" />
+          <BookOpen className="w-4 h-4 text-primary" />
         )}
       </div>
-
-      {/* Bubble */}
       <div className={`max-w-[75%] ${isUser ? "items-end" : "items-start"} flex flex-col gap-1`}>
         <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
           isUser
@@ -81,37 +74,34 @@ function MessageBubble({ message, authorName, avatarUrl }: {
   );
 }
 
-export default function AuthorChatbot() {
+export default function BookChatbot() {
   const { slug } = useParams<{ slug: string }>();
   const [, navigate] = useLocation();
-  const authorName = decodeURIComponent(slug ?? "");
+  const bookTitle = decodeURIComponent(slug ?? "");
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [loadingOpening, setLoadingOpening] = useState(true);
-  // Virgilio (chatV2) server-side session id — enables multi-turn memory.
   const [sessionId, setSessionId] = useState<string | undefined>(undefined);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const { data: authorInfo, isLoading: loadingInfo } = trpc.authorChatbot.getAuthorChatInfo.useQuery(
-    { authorName },
-    { enabled: !!authorName }
+  const { data: bookInfo, isLoading: loadingInfo } = trpc.bookChatbot.getBookChatInfo.useQuery(
+    { bookTitle },
+    { enabled: !!bookTitle }
   );
 
-  const openingMutation = trpc.authorChatbot.getOpeningMessage.useMutation();
-  const chatMutation = trpc.authorChatbot.chat.useMutation();
-  const chatV2Mutation = trpc.authorChatbot.chatV2.useMutation();
+  const chatMutation = trpc.bookChatbot.chatV2.useMutation();
 
-  // Scroll to bottom on new messages
+  // Scroll to bottom on new messages.
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
 
-  // Escape key → go back
+  // Escape key → go back.
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") navigate("/");
@@ -120,97 +110,57 @@ export default function AuthorChatbot() {
     return () => window.removeEventListener("keydown", handler);
   }, [navigate]);
 
-  // Load opening message on mount
-  useEffect(() => {
-    if (!authorName) return;
+  // Seed the opening message through chatV2 so turn 1 and all subsequent turns
+  // share the same managed-agents session — no split-brain.
+  const startSession = useCallback(() => {
     setLoadingOpening(true);
-    if (VIRGILIO_ENABLED) {
-      // Seed the managed-agents session with the opening message so that turn 1
-      // and all subsequent turns share the same Virgilio session — no split-brain.
-      chatV2Mutation.mutateAsync({
-        authorName,
-        message:
-          "Please introduce yourself briefly in your own voice — mention one or two of your most important ideas or books, then invite me to engage.",
-      }).then((result) => {
-        if (result.sessionId) setSessionId(result.sessionId);
-        setMessages([{
-          role: "assistant",
-          content: result.reply || `Hello, I'm ${authorName}. What would you like to explore?`,
-          timestamp: new Date(),
-        }]);
-      }).catch(() => {
-        setMessages([{
-          role: "assistant",
-          content: `Hello, I'm ${authorName}. How can I help you today?`,
-          timestamp: new Date(),
-        }]);
-      }).finally(() => setLoadingOpening(false));
-    } else {
-      openingMutation.mutateAsync({ authorName }).then((result) => {
-        setMessages([{
-          role: "assistant",
-          content: result.reply,
-          timestamp: new Date(),
-        }]);
-      }).catch(() => {
-        setMessages([{
-          role: "assistant",
-          content: `Hello, I'm ${authorName}. How can I help you today?`,
-          timestamp: new Date(),
-        }]);
-      }).finally(() => setLoadingOpening(false));
-    }
+    chatMutation.mutateAsync({
+      bookTitle,
+      message:
+        "Please introduce this book and its author — share the central argument and one or two key insights, then invite me to explore further.",
+    }).then((result) => {
+      if (result.sessionId) setSessionId(result.sessionId);
+      setMessages([{
+        role: "assistant",
+        content: result.reply || `Welcome. I'm here to discuss "${bookTitle}". What would you like to explore?`,
+        timestamp: new Date(),
+      }]);
+    }).catch(() => {
+      setMessages([{
+        role: "assistant",
+        content: `Welcome. I'm here to discuss "${bookTitle}". What would you like to know?`,
+        timestamp: new Date(),
+      }]);
+    }).finally(() => setLoadingOpening(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authorName]);
+  }, [bookTitle]);
+
+  useEffect(() => {
+    if (!bookTitle) return;
+    startSession();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bookTitle]);
 
   const handleSend = useCallback(async () => {
     const text = input.trim();
     if (!text || sending) return;
 
-    const userMessage: Message = { role: "user", content: text, timestamp: new Date() };
-    setMessages((prev) => [...prev, userMessage]);
+    setMessages((prev) => [...prev, { role: "user", content: text, timestamp: new Date() }]);
     setInput("");
     setSending(true);
 
     try {
-      if (VIRGILIO_ENABLED) {
-        // Virgilio: stateful Managed Agents session (server-side memory).
-        const result = await chatV2Mutation.mutateAsync({
-          authorName,
-          message: text,
-          sessionId,
-        });
-        if (result.sessionId) setSessionId(result.sessionId);
-        setMessages((prev) => [...prev, {
-          role: "assistant",
-          content: result.reply || "I'm unable to respond right now. Please try again.",
-          timestamp: new Date(),
-        }]);
-      } else {
-        const conversationHistory = [...messages, userMessage].map((m) => ({
-          role: m.role,
-          content: m.content,
-        }));
-
-        const result = await chatMutation.mutateAsync({
-          authorName,
-          messages: conversationHistory,
-        });
-
-        if (result.success && result.reply) {
-          setMessages((prev) => [...prev, {
-            role: "assistant",
-            content: result.reply!,
-            timestamp: new Date(),
-          }]);
-        } else {
-          setMessages((prev) => [...prev, {
-            role: "assistant",
-            content: (result as { message?: string }).message ?? "I'm unable to respond right now. Please try again.",
-            timestamp: new Date(),
-          }]);
-        }
-      }
+      const result = await chatMutation.mutateAsync({
+        bookTitle,
+        message: text,
+        sessionId,
+      });
+      if (result.sessionId) setSessionId(result.sessionId);
+      setMessages((prev) => [...prev, {
+        role: "assistant",
+        content: result.reply || "I'm unable to respond right now. Please try again.",
+        timestamp: new Date(),
+      }]);
     } catch {
       setMessages((prev) => [...prev, {
         role: "assistant",
@@ -221,7 +171,7 @@ export default function AuthorChatbot() {
       setSending(false);
       textareaRef.current?.focus();
     }
-  }, [input, sending, messages, authorName, chatMutation, chatV2Mutation, sessionId]);
+  }, [input, sending, bookTitle, chatMutation, sessionId]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -233,22 +183,7 @@ export default function AuthorChatbot() {
   const handleReset = () => {
     setMessages([]);
     setSessionId(undefined);
-    setLoadingOpening(true);
-    const intro = VIRGILIO_ENABLED
-      ? chatV2Mutation.mutateAsync({
-          authorName,
-          message:
-            "Please introduce yourself briefly in your own voice — mention one or two of your most important ideas or books, then invite me to engage.",
-        }).then((result) => {
-          if (result.sessionId) setSessionId(result.sessionId);
-          return { reply: result.reply || `Hello, I'm ${authorName}.` };
-        })
-      : openingMutation.mutateAsync({ authorName });
-    intro
-      .then((result) =>
-        setMessages([{ role: "assistant", content: result.reply, timestamp: new Date() }])
-      )
-      .finally(() => setLoadingOpening(false));
+    startSession();
   };
 
   if (loadingInfo) {
@@ -259,11 +194,11 @@ export default function AuthorChatbot() {
     );
   }
 
-  if (!authorInfo) {
+  if (!bookInfo) {
     return (
       <div className="flex flex-col items-center justify-center h-screen gap-4">
         <AlertCircle className="w-10 h-10 text-muted-foreground" />
-        <p className="text-muted-foreground">Author not found: {authorName}</p>
+        <p className="text-muted-foreground">Book not found: {bookTitle}</p>
         <Button variant="outline" onClick={() => navigate("/")}>
           <ArrowLeft className="w-4 h-4 mr-2" />
           Go Home
@@ -272,7 +207,7 @@ export default function AuthorChatbot() {
     );
   }
 
-  const isReady = authorInfo.isReady;
+  const isReady = bookInfo.isReady;
 
   return (
     <div className="flex flex-col h-screen bg-background">
@@ -290,64 +225,63 @@ export default function AuthorChatbot() {
 
         <Separator orientation="vertical" className="h-6" />
 
-        {/* Author identity */}
+        {/* Book identity */}
         <div className="flex items-center gap-2.5 flex-1 min-w-0">
-          <div className="w-9 h-9 rounded-full overflow-hidden bg-muted flex-shrink-0 flex items-center justify-center">
-            {authorInfo.avatarUrl ? (
-              <LazyImage src={authorInfo.avatarUrl} alt={authorName} className="w-full h-full object-cover" eager />
+          <div className="w-9 h-9 rounded-md overflow-hidden bg-muted flex-shrink-0 flex items-center justify-center">
+            {bookInfo.coverUrl ? (
+              <LazyImage src={bookInfo.coverUrl} alt={bookTitle} className="w-full h-full object-cover" eager />
             ) : (
-              <Brain className="w-5 h-5 text-primary" />
+              <BookOpen className="w-5 h-5 text-primary" />
             )}
           </div>
           <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h1 className="font-semibold text-sm truncate">{authorName}</h1>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="font-semibold text-sm truncate">{bookTitle}</h1>
+              {bookInfo.authorName && (
+                <span className="text-xs text-muted-foreground truncate">by {bookInfo.authorName}</span>
+              )}
               <Badge
                 className={`text-xs px-1.5 py-0 ${isReady ? "bg-emerald-600 text-white" : "bg-amber-500 text-white"}`}
               >
-                {isReady ? "Digital Me Active" : "RAG Not Ready"}
+                {isReady ? "Knowledge Active" : "Not Enriched"}
               </Badge>
             </div>
-            <p className="text-xs text-muted-foreground truncate">
-              {isReady
-                ? `v${authorInfo.ragVersion} · ${authorInfo.ragWordCount?.toLocaleString() ?? 0} words`
-                : "Generate Digital Me in Admin Console first"}
-            </p>
+            {bookInfo.publishedDate && (
+              <p className="text-xs text-muted-foreground">{bookInfo.publishedDate.slice(0, 4)}</p>
+            )}
           </div>
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-1.5">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 gap-1.5 text-xs"
-            onClick={handleReset}
-            disabled={loadingOpening || sending}
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Reset</span>
-          </Button>
-        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 gap-1.5 text-xs"
+          onClick={handleReset}
+          disabled={loadingOpening || sending}
+        >
+          <RefreshCw className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Reset</span>
+        </Button>
       </div>
 
       {/* Disclaimer */}
       {isReady && (
         <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 dark:bg-amber-950/20 border-b border-amber-200 dark:border-amber-800/30 text-xs text-amber-700 dark:text-amber-400">
           <Info className="w-3.5 h-3.5 flex-shrink-0" />
-          This is an AI simulation of {authorName} based on their published works and public record. Not the real person.
+          AI knowledge agent grounded in the book's documented content and the author's published works. Not the author.
         </div>
       )}
 
       {/* Not ready state */}
       {!isReady && (
         <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8 text-center">
-          <Brain className="w-12 h-12 text-muted-foreground" />
+          <BookOpen className="w-12 h-12 text-muted-foreground" />
           <div>
-            <h2 className="font-semibold text-lg mb-1">Digital Me Not Ready</h2>
+            <h2 className="font-semibold text-lg mb-1">Book Not Enriched</h2>
             <p className="text-muted-foreground text-sm max-w-sm">
-              The Digital Me knowledge file for {authorName} hasn't been generated yet.
-              Go to Admin → Digital Me to generate it.
+              "{bookTitle}" hasn't been enriched with a summary yet.
+              Go to Admin → Books to enrich it first.
             </p>
           </div>
           <div className="flex gap-2">
@@ -356,7 +290,7 @@ export default function AuthorChatbot() {
               Go Home
             </Button>
             <Button onClick={() => navigate("/admin")}>
-              <Brain className="w-4 h-4 mr-2" />
+              <BookOpen className="w-4 h-4 mr-2" />
               Open Admin
             </Button>
           </div>
@@ -366,33 +300,29 @@ export default function AuthorChatbot() {
       {/* Messages */}
       {isReady && (
         <>
-          <div
-            ref={scrollRef}
-            className="flex-1 overflow-y-auto px-4 py-4 space-y-4"
-          >
+          <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
             {loadingOpening ? (
               <div className="flex items-center gap-2 text-muted-foreground text-sm">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                {authorName} is composing an introduction…
+                Opening the conversation…
               </div>
             ) : (
               messages.map((msg, idx) => (
                 <MessageBubble
                   key={idx}
                   message={msg}
-                  authorName={authorName}
-                  avatarUrl={authorInfo.avatarUrl}
+                  coverUrl={bookInfo.coverUrl}
                 />
               ))
             )}
 
             {sending && (
               <div className="flex gap-3">
-                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                  {authorInfo.avatarUrl ? (
-                    <LazyImage src={authorInfo.avatarUrl} alt={authorName} className="w-full h-full object-cover rounded-full" eager />
+                <div className="w-8 h-8 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
+                  {bookInfo.coverUrl ? (
+                    <LazyImage src={bookInfo.coverUrl} alt={bookTitle} className="w-full h-full object-cover rounded-md" eager />
                   ) : (
-                    <Brain className="w-4 h-4 text-primary" />
+                    <BookOpen className="w-4 h-4 text-primary" />
                   )}
                 </div>
                 <div className="bg-card border border-border rounded-2xl rounded-tl-sm px-4 py-3 flex items-center gap-1.5">
@@ -413,7 +343,7 @@ export default function AuthorChatbot() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder={`Ask ${authorName} anything…`}
+                  placeholder={`Ask about "${bookTitle}" or its author…`}
                   className="resize-none min-h-[44px] max-h-[120px] text-sm pr-2 py-2.5"
                   rows={1}
                   disabled={sending || loadingOpening}

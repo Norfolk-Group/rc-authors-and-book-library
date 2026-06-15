@@ -147,9 +147,9 @@ export const superConversationsRouter = router({
           interview_book: interviewBook,
         },
         title: "Super Conversations — Writing Session",
-        // Extended timeout: each interview sub-turn can take up to 60s;
-        // allow for up to two interviews plus writing time.
-        timeoutMs: 180_000,
+        // Extended timeout: each interview sub-turn can take up to 60s; allow for
+        // two interviews (120s) plus agent provisioning + writing time (180s budget).
+        timeoutMs: 300_000,
       });
 
       logger.info(
