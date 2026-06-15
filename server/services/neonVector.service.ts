@@ -239,7 +239,14 @@ export async function queryVectors(
     )) as any[];
   }
 
-  return rows.map(r => ({
+  return rows.map(mapRow);
+}
+
+// Map a raw SQL row (selected with the standard column list + a `score` alias)
+// into a typed QueryResult. Shared by every query helper below.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapRow(r: any): QueryResult {
+  return {
     id: r.id,
     score: parseFloat(r.score),
     metadata: {
@@ -257,7 +264,105 @@ export async function queryVectors(
       bookCount: r.book_count ?? undefined,
       enrichedAt: r.enriched_at ?? undefined,
     },
-  }));
+  };
+}
+
+/**
+ * Query a per-author knowledge namespace (`author_<id>`) populated by the
+ * book-content indexer (scripts/index-book-content.cjs). These namespaces hold
+ * the chunked full text of each author's books plus the owner's reading notes —
+ * the substrate for the Super Conversations Book/Author agents.
+ *
+ * Unlike the curated `ContentNamespace` set, these namespace names are dynamic
+ * (one per author id), so this helper takes the numeric id and builds the
+ * namespace string itself rather than widening the typed union.
+ *
+ * `category` ("book-<id>") narrows the search to a single book so a Book agent
+ * stays inside its own book; omit it for the whole-author view. `contentTypes`
+ * optionally restricts to e.g. ["owner_notes"] for a notes-only retrieval.
+ */
+export async function queryAuthorKnowledge(
+  authorId: number,
+  queryEmbedding: number[],
+  options: { topK?: number; category?: string; contentTypes?: string[] } = {}
+): Promise<QueryResult[]> {
+  const sql = getSql();
+  const topK = options.topK ?? 8;
+  const embStr = `[${queryEmbedding.join(",")}]`;
+  const namespace = `author_${authorId}`;
+  const category = options.category ?? null;
+  const types = options.contentTypes?.length ? options.contentTypes : null;
+
+  const cols = `id, content_type, source_id, title, author_name, source, url,
+       published_at, chunk_index, chunk_total, text, category, book_count, enriched_at,
+       (1 - (embedding <=> $1::vector))::text AS score`;
+
+  // Build the WHERE clause + params dynamically so optional filters stay
+  // parameterized (never string-interpolated into SQL).
+  const where: string[] = ["namespace = $2"];
+  const params: unknown[] = [embStr, namespace];
+  if (category) {
+    params.push(category);
+    where.push(`category = $${params.length}`);
+  }
+  if (types) {
+    params.push(types);
+    where.push(`content_type = ANY($${params.length})`);
+  }
+  params.push(topK);
+  const limitPos = params.length;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rows = (await sql.query(
+    `SELECT ${cols} FROM vector_embeddings
+     WHERE ${where.join(" AND ")}
+     ORDER BY embedding <=> $1::vector LIMIT $${limitPos}`,
+    params
+  )) as any[];
+  return rows.map(mapRow);
+}
+
+/**
+ * Distinct indexed book ids per author namespace, parsed from the `category`
+ * facet ("book-<id>"). Lets the agents layer list exactly which books have
+ * enough indexed content to back a Book agent. Returns authorId → [bookId].
+ */
+export async function getAuthorBookFacets(): Promise<Record<number, number[]>> {
+  const sql = getSql();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rows = (await sql.query(
+    `SELECT namespace, category FROM vector_embeddings
+     WHERE namespace LIKE 'author\\_%' AND category LIKE 'book-%'
+     GROUP BY namespace, category`
+  )) as any[];
+  const out: Record<number, number[]> = {};
+  for (const row of rows) {
+    const authorId = parseInt(String(row.namespace).slice("author_".length), 10);
+    const bookId = parseInt(String(row.category).slice("book-".length), 10);
+    if (Number.isNaN(authorId) || Number.isNaN(bookId)) continue;
+    (out[authorId] ??= []).push(bookId);
+  }
+  return out;
+}
+
+/**
+ * Per-namespace vector counts for the dynamic `author_<id>` namespaces, so the
+ * agents layer can tell which authors actually have indexed book knowledge.
+ * Returns a map of authorId → vector count.
+ */
+export async function getAuthorKnowledgeCounts(): Promise<Record<number, number>> {
+  const sql = getSql();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rows = (await sql.query(
+    `SELECT namespace, COUNT(*)::text AS cnt FROM vector_embeddings
+     WHERE namespace LIKE 'author\\_%' GROUP BY namespace`
+  )) as any[];
+  const out: Record<number, number> = {};
+  for (const row of rows) {
+    const id = parseInt(String(row.namespace).slice("author_".length), 10);
+    if (!Number.isNaN(id)) out[id] = parseInt(row.cnt, 10);
+  }
+  return out;
 }
 
 /**
