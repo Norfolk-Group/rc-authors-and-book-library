@@ -10,7 +10,7 @@
  * - Shows category badge on author results
  * - Shows author name on book results
  */
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useLocation } from "wouter";
 import { Command } from "cmdk";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
@@ -41,10 +41,10 @@ export function CommandPalette({ onNavigateAuthor, onNavigateBook }: CommandPale
   const [inputValue, setInputValue] = useState("");
   const [, navigate] = useLocation();
 
-  // Open on Cmd+K / Ctrl+K
+  // Open on Cmd+K / Ctrl+K — skip if another handler already consumed the event
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k" && !e.defaultPrevented) {
         e.preventDefault();
         setOpen((prev) => !prev);
       }
@@ -58,8 +58,8 @@ export function CommandPalette({ onNavigateAuthor, onNavigateBook }: CommandPale
     setInputValue("");
   }, []);
 
-  // Deduplicated author list
-  const authorList = (() => {
+  // Deduplicated author list — memoized so it only recomputes when canonicalName changes
+  const authorList = useMemo(() => {
     const seen = new Set<string>();
     return AUTHORS.filter((a) => {
       const key = canonicalName(a.name).toLowerCase();
@@ -67,10 +67,10 @@ export function CommandPalette({ onNavigateAuthor, onNavigateBook }: CommandPale
       seen.add(key);
       return true;
     });
-  })();
+  }, [canonicalName]);
 
-  // Deduplicated book list (by title key)
-  const bookList = (() => {
+  // Deduplicated book list — memoized (BOOKS is static)
+  const bookList = useMemo(() => {
     const seen = new Set<string>();
     return BOOKS.filter((b) => {
       const tk = b.name.includes(" - ")
@@ -80,7 +80,7 @@ export function CommandPalette({ onNavigateAuthor, onNavigateBook }: CommandPale
       seen.add(tk);
       return true;
     });
-  })();
+  }, []);
 
   const handleSelectAuthor = useCallback(
     (authorName: string) => {

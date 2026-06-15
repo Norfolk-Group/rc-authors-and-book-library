@@ -58,6 +58,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import type { SocialStatsResult } from "../../../server/enrichment/socialStats";
 import type { RichBioResult, ProfessionalEntry } from "../../../server/enrichment/richBio";
 import AcademicResearchPanel from "@/components/AcademicResearchPanel";
+import { Skeleton } from "@/components/ui/skeleton";
 import { MagazineArticlesPanel } from "@/components/library/MagazineArticlesPanel";
 import { SimilarAuthorsSection } from "@/components/library/SimilarAuthorsSection";
 import { SubstackPostsPanel } from "@/components/library/SubstackPostsPanel";
@@ -721,9 +722,10 @@ export default function AuthorDetail() {
         <section>
           <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">About</h2>
           {isBioLoading ? (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-              Loading bio…
+            <div className="space-y-2" aria-busy="true" aria-label="Loading bio">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
             </div>
           ) : bioText ? (
             <div className="space-y-3">

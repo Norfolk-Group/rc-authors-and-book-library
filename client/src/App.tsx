@@ -25,9 +25,9 @@ const ThematicSearch = lazy(() => import("./pages/ThematicSearch"));
 const ResearchSearch = lazy(() => import("./pages/ResearchSearch"));
 
 const PageLoader = () => (
-  <div className="flex items-center justify-center h-screen text-muted-foreground">
+  <div className="flex items-center justify-center h-screen text-muted-foreground" role="status" aria-label="Loading page">
     <div className="flex flex-col items-center gap-3">
-      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" aria-hidden="true" />
       <span className="text-sm">Loading…</span>
     </div>
   </div>

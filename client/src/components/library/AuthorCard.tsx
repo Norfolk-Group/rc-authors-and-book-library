@@ -6,7 +6,7 @@
 
 import { motion } from "framer-motion";
 import { LazyImage } from "@/components/ui/LazyImage";
-import { useState } from "react";
+import { memo, useState } from "react";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { BookSubfolderRow } from "@/components/library/LibraryPrimitives";
@@ -73,7 +73,7 @@ function highlight(text: string, query: string) {
   );
 }
 
-export function AuthorCard({ author, query, onBioClick, isEnriched, coverMap, onBookClick, dbAvatarMap }: AuthorCardProps) {
+export const AuthorCard = memo(function AuthorCard({ author, query, onBioClick, isEnriched, coverMap, onBookClick, dbAvatarMap }: AuthorCardProps) {
   const { canonicalName } = useAuthorAliases();
   const color = CATEGORY_COLORS[author.category] ?? "hsl(var(--muted-foreground))";
   const iconName = CATEGORY_ICONS[author.category] ?? "briefcase";
@@ -94,6 +94,8 @@ export function AuthorCard({ author, query, onBioClick, isEnriched, coverMap, on
       whileHover={{ scale: 1.04 }}
       whileTap={{ scale: 0.97 }}
       transition={{ type: "spring", stiffness: 350, damping: 28 }}
+      role="article"
+      aria-label={`${displayName}${specialty ? `, ${specialty}` : ""}`}
     >
       <div
         className="rounded-lg border border-border shadow-sm overflow-hidden relative bg-card h-full"
@@ -298,4 +300,4 @@ export function AuthorCard({ author, query, onBioClick, isEnriched, coverMap, on
       </div>
     </motion.div>
   );
-}
+});

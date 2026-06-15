@@ -313,6 +313,13 @@ export const authorProfiles = mysqlTable("author_profiles", {
   /** When cnbcMentionsCacheJson was last fetched */
   cnbcMentionsCachedAt: timestamp("cnbcMentionsCachedAt"),
 
+  /**
+   * JSON array of conversation group slugs this author belongs to.
+   * Shape: ["superconversations", ...]
+   * "superconversations" is the first group (author chatbot agents).
+   */
+  conversationGroups: text("conversationGroups"),
+
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, (table) => ({
@@ -478,6 +485,13 @@ export const bookProfiles = mysqlTable("book_profiles", {
   duplicateStatus: varchar("duplicateStatus", { length: 16 }),
   /** When the duplicate flag was set */
   duplicateFlaggedAt: timestamp("duplicateFlaggedAt"),
+
+  /**
+   * JSON array of conversation group slugs this book belongs to.
+   * Shape: ["superconversations", ...]
+   * "superconversations" is the first group (book knowledge-base agents).
+   */
+  conversationGroups: text("conversationGroups"),
 
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -796,6 +810,7 @@ export const contentItems = mysqlTable("content_items", {
   includedIdx: index("content_items_included_idx").on(table.includedInLibrary),
   qualityScoreIdx: index("content_items_qualityScore_idx").on(table.qualityScore),
   isAliveIdx: index("content_items_isAlive_idx").on(table.isAlive),
+  enrichedAtIdx: index("content_items_enrichedAt_idx").on(table.enrichedAt),
 }));
 
 export type ContentItem = typeof contentItems.$inferSelect;

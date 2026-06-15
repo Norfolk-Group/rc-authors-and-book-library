@@ -52,6 +52,7 @@ import { SimilarBooksSection } from "@/components/library/SimilarBooksSection";
 import { RelatedContentSection } from "@/components/library/RelatedContentSection";
 import { ReadingPathPanel } from "@/components/library/ReadingPathPanel";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -116,7 +117,7 @@ export default function BookDetail() {
   const progressInitialized = useRef(false);
 
   // Fetch book profile (cover, summary, rating, publisher, etc.)
-  const { data: profile, refetch: refetchProfile } = trpc.bookProfiles.get.useQuery(
+  const { data: profile, isLoading: profileLoading, refetch: refetchProfile } = trpc.bookProfiles.get.useQuery(
     { bookTitle: title },
     { enabled: !!title }
   );
@@ -264,6 +265,8 @@ export default function BookDetail() {
                   alt={`${title} cover`}
                   className="w-full h-full object-cover"
                 />
+              ) : profileLoading ? (
+                <Skeleton className="w-full h-full" />
               ) : (
                 <div className="flex flex-col items-center gap-2 text-muted-foreground p-4 text-center">
                   <CategoryIcon size={40} style={{ color }} />

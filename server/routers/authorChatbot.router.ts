@@ -10,7 +10,7 @@
  * Fallback: if no rag_files vectors exist for the author, falls back to full-file
  * injection from S3 (legacy behaviour) so the chatbot always works.
  *
- * Default model: claude-opus-4-5 (best impersonation quality)
+ * Default model: claude-opus-4-7 (advisor quality)
  */
 
 import { z } from "zod";
@@ -23,7 +23,7 @@ import { logger } from "../lib/logger";
 import { semanticSearch, embedText } from "../services/ragPipeline.service";
 import { queryVectors } from "../services/neonVector.service";
 
-const DEFAULT_CHAT_MODEL = "claude-opus-4-5";
+const DEFAULT_CHAT_MODEL = "claude-opus-4-7";
 // How many RAG chunks to retrieve per user message turn
 const RAG_CHUNKS_PER_TURN = 6;
 // How many content_item hits to inject as supplementary context

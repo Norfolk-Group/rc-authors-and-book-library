@@ -548,4 +548,36 @@ export const authorProfilesRouter = router({
   ...authorAvatarRouter._def.procedures,
   ...authorEnrichmentRouter._def.procedures,
   ...authorSocialRouter._def.procedures,
+
+  /** Set which conversation groups this author belongs to (e.g. ["superconversations"]) */
+  setConversationGroups: adminProcedure
+    .input(z.object({
+      authorName: z.string().min(1),
+      groups: z.array(z.string()),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database unavailable");
+      await db
+        .update(authorProfiles)
+        .set({ conversationGroups: JSON.stringify(input.groups) })
+        .where(eq(authorProfiles.authorName, input.authorName));
+      return { success: true, authorName: input.authorName, groups: input.groups };
+    }),
+
+  /** Get the conversation groups for an author */
+  getConversationGroups: protectedProcedure
+    .input(z.object({ authorName: z.string().min(1) }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) return { groups: [] as string[] };
+      const rows = await db
+        .select({ conversationGroups: authorProfiles.conversationGroups })
+        .from(authorProfiles)
+        .where(eq(authorProfiles.authorName, input.authorName))
+        .limit(1);
+      const raw = rows[0]?.conversationGroups;
+      const groups: string[] = raw ? (() => { try { return JSON.parse(raw) as string[]; } catch { return []; } })() : [];
+      return { groups };
+    }),
 });

@@ -141,6 +141,9 @@ export async function upsertVectors(vectors: UpsertVectorInput[]): Promise<void>
   for (let i = 0; i < vectors.length; i += BATCH) {
     const batch = vectors.slice(i, i + BATCH);
     for (const v of batch) {
+      if (!v.values.every((n) => Number.isFinite(n))) {
+        throw new Error(`Invalid embedding for vector ${v.id}: contains NaN or Infinity`);
+      }
       const m = v.metadata;
       const embStr = `[${v.values.join(",")}]`;
       await sql`
@@ -188,6 +191,9 @@ export async function queryVectors(
 ): Promise<QueryResult[]> {
   const sql = getSql();
   const topK = options.topK ?? 10;
+  if (!queryEmbedding.every((n) => Number.isFinite(n))) {
+    throw new Error("Invalid query embedding: contains NaN or Infinity");
+  }
   const embStr = `[${queryEmbedding.join(",")}]`;
 
   // Build optional WHERE clauses from filter (supports category, authorName)

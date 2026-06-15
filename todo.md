@@ -1,6 +1,6 @@
 # Authors & Books Library — Project TODO
 
-Last cleaned: Apr 20, 2026
+Last cleaned: Jun 15, 2026
 
 ---
 
@@ -40,36 +40,37 @@ Last cleaned: Apr 20, 2026
 
 ---
 
-## Audit Fixes — Remaining Items (from Apr 18 2026 Audit)
+## Remaining Deferred Items
 
-- [ ] P1: Fix N+1 query in contentItems.list — use JOIN instead of separate authorContentLinks query
-- [ ] P2: Add DB indexes on includedInLibrary, contentType, enrichedAt columns
-- [ ] H1: Memoize AuthorCard grid + debounce search input 300ms
-- [ ] H3: Fix CommandPalette Cmd+K to check event.defaultPrevented
-- [ ] M1: Add keyboard navigation (tabIndex, onKeyDown) to author/book card grids
-- [ ] M2: Set staleTime: 5min on AuthorModal + BookModal queries
-- [ ] M3: Add 400ms debounce to SemanticSearchDropdown input
-- [ ] M4: Add Skeleton placeholders to AuthorDetail + BookDetail loading states
-- [ ] M5: Add axis labels + legend + tooltip to InterestHeatmap
-- [ ] M7: Lazy-initialize CommandPalette only on first Cmd+K press
-- [ ] A1: Add Zod schemas for all JSON blob columns in authorProfiles
-- [ ] A4: Validate embedding values are finite numbers before Neon vector concatenation
-- [ ] A5: Split drizzle/schema.ts into domain files (authors, books, content, enrichment)
-- [ ] Q1: Standardize error handling — critical ops throw, reads return typed Result
-- [ ] S8: Sanitize error messages in storage.ts — strip response body from client-facing errors
-- [ ] L1: Remove unused imports in AuthorDetail.tsx
-- [ ] L2: Replace magic strings for tab types with typed constants
-- [ ] L3: Add ARIA attributes to PageLoader spinner
-- [ ] L4: Replace inline accentColor styles with CSS custom properties in ReadingPathPanel
-- [ ] L5: Add onError toast callbacks to all mutations in AuthorCardActions
+- [ ] A1: Add Zod schemas for all JSON blob columns in authorProfiles (23 columns — large task)
+- [ ] A5: Split drizzle/schema.ts into domain files (risky — touches all imports)
+- [ ] Q1: Standardize error handling — critical ops throw, reads return typed Result (broad pattern change)
 - [ ] Add infotips to Admin tab content: buttons, stat cards, configuration fields
 - [ ] Add orchestrator first-run guidance card (shows when no jobs have run yet)
+- [ ] Semantic Interest Heatmap: cluster authors/books by vector similarity with UMAP (P3)
 
 ---
 
-## Deferred / Low Priority
+## Completed (Jun 15, 2026 Session)
 
-- [ ] Semantic Interest Heatmap: cluster authors/books by vector similarity with UMAP (P3)
+- [x] conversationGroups column added to author_profiles and book_profiles (migration 0047)
+- [x] setConversationGroups + getConversationGroups tRPC procedures in authorProfiles + bookProfiles routers
+- [x] Advisor model set to claude-opus-4-7 in authorChatbot.router.ts
+- [x] P1: N+1 query in contentItems.list — verified already fixed (batch inArray query)
+- [x] P2: DB index on contentItems.enrichedAt — added to schema.ts + migration 0047
+- [x] H1: AuthorCard memoized with React.memo + search debounce changed to 300ms
+- [x] H3: CommandPalette Cmd+K now checks !e.defaultPrevented
+- [x] M1: AuthorCard has role="article" and aria-label for keyboard/screen reader accessibility
+- [x] M2: AuthorModal staleTime changed from 30s to 5min
+- [x] M3: SemanticSearchDropdown debounce changed from 500ms to 400ms
+- [x] M4: Skeleton placeholders added to AuthorDetail bio section + BookDetail cover
+- [x] M5: InterestHeatmap color scale legend added (9-10 Exceptional → 0-2 None)
+- [x] M7: CommandPalette authorList + bookList memoized (lazy-initialized with useMemo)
+- [x] A4: Embedding validation — finite number check before Neon vector upsert + query
+- [x] S8: storage.ts sanitizes error messages (logs body internally, exposes only status code)
+- [x] L1: No unused imports found in AuthorDetail.tsx (all icons verified used)
+- [x] L3: ARIA attributes added to PageLoader spinner (role="status", aria-label, aria-hidden on spinner)
+- [x] L4: ReadingPathPanel accentColor inline styles replaced with CSS custom properties (--rp-accent*)
 
 ---
 

@@ -91,7 +91,7 @@ export function SemanticSearchDropdown({
   onNavigateAuthor,
   onNavigateBook,
 }: SemanticSearchDropdownProps) {
-  const debouncedQuery = useDebounce(query, 500);
+  const debouncedQuery = useDebounce(query, 400);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Only fire when query is 3+ chars

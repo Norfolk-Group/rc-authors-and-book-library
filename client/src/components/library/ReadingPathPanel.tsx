@@ -153,7 +153,13 @@ export function ReadingPathPanel({ bookId, bookTitle, accentColor = "#6366f1" }:
   if (!activePath || activePath.steps.length === 0) return null;
 
   return (
-    <section>
+    <section style={{
+      "--rp-accent": accentColor,
+      "--rp-accent-25": accentColor + "40",
+      "--rp-accent-cc": accentColor + "cc",
+      "--rp-accent-15": accentColor + "15",
+      "--rp-accent-30": accentColor + "30",
+    } as React.CSSProperties}>
       {/* Header */}
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center gap-2">
@@ -174,7 +180,7 @@ export function ReadingPathPanel({ bookId, bookTitle, accentColor = "#6366f1" }:
           <Badge
             variant="outline"
             className="text-xs gap-1"
-            style={{ borderColor: accentColor + "40", color: accentColor }}
+            style={{ borderColor: "var(--rp-accent-25)", color: "var(--rp-accent)" }}
           >
             {activePath.mode === "semantic" ? (
               <><Sparkles className="w-3 h-3" />Semantic</>
@@ -221,8 +227,8 @@ export function ReadingPathPanel({ bookId, bookTitle, accentColor = "#6366f1" }:
         <div>
           {/* Multi-step loading indicator (C1, M6) */}
           <div className="flex items-center gap-2 mb-3 text-xs text-muted-foreground">
-            <RefreshCw className="w-3.5 h-3.5 animate-spin flex-shrink-0" style={{ color: accentColor }} />
-            <span className="font-medium" style={{ color: accentColor }}>
+            <RefreshCw className="w-3.5 h-3.5 animate-spin flex-shrink-0" style={{ color: "var(--rp-accent)" }} />
+            <span className="font-medium" style={{ color: "var(--rp-accent)" }}>
               {LOADING_STEPS[loadingStep]?.label ?? "Generating path…"}
             </span>
             <span className="text-muted-foreground/60 ml-auto flex items-center gap-1">
@@ -238,7 +244,7 @@ export function ReadingPathPanel({ bookId, bookTitle, accentColor = "#6366f1" }:
                 className="h-1 rounded-full transition-all duration-500"
                 style={{
                   width: i <= loadingStep ? "24px" : "8px",
-                  backgroundColor: i <= loadingStep ? accentColor : accentColor + "30",
+                  backgroundColor: i <= loadingStep ? "var(--rp-accent)" : "var(--rp-accent-30)",
                 }}
               />
             ))}
@@ -272,18 +278,18 @@ export function ReadingPathPanel({ bookId, bookTitle, accentColor = "#6366f1" }:
                   ) : (
                     <div
                       className="w-full h-full flex items-center justify-center"
-                      style={{ background: `${accentColor}15` }}
+                      style={{ background: "var(--rp-accent-15)" }}
                     >
                       <BookOpen
                         className="w-8 h-8 opacity-30"
-                        style={{ color: accentColor }}
+                        style={{ color: "var(--rp-accent)" }}
                       />
                     </div>
                   )}
                   {/* Step number badge */}
                   <div
                     className="absolute top-1.5 left-1.5 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-sm"
-                    style={{ backgroundColor: accentColor }}
+                    style={{ backgroundColor: "var(--rp-accent)" }}
                   >
                     {step.stepNumber}
                   </div>
@@ -293,7 +299,7 @@ export function ReadingPathPanel({ bookId, bookTitle, accentColor = "#6366f1" }:
                       <Badge
                         className="text-[9px] px-1 py-0 h-4 font-semibold border-0"
                         style={{
-                          backgroundColor: accentColor + "cc",
+                          backgroundColor: "var(--rp-accent-cc)",
                           color: "white",
                         }}
                       >
@@ -328,7 +334,7 @@ export function ReadingPathPanel({ bookId, bookTitle, accentColor = "#6366f1" }:
                       {step.rationale}
                     </p>
                     {step.bookId ? (
-                      <div className="mt-2 flex items-center gap-1 text-[10px] font-medium" style={{ color: accentColor }}>
+                      <div className="mt-2 flex items-center gap-1 text-[10px] font-medium" style={{ color: "var(--rp-accent)" }}>
                         <span>View book</span>
                         <ArrowRight className="w-3 h-3" />
                       </div>

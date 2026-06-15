@@ -83,8 +83,7 @@ export function AuthorModal({ author, avatarUrl: photoOverride, onClose }: Autho
     { authorName: displayName },
     {
       enabled: open,
-      // Short staleTime so the modal always shows fresh data after an Update Links action
-      staleTime: 30 * 1000,
+      staleTime: 5 * 60 * 1000,
     }
   );
 
