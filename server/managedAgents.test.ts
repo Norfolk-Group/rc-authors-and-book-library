@@ -1,10 +1,9 @@
 /**
  * managedAgents.test.ts
  *
- * Unit tests for the pure, side-effect-free parts of the author conversational
- * agent config. The live session flow (provision/runSession) requires a real
- * Anthropic key + Managed Agents beta and is verified by a live smoke test, not
- * here.
+ * Unit tests for the pure, side-effect-free parts of the managed agent configs.
+ * The live session flow (provision/runSession) requires a real Anthropic key +
+ * Managed Agents beta and is verified by a live smoke test, not here.
  */
 import { describe, it, expect } from "vitest";
 import {
@@ -13,6 +12,11 @@ import {
   AUTHOR_AGENT_TOOLS,
   buildAuthorSystemContext,
 } from "./services/managedAgents/authorAgent";
+import {
+  RESEARCHER_AGENT_KEY,
+  RESEARCHER_AGENT_SYSTEM,
+  RESEARCHER_AGENT_TOOLS,
+} from "./services/managedAgents/researcherAgent";
 
 describe("author agent config", () => {
   it("declares the retrieve_author_knowledge custom tool with required params", () => {
@@ -51,5 +55,38 @@ describe("buildAuthorSystemContext", () => {
   it("truncates very long bios", () => {
     const ctx = buildAuthorSystemContext("X", "a".repeat(2000));
     expect(ctx.length).toBeLessThan(1200);
+  });
+});
+
+describe("researcher agent config", () => {
+  it("uses a stable agent key distinct from the conversational agent", () => {
+    expect(RESEARCHER_AGENT_KEY).toBe("author-researcher-agent");
+    expect(RESEARCHER_AGENT_KEY).not.toBe(AUTHOR_AGENT_KEY);
+  });
+
+  it("declares the agent_toolset_20260401 with web_search and web_fetch enabled", () => {
+    const toolset = (RESEARCHER_AGENT_TOOLS ?? []).find(
+      (t) => (t as { type?: string }).type === "agent_toolset_20260401"
+    ) as { type: string; configs?: Array<{ name: string; enabled?: boolean }> } | undefined;
+    expect(toolset).toBeDefined();
+    const names = (toolset!.configs ?? []).map((c) => c.name);
+    expect(names).toContain("web_search");
+    expect(names).toContain("web_fetch");
+  });
+
+  it("declares the analyze_author_appearance custom tool with required params", () => {
+    const tool = (RESEARCHER_AGENT_TOOLS ?? []).find(
+      (t) => (t as { name?: string }).name === "analyze_author_appearance"
+    ) as { type: string; input_schema: { required: string[] } } | undefined;
+    expect(tool).toBeDefined();
+    expect(tool!.type).toBe("custom");
+    expect(tool!.input_schema.required).toContain("authorName");
+    expect(tool!.input_schema.required).toContain("photoUrls");
+  });
+
+  it("system prompt enforces research-before-tool and completion rules", () => {
+    expect(RESEARCHER_AGENT_SYSTEM).toMatch(/analyze_author_appearance/);
+    expect(RESEARCHER_AGENT_SYSTEM.toLowerCase()).toMatch(/web_search|web_fetch/);
+    expect(RESEARCHER_AGENT_SYSTEM.toLowerCase()).toMatch(/exactly once/);
   });
 });

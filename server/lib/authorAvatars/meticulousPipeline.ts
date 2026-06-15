@@ -22,6 +22,14 @@ import {
   MeticulousPipelineResult,
 } from "./types.js";
 import { researchAndDescribeAuthor } from "./authorResearcher.js";
+import { runAuthorResearcherTurn } from "../../services/managedAgents/runResearcher.js";
+
+/**
+ * Feature flag: when true, the meticulous pipeline uses the Managed Agents
+ * researcher instead of the hand-coded Wikipedia/Tavily/Apify HTTP fetches.
+ * Flip to true after a successful live smoke test.
+ */
+const VIRGILIO_RESEARCHER_ENABLED = false;
 import { buildMeticulousPrompt, buildGenericFallbackPrompt } from "./promptBuilder.js";
 import {
   createImageGenerator,
@@ -131,9 +139,13 @@ export async function runMeticulousPipeline(
     logger.debug(`[meticulousPipeline] Using cached description for ${authorName}`);
   } else {
     // Run full research pipeline
-    logger.debug(`[meticulousPipeline] Running research for ${authorName}`);
+    logger.debug(`[meticulousPipeline] Running research for ${authorName} (via ${VIRGILIO_RESEARCHER_ENABLED ? "managed-agent" : "direct"})`);
     try {
-      authorDescription = await researchAndDescribeAuthor(authorName, researchModel, researchVendor);
+      if (VIRGILIO_RESEARCHER_ENABLED) {
+        authorDescription = await runAuthorResearcherTurn(authorName);
+      } else {
+        authorDescription = await researchAndDescribeAuthor(authorName, researchModel, researchVendor);
+      }
       stages.research = authorDescription ? "executed" : "failed";
       stages.promptBuild = authorDescription ? "executed" : "failed";
     } catch (err) {
