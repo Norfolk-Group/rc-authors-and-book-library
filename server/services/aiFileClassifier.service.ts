@@ -1,7 +1,8 @@
 /**
  * AI File Classifier Service
  *
- * Uses Claude claude-opus-4-5 to analyse uploaded files and determine:
+ * Uses Claude (see ANTHROPIC_MODELS.fileClassifier) to analyse uploaded files
+ * and determine:
  * - Content type (book PDF, author avatar, podcast, etc.)
  * - Associated author and/or book
  * - Target DB table and columns
@@ -14,10 +15,19 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { getDb } from "../db";
+import { ENV } from "../_core/env";
+import { ANTHROPIC_MODELS } from "../lib/anthropicModels";
 import { authorProfiles, bookProfiles } from "../../drizzle/schema";
 import { like, or, sql } from "drizzle-orm";
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+/** Lazily construct the Anthropic client so a missing key fails at call time
+ * (handled by the caller's try/catch) rather than at module import. */
+function getAnthropicClient(): Anthropic {
+  if (!ENV.anthropicApiKey) {
+    throw new Error("ANTHROPIC_API_KEY is not configured");
+  }
+  return new Anthropic({ apiKey: ENV.anthropicApiKey });
+}
 
 // ── Classification Result Schema ──────────────────────────────────────────────
 
@@ -225,8 +235,9 @@ ${extractedText ? `\nExtracted text preview:\n${extractedText.slice(0, 2000)}` :
   }
 
   try {
+    const anthropic = getAnthropicClient();
     const response = await anthropic.messages.create({
-      model: "claude-opus-4-5",
+      model: ANTHROPIC_MODELS.fileClassifier,
       max_tokens: 1024,
       system: systemPrompt,
       messages: [{ role: "user", content: userContent }],

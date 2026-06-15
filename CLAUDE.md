@@ -256,6 +256,13 @@ semantic vector search powered by **Neon pgvector** (migrated from Pinecone, Apr
 7. **Never store file bytes in DB columns.** Use S3 (`storagePut`) and store the URL.
 
 8. **Never call LLM from client-side code.** All AI calls go through tRPC procedures.
+   Two server-side LLM access paths exist *intentionally*:
+   - **Text:** `invokeLLM()` (`server/_core/llm.ts`) → Manus Forge gateway (vendor-agnostic). Use this by default.
+   - **Multimodal (images/PDFs as base64):** the raw `@anthropic-ai/sdk`, used only in
+     `aiFileClassifier.service.ts` (Smart Upload) and `authorAvatars/authorResearcher.ts`
+     (vision research). Model IDs for these live in `server/lib/anthropicModels.ts`; the key
+     comes from `ENV.anthropicApiKey` (never `process.env`). Do not collapse these into the
+     gateway — it does not expose base64 multimodal input.
 
 9. **Vite version pin:** Pinned to `6.x`. Do NOT upgrade to Vite 7 — the deployment
    environment runs Node.js 20.15.1, which is below Vite 7's minimum of 20.19+.

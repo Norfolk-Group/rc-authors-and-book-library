@@ -18,6 +18,8 @@ import { AuthorDescription, AuthorResearchData } from "./types.js";
 import { scrapeAuthorAvatar } from "../../apify.js";
 import { fetchTavilyAuthorPhotos as fetchTavilyPhotos } from "./tavily";
 import { logger } from "../../lib/logger";
+import { ENV } from "../../_core/env";
+import { ANTHROPIC_MODELS } from "../anthropicModels";
 
 // ── Wikipedia bio helper ───────────────────────────────────────────────────────
 // We extend wikipedia.ts with a bio-text fetch (not just the photo URL)
@@ -471,9 +473,9 @@ async function buildAuthorDescriptionWithGemini(
 async function buildAuthorDescriptionWithClaude(
   research: AuthorResearchData,
   userMessage: string,
-  researchModel = "claude-sonnet-4-5-20250929"
+  researchModel: string = ANTHROPIC_MODELS.authorResearch
 ): Promise<AuthorDescription | null> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = ENV.anthropicApiKey;
   if (!apiKey) {
     console.error("[authorResearcher] ANTHROPIC_API_KEY not set — falling back to Gemini");
     return buildAuthorDescriptionWithGemini(research, userMessage);
