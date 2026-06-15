@@ -580,4 +580,26 @@ export const authorProfilesRouter = router({
       const groups: string[] = raw ? (() => { try { return JSON.parse(raw) as string[]; } catch { return []; } })() : [];
       return { groups };
     }),
+
+  /** List all authors that belong to a given conversation group */
+  listByGroup: protectedProcedure
+    .input(z.object({ group: z.string().min(1) }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) return [] as { authorName: string; s3AvatarUrl: string | null }[];
+      const rows = await db
+        .select({
+          authorName: authorProfiles.authorName,
+          s3AvatarUrl: authorProfiles.s3AvatarUrl,
+          conversationGroups: authorProfiles.conversationGroups,
+        })
+        .from(authorProfiles);
+      return rows
+        .filter((r) => {
+          if (!r.authorName) return false;
+          if (!r.conversationGroups) return false;
+          try { return (JSON.parse(r.conversationGroups) as string[]).includes(input.group); } catch { return false; }
+        })
+        .map(({ conversationGroups: _cg, ...rest }) => rest);
+    }),
 });

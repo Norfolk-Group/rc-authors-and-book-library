@@ -340,4 +340,28 @@ export const bookProfilesRouter = router({
       const groups: string[] = raw ? (() => { try { return JSON.parse(raw) as string[]; } catch { return []; } })() : [];
       return { groups };
     }),
+
+  /** List all books that belong to a given conversation group */
+  listByGroup: protectedProcedure
+    .input(z.object({ group: z.string().min(1) }))
+    .query(async ({ input }) => {
+      const { getDb } = await import("../db");
+      const db = await getDb();
+      if (!db) return [] as { bookTitle: string; authorName: string | null; s3CoverUrl: string | null }[];
+      const { bookProfiles } = await import("../../drizzle/schema");
+      const rows = await db
+        .select({
+          bookTitle: bookProfiles.bookTitle,
+          authorName: bookProfiles.authorName,
+          s3CoverUrl: bookProfiles.s3CoverUrl,
+          conversationGroups: bookProfiles.conversationGroups,
+        })
+        .from(bookProfiles);
+      return rows
+        .filter((r) => {
+          if (!r.conversationGroups) return false;
+          try { return (JSON.parse(r.conversationGroups) as string[]).includes(input.group); } catch { return false; }
+        })
+        .map(({ conversationGroups: _cg, ...rest }) => rest);
+    }),
 });
