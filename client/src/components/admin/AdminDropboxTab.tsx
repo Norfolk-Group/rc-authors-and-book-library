@@ -121,6 +121,12 @@ export function AdminDropboxTab() {
   const [ingestingAll, setIngestingAll] = useState(false);
   const [ingestResults, setIngestResults] = useState<IngestResult[]>([]);
 
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<Array<{
+    tag: "file" | "folder"; name: string; path: string; size?: number; modifiedAt?: string;
+  }> | null>(null);
+
   // ── Queries ──────────────────────────────────────────────────────────────────
 
   const { data: status, isLoading: statusLoading, refetch: refetchStatus } = trpc.dropbox.status.useQuery();
@@ -158,6 +164,11 @@ export function AdminDropboxTab() {
       );
     },
     onError: (err) => toast.error(`Cover backup failed: ${err.message}`),
+  });
+
+  const searchMutation = trpc.dropbox.search.useMutation({
+    onSuccess: (data) => setSearchResults(data.results),
+    onError: (err) => toast.error(`Dropbox search failed: ${err.message}`),
   });
 
   const backupPdfsMutation = trpc.dropbox.backupPdfs.useMutation({
@@ -567,6 +578,72 @@ export function AdminDropboxTab() {
           </CardContent>
         </Card>
       </div>
+
+      {/* ── Dropbox Search ── */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <MagnifyingGlass className="w-4 h-4 text-primary" />
+            Search Dropbox
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex gap-2">
+            <input
+              className="flex-1 h-8 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+              placeholder="Search filenames and content…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && searchQuery.trim() && !searchMutation.isPending)
+                  searchMutation.mutate({ query: searchQuery.trim() });
+              }}
+              disabled={searchMutation.isPending || !status?.connected}
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={!searchQuery.trim() || searchMutation.isPending || !status?.connected}
+              onClick={() => searchMutation.mutate({ query: searchQuery.trim() })}
+            >
+              {searchMutation.isPending
+                ? <Loader2 className="w-3 h-3 animate-spin" />
+                : <MagnifyingGlass className="w-3 h-3" />}
+            </Button>
+          </div>
+
+          {searchResults !== null && (
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">
+                {searchResults.length === 0
+                  ? `No results for "${searchQuery}"`
+                  : `${searchResults.length} result${searchResults.length !== 1 ? "s" : ""} for "${searchQuery}"`}
+              </p>
+              {searchResults.length > 0 && (
+                <div className="max-h-64 overflow-y-auto rounded border border-border divide-y divide-border text-xs">
+                  {searchResults.map((r, i) => (
+                    <div key={i} className="flex items-start gap-2 px-3 py-2 hover:bg-muted/40">
+                      <span className="mt-0.5 text-muted-foreground shrink-0">
+                        {r.tag === "folder" ? "📁" : "📄"}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="font-medium truncate">{r.name}</p>
+                        <p className="text-muted-foreground truncate">{r.path}</p>
+                        {r.modifiedAt && (
+                          <p className="text-muted-foreground">
+                            {new Date(r.modifiedAt).toLocaleDateString()}
+                            {r.size !== undefined && ` · ${(r.size / 1024).toFixed(0)} KB`}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* ── Live Folder Browser ── */}
       <AdminDropboxFolderBrowser refreshTrigger={folderBrowserRefreshKey} />

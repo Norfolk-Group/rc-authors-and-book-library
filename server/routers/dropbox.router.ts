@@ -21,6 +21,7 @@ import {
   listDropboxFolder,
   dropboxFileExists,
   listDropboxInbox,
+  searchDropbox,
   DROPBOX_FOLDERS,
   sanitizeFilename,
   getDropboxAccessToken,
@@ -491,5 +492,19 @@ export const dropboxRouter = router({
           totalFailed: avatarFailed + coverFailed + pdfFailed,
         },
       };
+    }),
+
+  /**
+   * Search Dropbox by filename/content for a keyword.
+   * Returns up to 100 matches across the entire Dropbox (or scoped to a path).
+   */
+  search: protectedProcedure
+    .input(z.object({
+      query: z.string().min(1).max(200),
+      path: z.string().optional().default(""),
+    }))
+    .mutation(async ({ input }) => {
+      const results = await searchDropbox(input.query, input.path);
+      return { query: input.query, results, count: results.length };
     }),
 });
