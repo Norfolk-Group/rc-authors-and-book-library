@@ -56,7 +56,7 @@ function monogram(name: string): string {
 
 function Avatar({ url, name, sizeClass }: { url: string | null; name: string; sizeClass: string }) {
   return (
-    <div className={`${sizeClass} rounded-full overflow-hidden bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 font-semibold`}>
+    <div className={`${sizeClass} rounded-full overflow-hidden bg-ncg-teal/10 text-ncg-teal flex items-center justify-center flex-shrink-0 font-semibold`}>
       {url ? (
         <LazyImage src={url} alt={name} className="w-full h-full object-cover" eager />
       ) : (
@@ -73,6 +73,12 @@ export default function SuperConversations() {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  // Tracks the live selection so an in-flight reply can be discarded if the
+  // user has since switched agents (otherwise it lands in the wrong thread).
+  const selectedRef = useRef<AgentRef | null>(null);
+  useEffect(() => {
+    selectedRef.current = selected;
+  }, [selected]);
 
   const { data: me } = trpc.auth.me.useQuery();
   const isAdmin = me?.role === "admin";
@@ -95,18 +101,26 @@ export default function SuperConversations() {
   const handleSend = useCallback(async () => {
     const text = input.trim();
     if (!text || !selected || sending) return;
+    const requestAgent = selected;
     const next = [...messages, { role: "user" as const, content: text }];
     setMessages(next);
     setInput("");
+    // Only append the reply if the user is still on the agent we asked.
+    const appendIfCurrent = (content: string) =>
+      setMessages((prev) => {
+        const active = selectedRef.current;
+        if (!active || active.kind !== requestAgent.kind || active.id !== requestAgent.id) return prev;
+        return [...prev, { role: "assistant" as const, content }];
+      });
     try {
       const res =
-        selected.kind === "book"
-          ? await chatBook.mutateAsync({ bookId: selected.id, messages: next })
-          : await chatAuthor.mutateAsync({ authorId: selected.id, messages: next });
+        requestAgent.kind === "book"
+          ? await chatBook.mutateAsync({ bookId: requestAgent.id, messages: next })
+          : await chatAuthor.mutateAsync({ authorId: requestAgent.id, messages: next });
       const reply = res.success && res.reply ? res.reply : (res as { message?: string }).message ?? "No response.";
-      setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
+      appendIfCurrent(reply);
     } catch {
-      setMessages((prev) => [...prev, { role: "assistant", content: "Something went wrong. Please try again." }]);
+      appendIfCurrent("Something went wrong. Please try again.");
     }
   }, [input, selected, sending, messages, chatBook, chatAuthor]);
 

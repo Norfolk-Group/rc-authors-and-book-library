@@ -114,12 +114,15 @@ function httpsJson(method, urlStr, headers, body) {
 function httpsBuffer(urlStr) {
   const u = new URL(urlStr);
   return new Promise((resolve, reject) => {
-    https.get({ hostname: u.hostname, path: u.pathname + u.search }, (res) => {
+    const req = https.get({ hostname: u.hostname, path: u.pathname + u.search }, (res) => {
       if (res.statusCode !== 200) { reject(new Error(`Download failed: ${res.statusCode}`)); return; }
       const chunks = [];
       res.on("data", (c) => chunks.push(c));
       res.on("end", () => resolve(Buffer.concat(chunks)));
-    }).on("error", reject);
+    });
+    req.on("error", reject);
+    // Bound a stalled CDN download so one bad image can't hang the whole batch.
+    req.setTimeout(120000, () => req.destroy(new Error("Download timeout")));
   });
 }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

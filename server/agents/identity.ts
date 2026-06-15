@@ -36,6 +36,9 @@ export interface AgentIdentity {
 
 // Italian first names — kept gender-separated so the persona's name matches its
 // (randomly but deterministically assigned) gender.
+// SYNC: scripts/generate-agent-avatars.cjs mirrors MALE_NAMES, FEMALE_NAMES,
+// SURNAMES and the hash below (it's CommonJS and can't import this module). If
+// you change either, change both — the script must derive the same persona.
 const MALE_NAMES = [
   "Leonardo", "Marco", "Matteo", "Lorenzo", "Alessandro", "Francesco", "Giovanni",
   "Riccardo", "Stefano", "Davide", "Andrea", "Luca", "Giulio", "Pietro", "Tommaso",
