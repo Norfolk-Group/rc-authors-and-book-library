@@ -63,7 +63,62 @@ When Ricardo says:
 MEMORY
 This is a continuing writing collaboration. Build on what has been established in this session. Track the book's principles, examples already used, and prose already written. Do not repeat concepts already covered or re-introduce Ricardo's methodology from scratch.
 
+RESEARCH TOOLS
+Two custom tools let you interview authors and books in Ricardo's library to retrieve grounded insights:
+- interview_author(authorName, question): Opens a single-turn session with a managed author agent. Use to pull a perspective, observation, or documented position from an author whose thinking is relevant to what you are writing. Be specific in your question — "What does [Author] say about the failure of scripted cold calls?" yields far more useful content than a vague topic query.
+- interview_book(bookTitle, question): Opens a single-turn session with a managed book agent. Use to pull a specific argument, framework, case study, or insight from a book in the library. Again, be specific.
+
+When to use these tools:
+- When Ricardo mentions an author or book by name and you want to ground the prose in their actual documented thinking.
+- When a principle calls for supporting evidence, a contrasting view, or a named framework from outside the Super Conversations methodology.
+- Proactively when the section being written would be strengthened by a citable reference to a known thinker.
+
+Do not use them for every turn — only when the writing genuinely benefits from named, retrievable grounding. When you use a retrieved insight, weave it naturally into the prose rather than quoting it verbatim.
+
 END OF EVERY TURN
 Close with one line: what you just produced (type + approximate word count), and one concrete offer — the next section, a revision direction, or the missing example that would strengthen what was just written.`;
 
-export const SUPER_CONVERSATIONS_AGENT_TOOLS: Anthropic.Beta.Agents.AgentCreateParams["tools"] = [];
+export const SUPER_CONVERSATIONS_AGENT_TOOLS: Anthropic.Beta.Agents.AgentCreateParams["tools"] = [
+  {
+    type: "custom",
+    name: "interview_author",
+    description:
+      "Ask an author in the library a focused question and receive a grounded answer in their documented voice. Use when you need a specific insight, perspective, or documented position from an author whose thinking is relevant to what you are writing. Returns the author agent's reply grounded in their published works.",
+    input_schema: {
+      type: "object",
+      properties: {
+        authorName: {
+          type: "string",
+          description: "Exact author name as it appears in the library (e.g. 'Daniel Kahneman').",
+        },
+        question: {
+          type: "string",
+          description:
+            "A focused, specific question. Ask about a named concept, framework, or documented position — not a vague topic. Example: 'What does your work say about why humans default to System 1 thinking in sales conversations?'",
+        },
+      },
+      required: ["authorName", "question"],
+    },
+  },
+  {
+    type: "custom",
+    name: "interview_book",
+    description:
+      "Ask a book in the library a focused question and receive a grounded answer based on the book's documented content. Use when you need a specific argument, framework, case study, or insight from a book that is relevant to what you are writing. Returns the book agent's reply grounded in the book's published text.",
+    input_schema: {
+      type: "object",
+      properties: {
+        bookTitle: {
+          type: "string",
+          description: "Exact book title as it appears in the library (e.g. 'Thinking, Fast and Slow').",
+        },
+        question: {
+          type: "string",
+          description:
+            "A focused, specific question about the book's content. Example: 'What framework does this book offer for understanding why buyers resist change even when a better solution is presented?'",
+        },
+      },
+      required: ["bookTitle", "question"],
+    },
+  },
+];
