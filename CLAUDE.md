@@ -260,9 +260,16 @@ semantic vector search powered by **Neon pgvector** (migrated from Pinecone, Apr
    - **Text:** `invokeLLM()` (`server/_core/llm.ts`) → Manus Forge gateway (vendor-agnostic). Use this by default.
    - **Multimodal (images/PDFs as base64):** the raw `@anthropic-ai/sdk`, used only in
      `aiFileClassifier.service.ts` (Smart Upload) and `authorAvatars/authorResearcher.ts`
-     (vision research). Model IDs for these live in `server/lib/anthropicModels.ts`; the key
-     comes from `ENV.anthropicApiKey` (never `process.env`). Do not collapse these into the
-     gateway — it does not expose base64 multimodal input.
+     (vision research). The key comes from `ENV.anthropicApiKey` (never `process.env`). Do not
+     collapse these into the gateway — it does not expose base64 multimodal input.
+
+   **Model IDs are self-updating.** `server/lib/modelResolver.ts` resolves the latest GA
+   model per family (Opus, Sonnet, Gemini text, Gemini image / "Nano Banana") from each
+   provider's models API, cached 24h, with pinned known-good fallbacks (`PINNED_MODELS`) that
+   are returned on any error. Call `getOpusModel()` / `getSonnetModel()` / `getGeminiTextModel()`
+   / `getGeminiImageModel()` instead of hardcoding model strings. The embedding model
+   (`gemini-embedding-001`) is deliberately **excluded** — it stays pinned for the pgvector
+   1536-dim HNSW constraint.
 
 9. **Vite version pin:** Pinned to `6.x`. Do NOT upgrade to Vite 7 — the deployment
    environment runs Node.js 20.15.1, which is below Vite 7's minimum of 20.19+.

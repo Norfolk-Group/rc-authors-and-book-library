@@ -19,7 +19,7 @@ import { scrapeAuthorAvatar } from "../../apify.js";
 import { fetchTavilyAuthorPhotos as fetchTavilyPhotos } from "./tavily";
 import { logger } from "../../lib/logger";
 import { ENV } from "../../_core/env";
-import { ANTHROPIC_MODELS } from "../anthropicModels";
+import { getSonnetModel, getGeminiTextModel } from "../../lib/modelResolver";
 
 // ── Wikipedia bio helper ───────────────────────────────────────────────────────
 // We extend wikipedia.ts with a bio-text fetch (not just the photo URL)
@@ -350,7 +350,7 @@ const AUTHOR_DESCRIPTION_SCHEMA = {
  */
 export async function buildAuthorDescription(
   research: AuthorResearchData,
-  researchModel = "gemini-2.5-flash",
+  researchModel?: string,
   researchVendor = "google"
 ): Promise<AuthorDescription | null> {
   // Build the user message with text bio + photo URLs (shared across vendors)
@@ -407,7 +407,7 @@ async function fetchImageAsBase64(
 async function buildAuthorDescriptionWithGemini(
   research: AuthorResearchData,
   userMessage: string,
-  researchModel = "gemini-2.5-flash"
+  researchModel?: string
 ): Promise<AuthorDescription | null> {
   const apiKey = ENV.geminiApiKey;
   if (!apiKey) {
@@ -441,7 +441,7 @@ async function buildAuthorDescriptionWithGemini(
     ];
 
     const response = await ai.models.generateContent({
-      model: researchModel,
+      model: researchModel ?? (await getGeminiTextModel()),
       contents: [
         {
           role: "user",
@@ -473,7 +473,7 @@ async function buildAuthorDescriptionWithGemini(
 async function buildAuthorDescriptionWithClaude(
   research: AuthorResearchData,
   userMessage: string,
-  researchModel: string = ANTHROPIC_MODELS.authorResearch
+  researchModel?: string
 ): Promise<AuthorDescription | null> {
   const apiKey = ENV.anthropicApiKey;
   if (!apiKey) {
@@ -486,7 +486,7 @@ async function buildAuthorDescriptionWithClaude(
     const systemPrompt = `${RESEARCH_SYSTEM_PROMPT}\n\nYou MUST respond with ONLY a valid JSON object matching this schema:\n${schemaStr}\n\nNo markdown, no code blocks, no explanation — raw JSON only.`;
 
     const response = await client.messages.create({
-      model: researchModel,
+      model: researchModel ?? (await getSonnetModel()),
       max_tokens: 2048,
       temperature: 0.2,
       system: systemPrompt,

@@ -16,7 +16,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { getDb } from "../db";
 import { ENV } from "../_core/env";
-import { ANTHROPIC_MODELS } from "../lib/anthropicModels";
+import { getOpusModel } from "../lib/modelResolver";
 import { authorProfiles, bookProfiles } from "../../drizzle/schema";
 import { like, or, sql } from "drizzle-orm";
 
@@ -237,7 +237,7 @@ ${extractedText ? `\nExtracted text preview:\n${extractedText.slice(0, 2000)}` :
   try {
     const anthropic = getAnthropicClient();
     const response = await anthropic.messages.create({
-      model: ANTHROPIC_MODELS.fileClassifier,
+      model: await getOpusModel(),
       max_tokens: 1024,
       system: systemPrompt,
       messages: [{ role: "user", content: userContent }],
