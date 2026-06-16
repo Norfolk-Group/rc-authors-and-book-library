@@ -149,7 +149,7 @@ export function AuthorsTabContent({
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
         setQuery(val);
-      }, 150);
+      }, 300);
     },
     [setQuery]
   );

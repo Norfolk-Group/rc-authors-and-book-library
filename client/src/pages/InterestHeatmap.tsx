@@ -236,6 +236,22 @@ export default function InterestHeatmap() {
             </p>
           </div>
         ) : (
+          <>
+          {/* Color legend */}
+          <div className="mb-4 flex items-center gap-3 flex-wrap">
+            <span className="text-xs text-muted-foreground font-medium">Score:</span>
+            {[
+              { label: "9–10 · Exceptional", classes: "bg-emerald-500/20 text-emerald-700 border-emerald-500/30" },
+              { label: "7–8 · Strong", classes: "bg-green-500/15 text-green-700 border-green-500/25" },
+              { label: "5–6 · Moderate", classes: "bg-yellow-500/15 text-yellow-700 border-yellow-500/25" },
+              { label: "3–4 · Weak", classes: "bg-orange-500/15 text-orange-700 border-orange-500/25" },
+              { label: "0–2 · None", classes: "bg-muted/50 text-muted-foreground border-border" },
+            ].map(({ label, classes }) => (
+              <span key={label} className={`inline-flex items-center px-2 py-0.5 rounded-md border text-[11px] font-medium ${classes}`}>
+                {label}
+              </span>
+            ))}
+          </div>
           <div className="overflow-x-auto rounded-xl border border-border">
             <table className="w-full text-sm border-collapse">
               <thead>
@@ -379,6 +395,7 @@ export default function InterestHeatmap() {
               </tbody>
             </table>
           </div>
+          </>
         )}
 
         {/* Summary stats */}

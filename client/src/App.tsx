@@ -23,11 +23,13 @@ const ReadingStats = lazy(() => import("./pages/ReadingStats"));
 const Login = lazy(() => import("./pages/Login"));
 const ThematicSearch = lazy(() => import("./pages/ThematicSearch"));
 const ResearchSearch = lazy(() => import("./pages/ResearchSearch"));
+const SuperConversationsWriter = lazy(() => import("./pages/SuperConversationsWriter"));
+const BookChatbot = lazy(() => import("./pages/BookChatbot"));
 
 const PageLoader = () => (
-  <div className="flex items-center justify-center h-screen text-muted-foreground">
+  <div className="flex items-center justify-center h-screen text-muted-foreground" role="status" aria-label="Loading page">
     <div className="flex flex-col items-center gap-3">
-      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" aria-hidden="true" />
       <span className="text-sm">Loading…</span>
     </div>
   </div>
@@ -107,6 +109,16 @@ function Router() {
       <Route path={"/research"}>
         <Suspense fallback={<PageLoader />}>
           <ResearchSearch />
+        </Suspense>
+      </Route>
+      <Route path={"/write"}>
+        <Suspense fallback={<PageLoader />}>
+          <SuperConversationsWriter />
+        </Suspense>
+      </Route>
+      <Route path={"/book-chat/:slug"}>
+        <Suspense fallback={<PageLoader />}>
+          <BookChatbot />
         </Suspense>
       </Route>
       <Route path={"/admin"}>

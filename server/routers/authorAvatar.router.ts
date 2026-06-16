@@ -12,6 +12,7 @@ import { processAuthorAvatarWaterfall } from "../lib/authorAvatars/waterfall";
 import { parallelBatch } from "../lib/parallelBatch";
 import { persistAvatarResult } from "../lib/authorAvatars/persistResult";
 import { logger } from "../lib/logger";
+import { getGeminiImageModel, getGeminiTextModel } from "../lib/modelResolver";
 
 // ── Avatar Sub-Router ──────────────────────────────────────────────────────
 export const authorAvatarRouter = router({
@@ -109,15 +110,19 @@ export const authorAvatarRouter = router({
         maxTier: z.number().min(1).max(5).optional().default(5),
         skipValidation: z.boolean().optional().default(false),
         avatarGenVendor: z.string().optional().default("google"),
-        avatarGenModel: z.string().optional().default("nano-banana"),
+        avatarGenModel: z.string().optional(),
         avatarResearchVendor: z.string().optional().default("google"),
-        avatarResearchModel: z.string().optional().default("gemini-2.5-flash"),
+        avatarResearchModel: z.string().optional(),
         avatarBgColor: z.string().optional(),
       })
     )
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database unavailable");
+
+      // Self-updating model defaults (latest Nano Banana / Gemini, pinned fallback)
+      const avatarGenModel = input.avatarGenModel ?? (await getGeminiImageModel());
+      const avatarResearchModel = input.avatarResearchModel ?? (await getGeminiTextModel());
 
       const missing = await db
         .select({ authorName: authorProfiles.authorName })
@@ -135,16 +140,16 @@ export const authorAvatarRouter = router({
           skipValidation: input.skipValidation,
           maxTier: input.maxTier,
           avatarGenVendor: input.avatarGenVendor,
-          avatarGenModel: input.avatarGenModel,
+          avatarGenModel,
           avatarResearchVendor: input.avatarResearchVendor,
-          avatarResearchModel: input.avatarResearchModel,
+          avatarResearchModel,
           avatarBgColor: input.avatarBgColor,
         });
         await persistAvatarResult(db, originalName, result, {
           vendor: input.avatarGenVendor,
-          model: input.avatarGenModel,
+          model: avatarGenModel,
           researchVendor: input.avatarResearchVendor,
-          researchModel: input.avatarResearchModel,
+          researchModel: avatarResearchModel,
         });
         return {
           name: originalName,
@@ -197,14 +202,18 @@ export const authorAvatarRouter = router({
         throw new Error(`Height must be a multiple of 64 (got ${input.height})`);
       }
 
+      // Self-updating model defaults (latest Nano Banana / Gemini, pinned fallback)
+      const avatarGenModel = input.avatarGenModel ?? (await getGeminiImageModel());
+      const avatarResearchModel = input.avatarResearchModel ?? (await getGeminiTextModel());
+
       const result = await processAuthorAvatarWaterfall(input.authorName, {
         maxTier: 5,
         minTier: input.forceRegenerate ? 5 : 1,
         skipValidation: true,
         avatarGenVendor: input.avatarGenVendor ?? "google",
-        avatarGenModel: input.avatarGenModel ?? "nano-banana",
+        avatarGenModel,
         avatarResearchVendor: input.avatarResearchVendor ?? "google",
-        avatarResearchModel: input.avatarResearchModel ?? "gemini-2.5-flash",
+        avatarResearchModel,
         avatarBgColor: input.bgColor,
         forceRefresh: input.forceRegenerate ?? false,
         avatarAspectRatio: input.aspectRatio,
@@ -226,9 +235,9 @@ export const authorAvatarRouter = router({
 
       await persistAvatarResult(db, input.authorName, result, {
         vendor: input.avatarGenVendor ?? "google",
-        model: input.avatarGenModel ?? "nano-banana",
+        model: avatarGenModel,
         researchVendor: input.avatarResearchVendor ?? "google",
-        researchModel: input.avatarResearchModel ?? "gemini-2.5-flash",
+        researchModel: avatarResearchModel,
       });
 
       return {

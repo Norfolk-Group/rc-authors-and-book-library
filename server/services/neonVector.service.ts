@@ -141,6 +141,9 @@ export async function upsertVectors(vectors: UpsertVectorInput[]): Promise<void>
   for (let i = 0; i < vectors.length; i += BATCH) {
     const batch = vectors.slice(i, i + BATCH);
     for (const v of batch) {
+      if (!v.values.every((n) => Number.isFinite(n))) {
+        throw new Error(`Invalid embedding for vector ${v.id}: contains NaN or Infinity`);
+      }
       const m = v.metadata;
       const embStr = `[${v.values.join(",")}]`;
       await sql`
@@ -188,56 +191,50 @@ export async function queryVectors(
 ): Promise<QueryResult[]> {
   const sql = getSql();
   const topK = options.topK ?? 10;
+  if (!queryEmbedding.every((n) => Number.isFinite(n))) {
+    throw new Error("Invalid query embedding: contains NaN or Infinity");
+  }
   const embStr = `[${queryEmbedding.join(",")}]`;
 
-  // Build optional WHERE clauses from filter (supports category, authorName)
+  // Resolve a filter value — accepts both "value" and {$eq:"value"} formats.
+  function resolveFilter(val: unknown): string | null {
+    if (!val) return null;
+    if (typeof val === "string") return val;
+    if (typeof val === "object" && val !== null && "$eq" in val) {
+      const inner = (val as Record<string, unknown>)["$eq"];
+      return typeof inner === "string" ? inner : null;
+    }
+    return null;
+  }
+
   const filter = options.filter ?? {};
-  const category = (filter["category"] as string | undefined) ?? null;
-  const authorName = (filter["authorName"] as string | undefined) ?? null;
+  const category = resolveFilter(filter["category"]);
+  const authorName = resolveFilter(filter["authorName"]);
+  const title = resolveFilter(filter["title"]);
+
+  // Build WHERE clause dynamically to support any combination of filters.
+  const whereParts: string[] = ["namespace = $2"];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const queryParams: any[] = [embStr, namespace];
+  let pIdx = 3;
+  const sourceId = resolveFilter(filter["sourceId"]);
+  if (category)    { whereParts.push(`category = $${pIdx++}`);    queryParams.push(category); }
+  if (authorName)  { whereParts.push(`author_name = $${pIdx++}`); queryParams.push(authorName); }
+  if (title)       { whereParts.push(`title = $${pIdx++}`);       queryParams.push(title); }
+  if (sourceId)    { whereParts.push(`source_id = $${pIdx++}`);   queryParams.push(sourceId); }
+  queryParams.push(topK);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let rows: any[];
-  if (category && authorName) {
-    rows = (await sql.query(
-      `SELECT id, content_type, source_id, title, author_name, source, url,
-              published_at, chunk_index, chunk_total, text, category, book_count, enriched_at,
-              (1 - (embedding <=> $1::vector))::text AS score
-       FROM vector_embeddings
-       WHERE namespace = $2 AND category = $3 AND author_name = $4
-       ORDER BY embedding <=> $1::vector LIMIT $5`,
-      [embStr, namespace, category, authorName, topK]
-    )) as any[];
-  } else if (category) {
-    rows = (await sql.query(
-      `SELECT id, content_type, source_id, title, author_name, source, url,
-              published_at, chunk_index, chunk_total, text, category, book_count, enriched_at,
-              (1 - (embedding <=> $1::vector))::text AS score
-       FROM vector_embeddings
-       WHERE namespace = $2 AND category = $3
-       ORDER BY embedding <=> $1::vector LIMIT $4`,
-      [embStr, namespace, category, topK]
-    )) as any[];
-  } else if (authorName) {
-    rows = (await sql.query(
-      `SELECT id, content_type, source_id, title, author_name, source, url,
-              published_at, chunk_index, chunk_total, text, category, book_count, enriched_at,
-              (1 - (embedding <=> $1::vector))::text AS score
-       FROM vector_embeddings
-       WHERE namespace = $2 AND author_name = $3
-       ORDER BY embedding <=> $1::vector LIMIT $4`,
-      [embStr, namespace, authorName, topK]
-    )) as any[];
-  } else {
-    rows = (await sql.query(
-      `SELECT id, content_type, source_id, title, author_name, source, url,
-              published_at, chunk_index, chunk_total, text, category, book_count, enriched_at,
-              (1 - (embedding <=> $1::vector))::text AS score
-       FROM vector_embeddings
-       WHERE namespace = $2
-       ORDER BY embedding <=> $1::vector LIMIT $3`,
-      [embStr, namespace, topK]
-    )) as any[];
-  }
+  const rows = (await sql.query(
+    `SELECT id, content_type, source_id, title, author_name, source, url,
+            published_at, chunk_index, chunk_total, text, category, book_count, enriched_at,
+            (1 - (embedding <=> $1::vector))::text AS score
+     FROM vector_embeddings
+     WHERE ${whereParts.join(" AND ")}
+     ORDER BY embedding <=> $1::vector LIMIT $${pIdx}`,
+    queryParams
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  )) as any[];
 
   return rows.map(r => ({
     id: r.id,

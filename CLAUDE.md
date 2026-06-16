@@ -256,6 +256,20 @@ semantic vector search powered by **Neon pgvector** (migrated from Pinecone, Apr
 7. **Never store file bytes in DB columns.** Use S3 (`storagePut`) and store the URL.
 
 8. **Never call LLM from client-side code.** All AI calls go through tRPC procedures.
+   Two server-side LLM access paths exist *intentionally*:
+   - **Text:** `invokeLLM()` (`server/_core/llm.ts`) → Manus Forge gateway (vendor-agnostic). Use this by default.
+   - **Multimodal (images/PDFs as base64):** the raw `@anthropic-ai/sdk`, used only in
+     `aiFileClassifier.service.ts` (Smart Upload) and `authorAvatars/authorResearcher.ts`
+     (vision research). The key comes from `ENV.anthropicApiKey` (never `process.env`). Do not
+     collapse these into the gateway — it does not expose base64 multimodal input.
+
+   **Model IDs are self-updating.** `server/lib/modelResolver.ts` resolves the latest GA
+   model per family (Opus, Sonnet, Gemini text, Gemini image / "Nano Banana") from each
+   provider's models API, cached 24h, with pinned known-good fallbacks (`PINNED_MODELS`) that
+   are returned on any error. Call `getOpusModel()` / `getSonnetModel()` / `getGeminiTextModel()`
+   / `getGeminiImageModel()` instead of hardcoding model strings. The embedding model
+   (`gemini-embedding-001`) is deliberately **excluded** — it stays pinned for the pgvector
+   1536-dim HNSW constraint.
 
 9. **Vite version pin:** Pinned to `6.x`. Do NOT upgrade to Vite 7 — the deployment
    environment runs Node.js 20.15.1, which is below Vite 7's minimum of 20.19+.
@@ -423,8 +437,17 @@ server/
     llmCatalogue.ts             ← Multi-vendor LLM catalogue (13 vendors, 47 models)
 
 drizzle/
-  schema.ts                     ← All table definitions (25 tables, migration 0045 = latest)
-  migrations/                   ← Auto-generated migration files (0000–0045)
+  schema.ts                     ← Re-export barrel (drizzle-kit entry point; keeps all imports stable)
+  schema/                       ← Domain table files (25 tables total):
+    core.ts                     ←   users, adminActionLog, appSettings, apiRegistry
+    authors.ts                  ←   authorProfiles, authorRagProfiles, authorSubscriptions, authorAliases
+    books.ts                    ←   bookProfiles
+    content.ts                  ←   contentItems, authorContentLinks, contentFiles, ingestSources, magazineArticles
+    enrichment.ts               ←   enrichmentSchedules, enrichmentJobs, humanReviewQueue
+    engagement.ts               ←   favorites, userInterests, authorInterestScores, tags
+    media.ts                    ←   dropboxFolderConfigs, smartUploads
+    sync.ts                     ←   syncStatus, syncJobs
+  migrations/                   ← Auto-generated migration files (0000–0047)
 
 scripts/
   reindex_pg.cjs                ← Pure-Node re-indexing script (no tsx, uses pg + Gemini REST)
@@ -862,6 +885,23 @@ These features were built at some point but have no active users or are permanen
 | `authorAliases.ts` (client lib) | `client/src/lib/` | **Superseded** | DB-backed aliases are the source of truth; still imported in 10+ places |
 | `authorAvatars.ts` (client lib) | `client/src/lib/` | **Superseded** | DB-backed `s3AvatarUrl` is the source of truth; still imported in 10+ places |
 | Google Drive integration | Removed Apr 2026 | **Removed** | All `gws`/`rclone` code removed; Dropbox is the only cloud sync |
+
+---
+
+## Conversational Agent — "Virgilio" (Claude Managed Agents)
+
+`server/services/managedAgents/` builds **Virgilio**, the author conversational agent, on Claude's Managed Agents API (`@anthropic-ai/sdk` ≥ 0.104, beta `managed-agents-2026-04-01`). It's the best-in-class successor to the stateless `authorChatbot.chat` RAG chatbot.
+
+| File | Role |
+|---|---|
+| `client.ts` | Lazy beta-capable Anthropic client |
+| `provision.ts` | `ensureAuthorAgent()` — idempotent agent+environment creation, cached in the `managed_agents` table; `BOT_NAME = "Virgilio"` |
+| `authorAgent.ts` | One agent embodies whichever author a session is about; best-in-class system prompt (context-first, verifiable citations, anti-fabrication) + host-side `retrieve_author_knowledge` tool (reuses Neon RAG) |
+| `runSession.ts` | `runConversationTurn()` — stream-first, host-side custom-tool handling, correct idle gate, wall-clock timeout; sessions are stateful (pass `sessionId` back for multi-turn memory) |
+
+- **Pattern:** create the agent ONCE (reused by ID), open a Session per conversation. Model comes from `getOpusModel()` (resolver). The specific author is set per session via an operator `system.message`.
+- **tRPC:** `authorChatbot.chatV2` exposes it. **Not yet wired into the UI** (`AuthorChatbot.tsx` still calls `chat`) — activate after a live smoke test in a key-bearing environment.
+- Migration `0048` adds the `managed_agents` table.
 
 ---
 

@@ -242,6 +242,72 @@ export async function listDropboxFolder(folderPath: string): Promise<string[]> {
     .map((e) => e.path_display);
 }
 
+export interface DropboxSearchResult {
+  tag: "file" | "folder";
+  name: string;
+  path: string;
+  size?: number;
+  modifiedAt?: string;
+}
+
+/**
+ * Search Dropbox by filename across all folders (or within a specific path).
+ * Uses /files/search_v2 with filename_only mode (content search requires Business plan).
+ * Returns up to 100 matches.
+ */
+export async function searchDropbox(
+  query: string,
+  path = ""
+): Promise<DropboxSearchResult[]> {
+  const token = await getDropboxAccessToken();
+  const res = await safeFetch(`${DROPBOX_API_URL}/files/search_v2`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      query,
+      options: {
+        path: path || "",
+        max_results: 100,
+        file_status: "active",
+        filename_only: false, // search filenames + content where available
+      },
+    }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Dropbox search failed (${res.status}): ${text}`);
+  }
+
+  const data = (await res.json()) as {
+    matches: Array<{
+      metadata: {
+        metadata: {
+          ".tag": string;
+          name: string;
+          path_display: string;
+          size?: number;
+          client_modified?: string;
+        };
+      };
+    }>;
+  };
+
+  return data.matches.map((m) => {
+    const meta = m.metadata.metadata;
+    return {
+      tag: (meta[".tag"] === "folder" ? "folder" : "file") as "file" | "folder",
+      name: meta.name,
+      path: meta.path_display,
+      size: meta.size,
+      modifiedAt: meta.client_modified,
+    };
+  });
+}
+
 export interface InboxFile {
   /** Full Dropbox path, e.g. "/Cidale Interests/.../Inbox/Thinking Fast and Slow.pdf" */
   dropboxPath: string;

@@ -37,6 +37,8 @@ import {
   Info,
 } from "lucide-react";
 
+const VIRGILIO_ENABLED = true;
+
 interface Message {
   role: "user" | "assistant";
   content: string;
@@ -88,6 +90,8 @@ export default function AuthorChatbot() {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [loadingOpening, setLoadingOpening] = useState(true);
+  // Virgilio (chatV2) server-side session id — enables multi-turn memory.
+  const [sessionId, setSessionId] = useState<string | undefined>(undefined);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -98,6 +102,7 @@ export default function AuthorChatbot() {
 
   const openingMutation = trpc.authorChatbot.getOpeningMessage.useMutation();
   const chatMutation = trpc.authorChatbot.chat.useMutation();
+  const chatV2Mutation = trpc.authorChatbot.chatV2.useMutation();
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -119,19 +124,42 @@ export default function AuthorChatbot() {
   useEffect(() => {
     if (!authorName) return;
     setLoadingOpening(true);
-    openingMutation.mutateAsync({ authorName }).then((result) => {
-      setMessages([{
-        role: "assistant",
-        content: result.reply,
-        timestamp: new Date(),
-      }]);
-    }).catch(() => {
-      setMessages([{
-        role: "assistant",
-        content: `Hello, I'm ${authorName}. How can I help you today?`,
-        timestamp: new Date(),
-      }]);
-    }).finally(() => setLoadingOpening(false));
+    if (VIRGILIO_ENABLED) {
+      // Seed the managed-agents session with the opening message so that turn 1
+      // and all subsequent turns share the same Virgilio session — no split-brain.
+      chatV2Mutation.mutateAsync({
+        authorName,
+        message:
+          "Please introduce yourself briefly in your own voice — mention one or two of your most important ideas or books, then invite me to engage.",
+      }).then((result) => {
+        if (result.sessionId) setSessionId(result.sessionId);
+        setMessages([{
+          role: "assistant",
+          content: result.reply || `Hello, I'm ${authorName}. What would you like to explore?`,
+          timestamp: new Date(),
+        }]);
+      }).catch(() => {
+        setMessages([{
+          role: "assistant",
+          content: `Hello, I'm ${authorName}. How can I help you today?`,
+          timestamp: new Date(),
+        }]);
+      }).finally(() => setLoadingOpening(false));
+    } else {
+      openingMutation.mutateAsync({ authorName }).then((result) => {
+        setMessages([{
+          role: "assistant",
+          content: result.reply,
+          timestamp: new Date(),
+        }]);
+      }).catch(() => {
+        setMessages([{
+          role: "assistant",
+          content: `Hello, I'm ${authorName}. How can I help you today?`,
+          timestamp: new Date(),
+        }]);
+      }).finally(() => setLoadingOpening(false));
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authorName]);
 
@@ -145,28 +173,43 @@ export default function AuthorChatbot() {
     setSending(true);
 
     try {
-      const conversationHistory = [...messages, userMessage].map((m) => ({
-        role: m.role,
-        content: m.content,
-      }));
-
-      const result = await chatMutation.mutateAsync({
-        authorName,
-        messages: conversationHistory,
-      });
-
-      if (result.success && result.reply) {
+      if (VIRGILIO_ENABLED) {
+        // Virgilio: stateful Managed Agents session (server-side memory).
+        const result = await chatV2Mutation.mutateAsync({
+          authorName,
+          message: text,
+          sessionId,
+        });
+        if (result.sessionId) setSessionId(result.sessionId);
         setMessages((prev) => [...prev, {
           role: "assistant",
-          content: result.reply!,
+          content: result.reply || "I'm unable to respond right now. Please try again.",
           timestamp: new Date(),
         }]);
       } else {
-        setMessages((prev) => [...prev, {
-          role: "assistant",
-          content: (result as { message?: string }).message ?? "I'm unable to respond right now. Please try again.",
-          timestamp: new Date(),
-        }]);
+        const conversationHistory = [...messages, userMessage].map((m) => ({
+          role: m.role,
+          content: m.content,
+        }));
+
+        const result = await chatMutation.mutateAsync({
+          authorName,
+          messages: conversationHistory,
+        });
+
+        if (result.success && result.reply) {
+          setMessages((prev) => [...prev, {
+            role: "assistant",
+            content: result.reply!,
+            timestamp: new Date(),
+          }]);
+        } else {
+          setMessages((prev) => [...prev, {
+            role: "assistant",
+            content: (result as { message?: string }).message ?? "I'm unable to respond right now. Please try again.",
+            timestamp: new Date(),
+          }]);
+        }
       }
     } catch {
       setMessages((prev) => [...prev, {
@@ -178,7 +221,7 @@ export default function AuthorChatbot() {
       setSending(false);
       textareaRef.current?.focus();
     }
-  }, [input, sending, messages, authorName, chatMutation]);
+  }, [input, sending, messages, authorName, chatMutation, chatV2Mutation, sessionId]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -189,10 +232,23 @@ export default function AuthorChatbot() {
 
   const handleReset = () => {
     setMessages([]);
+    setSessionId(undefined);
     setLoadingOpening(true);
-    openingMutation.mutateAsync({ authorName }).then((result) => {
-      setMessages([{ role: "assistant", content: result.reply, timestamp: new Date() }]);
-    }).finally(() => setLoadingOpening(false));
+    const intro = VIRGILIO_ENABLED
+      ? chatV2Mutation.mutateAsync({
+          authorName,
+          message:
+            "Please introduce yourself briefly in your own voice — mention one or two of your most important ideas or books, then invite me to engage.",
+        }).then((result) => {
+          if (result.sessionId) setSessionId(result.sessionId);
+          return { reply: result.reply || `Hello, I'm ${authorName}.` };
+        })
+      : openingMutation.mutateAsync({ authorName });
+    intro
+      .then((result) =>
+        setMessages([{ role: "assistant", content: result.reply, timestamp: new Date() }])
+      )
+      .finally(() => setLoadingOpening(false));
   };
 
   if (loadingInfo) {

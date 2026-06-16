@@ -30,7 +30,6 @@ import {
 } from "lucide-react";
 import { CATEGORY_ICONS, CONTENT_TYPE_ICONS, type AuthorEntry } from "@/lib/libraryData";
 import { useAuthorAliases } from "@/hooks/useAuthorAliases";
-import { getAuthorAvatar } from "@/lib/authorAvatars";
 import { AuthorModal } from "@/components/AuthorModal";
 import { BookDetailPanel } from "@/components/library/BookDetailPanel";
 import type { BookRecord } from "@/lib/libraryData";
@@ -128,11 +127,7 @@ export function AuthorAccordionRow({
   const Icon = (ICON_MAP[iconName] ?? Briefcase) as LucideIcon;
 
   const avatarUrl = useMemo(() => {
-    return (
-      dbAvatarMap?.get(displayName.toLowerCase()) ??
-      getAuthorAvatar(displayName) ??
-      null
-    );
+    return dbAvatarMap?.get(displayName.toLowerCase()) ?? null;
   }, [displayName, dbAvatarMap]);
 
   // Deduplicated books

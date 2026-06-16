@@ -21,7 +21,6 @@ import PageHeader from "@/components/PageHeader";
 import { countPlatformLinks } from "@/components/library/PlatformPills";
 import { AUTHORS, CATEGORY_COLORS } from "@/lib/libraryData";
 import { useAuthorAliases } from "@/hooks/useAuthorAliases";
-import { getAuthorAvatar } from "@/lib/authorAvatars";
 import { Button } from "@/components/ui/button";
 import {
   Eye,
@@ -132,7 +131,8 @@ interface LeaderRowProps {
 function LeaderRow({ rank, entry, maxValue, metric: _metric, platformLinks: _platformLinks, socialStats: _socialStats }: LeaderRowProps) {
   const { canonicalName } = useAuthorAliases();
   const author = AUTHORS.find((a) => canonicalName(a.name) === canonicalName(entry.authorName));
-  const avatar = getAuthorAvatar(entry.authorName);
+  const { data: avatarMapData } = trpc.authorProfiles.getAvatarMap.useQuery(undefined, { staleTime: 5 * 60 * 1000 });
+  const avatar = avatarMapData?.find((r) => r.authorName.toLowerCase() === entry.authorName.toLowerCase())?.avatarUrl;
   const catColor = author ? CATEGORY_COLORS[author.category] ?? "#6b7280" : "#6b7280";
   const pct = maxValue > 0 ? Math.max(2, (entry.value / maxValue) * 100) : 0;
   const rankColor = RANK_COLORS[rank - 1];

@@ -22,6 +22,9 @@ async function startServer() {
   registerDropboxOAuthRoutes(app);
   // Smart Upload: POST /api/upload/smart
   registerSmartUploadRoutes(app);
+  // Railway / Render / Fly.io health check
+  app.get("/health", (_req, res) => res.json({ ok: true }));
+
   // tRPC API
   app.use(
     "/api/trpc",

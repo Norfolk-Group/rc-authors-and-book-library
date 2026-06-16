@@ -41,7 +41,6 @@ import {
 } from "lucide-react";
 import { AUTHORS, CATEGORY_COLORS } from "@/lib/libraryData";
 import { useAuthorAliases } from "@/hooks/useAuthorAliases";
-import { getAuthorAvatar } from "@/lib/authorAvatars";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { fireConfetti } from "@/hooks/useConfetti";
 import authorBios from "@/lib/authorBios.json";
@@ -322,7 +321,6 @@ export function AuthorBioPanel({ author, onClose }: AuthorBioPanelProps) {
   const { canonicalName } = useAuthorAliases();
   const displayName = canonicalName(author.name);
   const specialty = author.name.includes(" - ") ? author.name.slice(author.name.indexOf(" - ") + 3) : "";
-  const avatarUrl = getAuthorAvatar(displayName);
   const color = CATEGORY_COLORS[author.category] ?? "hsl(var(--muted-foreground))";
   const driveUrl = `https://drive.google.com/drive/folders/${author.id}?view=grid`;
 
@@ -364,7 +362,7 @@ export function AuthorBioPanel({ author, onClose }: AuthorBioPanelProps) {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps -- enrichMutation, displayName, settings.* intentionally omitted: triggers once when bio absent
   }, [jsonBio, isLoading, profile]);
-  const effectiveAvatarUrl = generatedPhotoUrl ?? profile?.s3AvatarUrl ?? profile?.avatarUrl ?? avatarUrl;
+  const effectiveAvatarUrl = generatedPhotoUrl ?? profile?.s3AvatarUrl ?? profile?.avatarUrl ?? undefined;
 
   // Parse social stats
   const socialStats: SocialStatsResult | null = (() => {

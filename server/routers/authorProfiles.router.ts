@@ -111,7 +111,7 @@ const authorProfilesCoreRouter = router({
         .limit(1);
       // Re-index in Neon with fresh bio
       if (updated[0]?.bio) {
-        indexAuthorIncremental(updated[0].id, updated[0].authorName, updated[0].bio, updated[0].richBioJson).catch(() => {});
+        indexAuthorIncremental(updated[0].id, updated[0].authorName, updated[0].bio, updated[0].richBioJson).catch(e => logger.warn("[enrichBio] Neon re-index failed", e));
       }
       return { success: true, cached: false, profile: updated[0] ?? null };
     }),
@@ -442,7 +442,7 @@ const authorProfilesCoreRouter = router({
         indexAuthorIncremental(created.id, created.authorName, created.bio, created.richBioJson, {
           category: primaryCategory,
           enrichedAt: created.enrichedAt?.toISOString(),
-        }).catch(() => {});
+        }).catch(e => logger.warn("[createAuthor] Neon re-index failed", e));
         // P3: Near-duplicate detection — fire-and-forget, flags similar authors in review queue
         checkAuthorDuplicate(created.authorName).catch((e) =>
           logger.warn("[createAuthor] near-dup check failed", e)
@@ -516,7 +516,7 @@ const authorProfilesCoreRouter = router({
         indexAuthorIncremental(updated.id, updated.authorName, updated.bio, updated.richBioJson, {
           category: primaryCategory,
           enrichedAt: updated.enrichedAt?.toISOString(),
-        }).catch(() => {});
+        }).catch(e => logger.warn("[updateAuthor] Neon re-index failed", e));
         // P3: Near-duplicate detection after bio update
         checkAuthorDuplicate(updated.authorName).catch((e) =>
           logger.warn("[updateAuthor] near-dup check failed", e)
@@ -548,4 +548,58 @@ export const authorProfilesRouter = router({
   ...authorAvatarRouter._def.procedures,
   ...authorEnrichmentRouter._def.procedures,
   ...authorSocialRouter._def.procedures,
+
+  /** Set which conversation groups this author belongs to (e.g. ["superconversations"]) */
+  setConversationGroups: adminProcedure
+    .input(z.object({
+      authorName: z.string().min(1),
+      groups: z.array(z.string()),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database unavailable");
+      await db
+        .update(authorProfiles)
+        .set({ conversationGroups: JSON.stringify(input.groups) })
+        .where(eq(authorProfiles.authorName, input.authorName));
+      return { success: true, authorName: input.authorName, groups: input.groups };
+    }),
+
+  /** Get the conversation groups for an author */
+  getConversationGroups: protectedProcedure
+    .input(z.object({ authorName: z.string().min(1) }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) return { groups: [] as string[] };
+      const rows = await db
+        .select({ conversationGroups: authorProfiles.conversationGroups })
+        .from(authorProfiles)
+        .where(eq(authorProfiles.authorName, input.authorName))
+        .limit(1);
+      const raw = rows[0]?.conversationGroups;
+      const groups: string[] = raw ? (() => { try { return JSON.parse(raw) as string[]; } catch { return []; } })() : [];
+      return { groups };
+    }),
+
+  /** List all authors that belong to a given conversation group */
+  listByGroup: protectedProcedure
+    .input(z.object({ group: z.string().min(1) }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) return [] as { authorName: string; s3AvatarUrl: string | null }[];
+      const rows = await db
+        .select({
+          authorName: authorProfiles.authorName,
+          s3AvatarUrl: authorProfiles.s3AvatarUrl,
+          conversationGroups: authorProfiles.conversationGroups,
+        })
+        .from(authorProfiles);
+      return rows
+        .filter((r) => {
+          if (!r.authorName) return false;
+          if (!r.conversationGroups) return false;
+          try { return (JSON.parse(r.conversationGroups) as string[]).includes(input.group); } catch { return false; }
+        })
+        .map(({ conversationGroups: _cg, ...rest }) => rest);
+    }),
 });

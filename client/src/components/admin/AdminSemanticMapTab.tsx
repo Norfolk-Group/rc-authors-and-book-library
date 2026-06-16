@@ -6,7 +6,7 @@
  *
  * Two modes:
  *   - Fast (default): deterministic category-based layout, loads instantly
- *   - Semantic: Gemini embeddings + PCA projection, computed on demand (~30s)
+ *   - Semantic: Gemini embeddings + UMAP projection, computed on demand (~30s)
  *
  * Features:
  *   - SVG scatter plot with zoom/pan (mouse wheel + drag)
@@ -97,7 +97,7 @@ export function AdminSemanticMapTab() {
 
   const semanticMutation = trpc.semanticMap.getSemanticMap.useMutation({
     onSuccess: () => {
-      toast.success("Semantic map computed", { description: "PCA projection complete." });
+      toast.success("Semantic map computed", { description: "UMAP projection complete." });
       setMode("semantic");
     },
     onError: (err) => {
@@ -172,7 +172,7 @@ export function AdminSemanticMapTab() {
           <p className="text-sm text-muted-foreground mt-0.5">
             {mode === "fast"
               ? "Category-based layout — authors grouped by primary tag. Instant load."
-              : "Semantic layout — authors positioned by Gemini embedding similarity (PCA projection)."}
+              : "Semantic layout — authors positioned by Gemini embedding similarity (UMAP projection)."}
             {activeData && (
               <span className="ml-2 text-xs text-muted-foreground/70">
                 {activeData.points.length} authors · computed {new Date(activeData.computedAt).toLocaleTimeString()}
@@ -195,7 +195,7 @@ export function AdminSemanticMapTab() {
             size="sm"
             onClick={() => semanticMutation.mutate({ limit: 150 })}
             disabled={semanticMutation.isPending}
-            title="Compute full semantic map using Gemini embeddings + PCA (~30-60s)"
+            title="Compute full semantic map using Gemini embeddings + UMAP (~30-60s)"
           >
             {semanticMutation.isPending ? (
               <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
@@ -406,7 +406,7 @@ export function AdminSemanticMapTab() {
       {/* Mode info */}
       <div className="text-xs text-muted-foreground bg-muted/30 rounded-md px-3 py-2">
         <strong>Fast mode:</strong> Authors are grouped by their primary tag in a deterministic layout.
-        Click <strong>Compute Semantic Map</strong> to use Gemini embeddings + PCA for a true semantic layout
+        Click <strong>Compute Semantic Map</strong> to use Gemini embeddings + UMAP for a true semantic layout
         where proximity reflects topical similarity (takes ~30-60 seconds for 150 authors).
       </div>
     </div>

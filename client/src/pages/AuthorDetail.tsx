@@ -49,7 +49,6 @@ import {
 } from "lucide-react";
 import { AUTHORS, CATEGORY_COLORS } from "@/lib/libraryData";
 import { useAuthorAliases } from "@/hooks/useAuthorAliases";
-import { getAuthorAvatar } from "@/lib/authorAvatars";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { fireConfetti } from "@/hooks/useConfetti";
 import authorBios from "@/lib/authorBios.json";
@@ -58,6 +57,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import type { SocialStatsResult } from "../../../server/enrichment/socialStats";
 import type { RichBioResult, ProfessionalEntry } from "../../../server/enrichment/richBio";
 import AcademicResearchPanel from "@/components/AcademicResearchPanel";
+import { Skeleton } from "@/components/ui/skeleton";
 import { MagazineArticlesPanel } from "@/components/library/MagazineArticlesPanel";
 import { SimilarAuthorsSection } from "@/components/library/SimilarAuthorsSection";
 import { SubstackPostsPanel } from "@/components/library/SubstackPostsPanel";
@@ -409,7 +409,6 @@ export default function AuthorDetail() {
     ? author.name.slice(author.name.indexOf(" - ") + 3)
     : "";
   const color = author ? (CATEGORY_COLORS[author.category] ?? "hsl(var(--muted-foreground))") : "hsl(var(--muted-foreground))";
-  const avatarUrl = getAuthorAvatar(displayName);
   const driveUrl = author ? `https://drive.google.com/drive/folders/${author.id}?view=grid` : null;
 
   const jsonBio = (authorBios as Record<string, string>)[displayName] ?? null;
@@ -453,7 +452,7 @@ export default function AuthorDetail() {
   }, [jsonBio, isLoading, profile]);
 
   const effectiveAvatarUrl =
-    generatedPhotoUrl ?? profile?.s3AvatarUrl ?? profile?.avatarUrl ?? avatarUrl;
+    generatedPhotoUrl ?? profile?.s3AvatarUrl ?? profile?.avatarUrl ?? undefined;
 
   // Parse social stats
   const socialStats: SocialStatsResult | null = useMemo(() => {
@@ -721,9 +720,10 @@ export default function AuthorDetail() {
         <section>
           <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">About</h2>
           {isBioLoading ? (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-              Loading bio…
+            <div className="space-y-2" aria-busy="true" aria-label="Loading bio">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
             </div>
           ) : bioText ? (
             <div className="space-y-3">

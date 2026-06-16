@@ -400,41 +400,11 @@ export const authorEnrichmentRouter = router({
       };
     }),
 
-  /** Index document archive from Google Drive for a single author */
+  /** Index document archive — Google Drive removed; no-op */
   indexDocumentArchive: adminProcedure
     .input(z.object({ authorName: z.string() }))
-    .mutation(async ({ input }) => {
-      const { buildDocumentArchive } = await import("../enrichment/gdrive");
-      const db = await getDb();
-      if (!db) throw new Error("Database not available");
-
-      const [profile] = await db
-        .select({
-          authorName: authorProfiles.authorName,
-          driveFolderId: authorProfiles.driveFolderId,
-        })
-        .from(authorProfiles)
-        .where(eq(authorProfiles.authorName, input.authorName))
-        .limit(1);
-      if (!profile) throw new Error(`Author not found: ${input.authorName}`);
-      if (!profile.driveFolderId) throw new Error(`No Drive folder for: ${input.authorName}`);
-
-      const archive = await buildDocumentArchive(input.authorName, profile.driveFolderId);
-
-      await db
-        .update(authorProfiles)
-        .set({
-          documentArchiveJson: JSON.stringify(archive),
-          documentArchiveEnrichedAt: new Date(),
-        })
-        .where(eq(authorProfiles.authorName, input.authorName));
-
-      return {
-        authorName: input.authorName,
-        documentCount: archive.documentCount,
-        totalSize: archive.totalSize,
-        folderUrl: archive.folderUrl,
-      };
+    .mutation(async ({ input: _input }) => {
+      return { authorName: _input.authorName, documentCount: 0, totalSize: 0, folderUrl: null };
     }),
 
   /** Get document archive data for a single author */

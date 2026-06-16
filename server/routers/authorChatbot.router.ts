@@ -10,7 +10,7 @@
  * Fallback: if no rag_files vectors exist for the author, falls back to full-file
  * injection from S3 (legacy behaviour) so the chatbot always works.
  *
- * Default model: claude-opus-4-5 (best impersonation quality)
+ * Default model: claude-opus-4-7 (advisor quality)
  */
 
 import { z } from "zod";
@@ -22,8 +22,11 @@ import { invokeLLM } from "../_core/llm";
 import { logger } from "../lib/logger";
 import { semanticSearch, embedText } from "../services/ragPipeline.service";
 import { queryVectors } from "../services/neonVector.service";
+import { ensureAuthorAgent } from "../services/managedAgents/provision";
+import { runConversationTurn } from "../services/managedAgents/runSession";
+import { buildAuthorSystemContext, authorAgentToolHandlers } from "../services/managedAgents/authorAgent";
 
-const DEFAULT_CHAT_MODEL = "claude-opus-4-5";
+const DEFAULT_CHAT_MODEL = "claude-opus-4-7";
 // How many RAG chunks to retrieve per user message turn
 const RAG_CHUNKS_PER_TURN = 6;
 // How many content_item hits to inject as supplementary context
@@ -204,6 +207,61 @@ export const authorChatbotRouter = router({
       const reply = typeof content === "string" ? content : "I'm unable to respond right now. Please try again.";
       logger.info(`[authorChatbot] Chat response for "${input.authorName}": ${reply.length} chars`);
       return { success: true, reply, authorName: input.authorName };
+    }),
+
+  /**
+   * chatV2 — "Virgilio" conversational agent via Claude Managed Agents.
+   *
+   * Stateful, server-managed session (true multi-turn memory): pass the returned
+   * `sessionId` back on each subsequent turn to continue the conversation. The
+   * agent grounds answers by calling the host-side retrieve_author_knowledge tool.
+   *
+   * NOTE: not yet wired into the UI — activate after a live smoke test in a
+   * key-bearing environment (the AuthorChatbot page still uses `chat`).
+   */
+  chatV2: protectedProcedure
+    .input(z.object({
+      authorName: z.string().min(1),
+      message: z.string().min(1),
+      sessionId: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database unavailable");
+
+      // Author bio seeds the operator context — only needed on a new session.
+      let bio: string | null = null;
+      if (!input.sessionId) {
+        const [p] = await db
+          .select({ bio: authorProfiles.bio })
+          .from(authorProfiles)
+          .where(eq(authorProfiles.authorName, input.authorName))
+          .limit(1);
+        bio = p?.bio ?? null;
+      }
+
+      const agent = await ensureAuthorAgent();
+      const result = await runConversationTurn({
+        agentId: agent.agentId,
+        agentVersion: agent.agentVersion,
+        environmentId: agent.environmentId,
+        sessionId: input.sessionId,
+        message: input.message,
+        systemContext: input.sessionId
+          ? undefined
+          : buildAuthorSystemContext(input.authorName, bio),
+        customToolHandlers: authorAgentToolHandlers,
+        title: `Conversation with ${input.authorName}`,
+      });
+
+      logger.info(`[authorChatbot] chatV2 reply for "${input.authorName}" (${result.toolCalls.length} tool calls, ${result.reply.length} chars)`);
+      return {
+        success: true,
+        sessionId: result.sessionId,
+        reply: result.reply,
+        toolCalls: result.toolCalls,
+        authorName: input.authorName,
+      };
     }),
 
   /**

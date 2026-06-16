@@ -41,6 +41,7 @@ import {
   CopySimple,
   Cpu as CircuitBoard,
   CloudArrowUp,
+  ChatCircleText,
 } from "@phosphor-icons/react";
 import { Loader2, ChevronRight } from "lucide-react";
 import {
@@ -103,6 +104,7 @@ import { AdminS3AuditTab } from "@/components/admin/AdminS3AuditTab";
 import { AdminReviewQueueTab } from "@/components/admin/AdminReviewQueueTab";
 import AdminIntelligenceDashboard from "@/components/admin/AdminIntelligenceDashboard";
 import { AdminSemanticMapTab } from "@/components/admin/AdminSemanticMapTab";
+import { AdminSuperConversationsTab } from "@/components/admin/AdminSuperConversationsTab";
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
 import { useAdminActions } from "@/hooks/useAdminActions";
@@ -138,6 +140,7 @@ const NAV_TIPS: Record<string, string> = {
   ai: "Configure AI provider settings, model preferences, temperature, and token limits for all LLM-powered features.",
   "ai-models": "View and compare available AI models (Gemini, Claude, GPT-4). Select the active model for each feature category.",
   "semantic-map": "2D scatter plot of all authors grouped by semantic similarity. Fast mode uses tag-based clustering; Semantic mode uses Gemini embeddings + PCA projection.",
+  "super-conversations": "Manage the roster of authors and books available to the SC Writer agent for interviews and research.",
   // Personalization
   interests: "Manage your personal interest categories used to personalise book recommendations and thematic discovery.",
   favorites: "View and manage your starred authors and books. Favorites influence the 'What to Read Next' recommendations.",
@@ -192,6 +195,7 @@ const NAV_GROUPS: NavGroup[] = [
       { id: "ai", label: "AI Settings", icon: Cpu },
       { id: "ai-models", label: "AI Models", icon: CircuitBoard },
       { id: "semantic-map", label: "Semantic Map", icon: ChartBar },
+      { id: "super-conversations", label: "Super Conversations", icon: ChatCircleText },
     ],
   },
   {
@@ -527,6 +531,7 @@ export default function Admin() {
               {activeSection === "duplicates" && <AdminDuplicatesTab />}
               {activeSection === "s3-audit" && <AdminS3AuditTab />}
               {activeSection === "ai-review" && <AdminReviewQueueTab />}
+              {activeSection === "super-conversations" && <AdminSuperConversationsTab />}
               {activeSection === "intelligence-dashboard" && <AdminIntelligenceDashboard />}
               {activeSection === "semantic-map" && <AdminSemanticMapTab />}
 

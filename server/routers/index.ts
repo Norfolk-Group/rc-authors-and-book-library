@@ -45,6 +45,8 @@ import { semanticMapRouter } from "./semanticMap.router";
 import { authorAliasesRouter } from "./authorAliases.router";
 import { readingPathRouter } from "./readingPath.router";
 import { webSearchRouter } from "./webSearch.router";
+import { superConversationsRouter } from "./superConversations.router";
+import { bookChatbotRouter } from "./bookChatbot.router";
 
 export const appRouter = router({
   system: systemRouter,
@@ -112,6 +114,10 @@ export const appRouter = router({
   readingPath: readingPathRouter,
   // ── Web research search (Exa neural search + Perplexity cited answers) ──────
   webSearch: webSearchRouter,
+  // ── Super Conversations ghostwriter (managed agent writing studio) ───────────
+  superConversations: superConversationsRouter,
+  // ── Book & Author conversational chatbot (managed agent, Opus) ───────────────
+  bookChatbot: bookChatbotRouter,
 });
 
 export type AppRouter = typeof appRouter;

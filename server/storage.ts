@@ -158,10 +158,12 @@ export async function storagePut(
   });
 
   if (!response.ok) {
-    const message = await response.text().catch(() => response.statusText);
-    throw new Error(
-      `Storage upload failed (${response.status} ${response.statusText}): ${message}`
-    );
+    // Log full body internally; only expose status code to callers
+    const body = await response.text().catch(() => "");
+    if (body) {
+      console.error(`Storage upload error body (${response.status}):`, body.slice(0, 512));
+    }
+    throw new Error(`Storage upload failed (${response.status} ${response.statusText})`);
   }
   const url = (await response.json()).url;
   return { key, url };

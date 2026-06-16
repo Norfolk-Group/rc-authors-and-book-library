@@ -6,6 +6,7 @@
  */
 import { z } from "zod";
 import { publicProcedure, protectedProcedure, adminProcedure, router } from "../_core/trpc";
+import { logger } from "../lib/logger";
 
 /// CRUD handlers
 import {
@@ -182,7 +183,7 @@ export const bookProfilesRouter = router({
       const result = await handleCreateBook(input);
       // Fire-and-forget: index in Neon and check for near-duplicates
       if (result) {
-        indexBookIncremental(result.id, result.bookTitle, result.authorName, result.summary, result.keyThemes).catch(() => {});
+        indexBookIncremental(result.id, result.bookTitle, result.authorName, result.summary, result.keyThemes).catch(e => logger.warn("[createBook] Neon re-index failed", e));
       }
       return result;
     }),
@@ -208,7 +209,7 @@ export const bookProfilesRouter = router({
       const result = await handleUpdateBook(input);
       // Fire-and-forget: re-index in Neon after update
       if (result) {
-        indexBookIncremental(result.id, result.bookTitle, result.authorName, result.summary, result.keyThemes).catch(() => {});
+        indexBookIncremental(result.id, result.bookTitle, result.authorName, result.summary, result.keyThemes).catch(e => logger.warn("[updateBook] Neon re-index failed", e));
       }
       return result;
     }),
@@ -300,5 +301,67 @@ export const bookProfilesRouter = router({
           publishedDate: b.publishedDate,
         })),
       };
+    }),
+
+  /** Set which conversation groups this book belongs to (e.g. ["superconversations"]) */
+  setConversationGroups: adminProcedure
+    .input(z.object({
+      bookTitle: z.string().min(1),
+      groups: z.array(z.string()),
+    }))
+    .mutation(async ({ input }) => {
+      const { getDb } = await import("../db");
+      const db = await getDb();
+      if (!db) throw new Error("Database unavailable");
+      const { bookProfiles } = await import("../../drizzle/schema");
+      const { eq } = await import("drizzle-orm");
+      await db
+        .update(bookProfiles)
+        .set({ conversationGroups: JSON.stringify(input.groups) })
+        .where(eq(bookProfiles.bookTitle, input.bookTitle));
+      return { success: true, bookTitle: input.bookTitle, groups: input.groups };
+    }),
+
+  /** Get the conversation groups for a book */
+  getConversationGroups: protectedProcedure
+    .input(z.object({ bookTitle: z.string().min(1) }))
+    .query(async ({ input }) => {
+      const { getDb } = await import("../db");
+      const db = await getDb();
+      if (!db) return { groups: [] as string[] };
+      const { bookProfiles } = await import("../../drizzle/schema");
+      const { eq } = await import("drizzle-orm");
+      const rows = await db
+        .select({ conversationGroups: bookProfiles.conversationGroups })
+        .from(bookProfiles)
+        .where(eq(bookProfiles.bookTitle, input.bookTitle))
+        .limit(1);
+      const raw = rows[0]?.conversationGroups;
+      const groups: string[] = raw ? (() => { try { return JSON.parse(raw) as string[]; } catch { return []; } })() : [];
+      return { groups };
+    }),
+
+  /** List all books that belong to a given conversation group */
+  listByGroup: protectedProcedure
+    .input(z.object({ group: z.string().min(1) }))
+    .query(async ({ input }) => {
+      const { getDb } = await import("../db");
+      const db = await getDb();
+      if (!db) return [] as { bookTitle: string; authorName: string | null; s3CoverUrl: string | null }[];
+      const { bookProfiles } = await import("../../drizzle/schema");
+      const rows = await db
+        .select({
+          bookTitle: bookProfiles.bookTitle,
+          authorName: bookProfiles.authorName,
+          s3CoverUrl: bookProfiles.s3CoverUrl,
+          conversationGroups: bookProfiles.conversationGroups,
+        })
+        .from(bookProfiles);
+      return rows
+        .filter((r) => {
+          if (!r.conversationGroups) return false;
+          try { return (JSON.parse(r.conversationGroups) as string[]).includes(input.group); } catch { return false; }
+        })
+        .map(({ conversationGroups: _cg, ...rest }) => rest);
     }),
 });

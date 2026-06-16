@@ -18,7 +18,6 @@ import {
   Cpu, TrendingUp, BookMarked, Globe, Twitter, Linkedin, RefreshCw, Search, X,
   Mic, Rss, Newspaper, ExternalLink, BookOpen,
 } from "lucide-react";
-import { getAuthorAvatar } from "@/lib/authorAvatars";
 import { useAuthorAliases } from "@/hooks/useAuthorAliases";
 import { CATEGORY_ICONS, type AuthorEntry } from "@/lib/libraryData";
 import { trpc } from "@/lib/trpc";
@@ -61,13 +60,9 @@ export function AuthorModal({ author, avatarUrl: photoOverride, onClose }: Autho
   const iconName = CATEGORY_ICONS[category] ?? "briefcase";
   const Icon = (ICON_MAP[iconName] ?? Briefcase) as LucideIcon;
 
-  // Avatar: scraped live > override > static map
+  // Avatar: scraped live > override prop (DB url)
   const [scrapedPhotoUrl, setScrapedPhotoUrl] = useState<string | null>(null);
-  const resolvedPhoto =
-    scrapedPhotoUrl ??
-    photoOverride ??
-    (displayName ? getAuthorAvatar(displayName) : null) ??
-    null;
+  const resolvedPhoto = scrapedPhotoUrl ?? photoOverride ?? null;
 
   // Reset scraped avatar when author changes
   useEffect(() => {
@@ -83,8 +78,7 @@ export function AuthorModal({ author, avatarUrl: photoOverride, onClose }: Autho
     { authorName: displayName },
     {
       enabled: open,
-      // Short staleTime so the modal always shows fresh data after an Update Links action
-      staleTime: 30 * 1000,
+      staleTime: 5 * 60 * 1000,
     }
   );
 

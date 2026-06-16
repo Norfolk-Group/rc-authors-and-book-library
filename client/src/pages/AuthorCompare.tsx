@@ -20,7 +20,6 @@ import PageHeader from "@/components/PageHeader";
 import { PlatformPills, countPlatformLinks } from "@/components/library/PlatformPills";
 import { AUTHORS, CATEGORY_COLORS } from "@/lib/libraryData";
 import { useAuthorAliases } from "@/hooks/useAuthorAliases";
-import { getAuthorAvatar } from "@/lib/authorAvatars";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -110,7 +109,8 @@ interface AuthorHeaderProps {
 function AuthorHeader({ authorName, onRemove, canRemove }: AuthorHeaderProps) {
   const { canonicalName } = useAuthorAliases();
   const author = AUTHORS.find((a) => canonicalName(a.name) === canonicalName(authorName));
-  const avatar = getAuthorAvatar(authorName);
+  const { data: avatarMapData } = trpc.authorProfiles.getAvatarMap.useQuery(undefined, { staleTime: 5 * 60 * 1000 });
+  const avatar = avatarMapData?.find((r) => r.authorName.toLowerCase() === authorName.toLowerCase())?.avatarUrl ?? undefined;
   const catColor = author ? CATEGORY_COLORS[author.category] ?? "#6b7280" : "#6b7280";
 
   return (

@@ -29,13 +29,12 @@ import {
   Image,
   Brain,
   BookOpen,
-  HardDrive,
   FileJson,
   Zap,
   Headphones,
 } from "lucide-react";
 
-type SyncTarget = "dropbox" | "google_drive" | "both";
+type SyncTarget = "dropbox";
 type ContentType = "avatars" | "books" | "audio" | "rag_files";
 
 const CONTENT_TYPE_OPTIONS: { value: ContentType; label: string; icon: React.ReactNode; streaming?: boolean }[] = [
@@ -70,7 +69,6 @@ export function SyncJobsTab() {
 
   const { data: jobs = [], refetch: refetchJobs } = trpc.syncJobs.listJobs.useQuery({ limit: 30 });
   const { data: dropboxStatus, refetch: refetchDropboxStatus } = trpc.syncJobs.getDropboxStatus.useQuery(undefined, { refetchInterval: 10000 });
-  const { data: driveStatus, refetch: refetchDriveStatus } = trpc.syncJobs.getDriveStatus.useQuery();
   const triggerMutation = trpc.syncJobs.triggerSync.useMutation();
   const cancelMutation = trpc.syncJobs.cancelJob.useMutation();
   const sidecarMutation = trpc.syncJobs.generateSidecars.useMutation();
@@ -101,7 +99,7 @@ export function SyncJobsTab() {
   async function handleGenerateSidecars() {
     setGeneratingSidecars(true);
     try {
-      const result = await sidecarMutation.mutateAsync({ target, scope, overwrite: true });
+      const result = await sidecarMutation.mutateAsync({ scope, overwrite: true });
       if (result.success) {
         const failedCount = ('failed' in result ? result.failed : undefined) ?? 0;
         const syncedCount = ('synced' in result ? result.synced : undefined) ?? 0;
@@ -208,48 +206,6 @@ export function SyncJobsTab() {
         </CardContent>
       </Card>
 
-      {/* Google Drive status card */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <HardDrive className="w-4 h-4" />
-              Google Drive Connection
-            </CardTitle>
-            <CardDescription className="text-xs">
-              Resumable upload API — streams files to Drive. Set GOOGLE_DRIVE_ACCESS_TOKEN + GOOGLE_DRIVE_PARENT_FOLDER_ID in secrets.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-2">
-                  {driveStatus?.connected ? (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                  ) : (
-                    <AlertCircle className="w-4 h-4 text-orange-500" />
-                  )}
-                  <span className={`text-sm font-medium ${driveStatus?.connected ? "text-emerald-700" : "text-muted-foreground"}`}>
-                    {driveStatus?.connected ? "Configured" : "Not configured"}
-                  </span>
-                  {driveStatus?.connected && (
-                    <Badge className="text-xs bg-emerald-100 text-emerald-700 border-emerald-200">Ready</Badge>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground ml-6">
-                  {driveStatus?.connected
-                    ? `Parent folder: ${driveStatus.parentFolderId}`
-                    : !driveStatus?.hasParentFolderId
-                    ? "GOOGLE_DRIVE_PARENT_FOLDER_ID not set in secrets"
-                    : "GOOGLE_DRIVE_ACCESS_TOKEN not available"}
-                </p>
-              </div>
-              <Button size="sm" variant="outline" className="text-xs h-7 gap-1.5" onClick={() => refetchDriveStatus()}>
-                <RefreshCw className="w-3 h-3" />
-                Recheck
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Streaming upload info banner */}
@@ -257,7 +213,7 @@ export function SyncJobsTab() {
         <div className="flex items-start gap-2 p-3 rounded-lg border border-blue-200 bg-blue-50 text-blue-800 text-xs">
           <Zap className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
           <div>
-            <strong>Streaming upload enabled</strong> — Audio files use the Dropbox Upload Session API (50 MB chunks) and Google Drive Resumable Upload API.
+            <strong>Streaming upload enabled</strong> — Audio files use the Dropbox Upload Session API (50 MB chunks).
             Large audiobooks are piped directly from S3 without loading the full file into memory.
           </div>
         </div>
@@ -271,7 +227,7 @@ export function SyncJobsTab() {
             Trigger Sync Job
           </CardTitle>
           <CardDescription className="text-xs">
-            Push files from S3 to Dropbox or Google Drive in author-based folder structure.
+            Push files from S3 to Dropbox in author-based folder structure.
             Folder: /AuthorName/content-type/filename
           </CardDescription>
         </CardHeader>
@@ -285,8 +241,6 @@ export function SyncJobsTab() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="dropbox" className="text-xs">Dropbox</SelectItem>
-                  <SelectItem value="google_drive" className="text-xs">Google Drive</SelectItem>
-                  <SelectItem value="both" className="text-xs">Both</SelectItem>
                 </SelectContent>
               </Select>
             </div>
