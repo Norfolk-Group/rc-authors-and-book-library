@@ -51,6 +51,7 @@ import {
   similarityScore,
 } from "./duplicateDetection.service";
 import crypto from "crypto";
+import { indexBook } from "./ragPipeline.service";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -114,6 +115,47 @@ export interface IngestFileResult {
   authorResults?: AuthorIngestResult[];
   movedToProcessed?: boolean;
   duplicateInfo?: DuplicateInfo;
+  neonVectors?: number;
+}
+
+/**
+ * Extract plain text from a PDF buffer using pdf-parse.
+ * Returns empty string if extraction fails (e.g. scanned/image PDFs).
+ */
+export async function extractPdfText(buffer: Buffer): Promise<string> {
+  try {
+    const pdfParseModule = await import("pdf-parse");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pdfParse: (buf: Buffer) => Promise<{ text: string }> = (pdfParseModule as any).default ?? pdfParseModule;
+    const data = await pdfParse(buffer);
+    return (data.text ?? "").trim();
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Chunk and embed the text of an ingested PDF into Neon pgvector.
+ * Uses the `books` namespace so it's queryable by the RAG chatbot.
+ */
+export async function indexPdfToNeon(
+  bookTitle: string,
+  authorName: string,
+  bookProfileId: number,
+  pdfText: string
+): Promise<number> {
+  if (!pdfText || pdfText.length < 50) return 0;
+  try {
+    return await indexBook({
+      bookId: String(bookProfileId),
+      title: bookTitle,
+      authorName: authorName || undefined,
+      text: pdfText,
+    });
+  } catch (err) {
+    logger.warn(`[dropboxIngest] Neon indexing failed for "${bookTitle}":`, err);
+    return 0;
+  }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -342,12 +384,14 @@ export async function ingestDropboxFile(
     moveToProcessed?: boolean;
     fetchBookCover?: boolean;
     dryRun?: boolean;
+    indexToNeon?: boolean;
   } = {}
 ): Promise<IngestFileResult> {
   const {
     moveToProcessed = true,
     fetchBookCover = true,
     dryRun = false,
+    indexToNeon = false,
   } = options;
 
   if (!file.isPdf) {
@@ -385,16 +429,20 @@ export async function ingestDropboxFile(
 
     // 2. Download PDF from Dropbox
     const { buffer, size } = await downloadDropboxFile(file.dropboxPath);
+    const pdfBuffer = Buffer.from(buffer);
 
     // 2a. Compute SHA-256 hash for duplicate detection
-    const contentHash = crypto.createHash("sha256").update(Buffer.from(buffer)).digest("hex");
+    const contentHash = crypto.createHash("sha256").update(pdfBuffer).digest("hex");
+
+    // 2b. Extract text for Neon indexing (non-blocking; empty string if scanned/image PDF)
+    const pdfText = indexToNeon ? await extractPdfText(pdfBuffer) : "";
 
     // 3. Upload to S3
     const safeTitle = sanitizeFilename(metadata.bookTitle);
     const s3Key = `pdfs/inbox/${safeTitle}-${Date.now()}.pdf`;
     const { url: s3Url } = await storagePut(
       s3Key,
-      Buffer.from(buffer),
+      pdfBuffer,
       "application/pdf"
     );
 
@@ -520,7 +568,14 @@ export async function ingestDropboxFile(
       }
     }
 
-    // 9. Move to Processed folder in Dropbox
+    // 9. Index PDF text into Neon pgvector
+    let neonVectors = 0;
+    if (indexToNeon && pdfText && bookProfileId) {
+      const primaryAuthorForNeon = metadata.authors[0] ?? "Unknown";
+      neonVectors = await indexPdfToNeon(metadata.bookTitle, primaryAuthorForNeon, bookProfileId, pdfText);
+    }
+
+    // 10. Move to Processed folder in Dropbox
     let movedToProcessed = false;
     if (moveToProcessed) {
       try {
@@ -543,6 +598,7 @@ export async function ingestDropboxFile(
       authorResults,
       movedToProcessed,
       duplicateInfo,
+      neonVectors,
     };
   } catch (err) {
     return {

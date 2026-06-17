@@ -421,6 +421,72 @@ export function getDropboxDestPath(
 }
 
 /**
+ * Recursively list all files under a Dropbox folder, handling pagination.
+ * Uses Dropbox's native `recursive: true` flag so subfolders at any depth
+ * are included in a single API walk. Handles `has_more` cursor pagination.
+ */
+export async function listDropboxFolderRecursive(folderPath: string): Promise<InboxFile[]> {
+  const token = await getDropboxAccessToken();
+
+  type DropboxEntry = {
+    ".tag": string;
+    name: string;
+    path_display: string;
+    size?: number;
+    server_modified?: string;
+  };
+  type ListFolderResponse = {
+    entries: DropboxEntry[];
+    cursor: string;
+    has_more: boolean;
+  };
+
+  const allEntries: DropboxEntry[] = [];
+
+  // First page
+  const firstRes = await fetch(`${DROPBOX_API_URL}/files/list_folder`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ path: folderPath, recursive: true, limit: 2000 }),
+  });
+  if (!firstRes.ok) {
+    const text = await firstRes.text();
+    throw new Error(`Dropbox list_folder recursive failed (${firstRes.status}): ${text}`);
+  }
+  let page = (await firstRes.json()) as ListFolderResponse;
+  allEntries.push(...page.entries);
+
+  // Paginate via cursor
+  while (page.has_more) {
+    const contRes = await fetch(`${DROPBOX_API_URL}/files/list_folder/continue`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ cursor: page.cursor }),
+    });
+    if (!contRes.ok) {
+      const text = await contRes.text();
+      throw new Error(`Dropbox list_folder/continue failed (${contRes.status}): ${text}`);
+    }
+    page = (await contRes.json()) as ListFolderResponse;
+    allEntries.push(...page.entries);
+  }
+
+  return allEntries
+    .filter((e) => e[".tag"] === "file")
+    .map((e) => {
+      const ext = e.name.split(".").pop()?.toLowerCase() ?? "";
+      return {
+        dropboxPath: e.path_display,
+        name: e.name,
+        size: e.size ?? 0,
+        serverModified: e.server_modified ?? "",
+        extension: ext,
+        isPdf: ext === "pdf",
+      };
+    });
+}
+
+/**
  * Sanitize a string for use as a filename
  */
 export function sanitizeFilename(name: string): string {
