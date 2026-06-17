@@ -19,6 +19,7 @@ import {
   getDropboxAccountInfo,
   uploadFileToDropbox,
   listDropboxFolder,
+  listDropboxFolderRecursive,
   dropboxFileExists,
   listDropboxInbox,
   searchDropbox,
@@ -31,6 +32,7 @@ import {
   ingestDropboxFile,
   type IngestFileResult,
 } from "../services/dropboxIngest.service";
+import crypto from "crypto";
 import { getDb } from "../db";
 import { authorProfiles, bookProfiles, contentFiles } from "../../drizzle/schema";
 import { isNotNull, eq } from "drizzle-orm";
@@ -507,4 +509,111 @@ export const dropboxRouter = router({
       const results = await searchDropbox(input.query, input.path);
       return { query: input.query, results, count: results.length };
     }),
+
+  /**
+   * Start a bulk recursive folder ingest job.
+   * Scans the given Dropbox folder (all subfolders), processes every PDF,
+   * uploads to S3, creates book/author records, and optionally indexes text
+   * into Neon pgvector. Fires the job asynchronously — returns a jobId
+   * immediately. Poll getIngestJob for live progress.
+   */
+  ingestFolder: protectedProcedure
+    .input(z.object({
+      folderPath: z.string().min(1),
+      moveToProcessed: z.boolean().default(false),
+      fetchBookCover: z.boolean().default(true),
+      indexToNeon: z.boolean().default(true),
+      concurrency: z.number().min(1).max(5).default(2),
+    }))
+    .mutation(async ({ input }) => {
+      const jobId = crypto.randomUUID();
+      _ingestJobs.set(jobId, {
+        jobId,
+        status: "scanning",
+        folderPath: input.folderPath,
+        total: 0,
+        processed: 0,
+        succeeded: 0,
+        skipped: 0,
+        failed: 0,
+        neonVectors: 0,
+        startedAt: new Date().toISOString(),
+        completedAt: null,
+        errors: [],
+      });
+
+      // Fire-and-forget
+      void (async () => {
+        const job = _ingestJobs.get(jobId)!;
+        try {
+          const allFiles = await listDropboxFolderRecursive(input.folderPath);
+          const pdfs = allFiles.filter((f) => f.isPdf);
+          job.status = "running";
+          job.total = pdfs.length;
+
+          // Process in batches of `concurrency`
+          for (let i = 0; i < pdfs.length; i += input.concurrency) {
+            const batch = pdfs.slice(i, i + input.concurrency);
+            const results = await Promise.allSettled(
+              batch.map((file) =>
+                ingestDropboxFile(file, {
+                  moveToProcessed: input.moveToProcessed,
+                  fetchBookCover: input.fetchBookCover,
+                  indexToNeon: input.indexToNeon,
+                  dryRun: false,
+                })
+              )
+            );
+            for (const r of results) {
+              job.processed++;
+              if (r.status === "fulfilled") {
+                const res = r.value;
+                if (res.status === "success") { job.succeeded++; job.neonVectors += res.neonVectors ?? 0; }
+                else if (res.status === "skipped" || res.status === "duplicate") job.skipped++;
+                else { job.failed++; if (res.reason) job.errors.push(res.reason); }
+              } else {
+                job.failed++;
+                job.errors.push(r.reason instanceof Error ? r.reason.message : String(r.reason));
+              }
+            }
+          }
+          job.status = "completed";
+        } catch (err) {
+          job.status = "failed";
+          job.errors.push(err instanceof Error ? err.message : String(err));
+        } finally {
+          job.completedAt = new Date().toISOString();
+          // Keep job in memory for 24 h then evict
+          setTimeout(() => _ingestJobs.delete(jobId), 24 * 60 * 60 * 1000);
+        }
+      })();
+
+      return { jobId };
+    }),
+
+  /** Poll a running or completed ingestFolder job by ID. */
+  getIngestJob: protectedProcedure
+    .input(z.object({ jobId: z.string() }))
+    .query(({ input }) => {
+      return _ingestJobs.get(input.jobId) ?? null;
+    }),
 });
+
+// ── In-memory job tracker ─────────────────────────────────────────────────────
+
+interface IngestJobState {
+  jobId: string;
+  status: "scanning" | "running" | "completed" | "failed";
+  folderPath: string;
+  total: number;
+  processed: number;
+  succeeded: number;
+  skipped: number;
+  failed: number;
+  neonVectors: number;
+  startedAt: string;
+  completedAt: string | null;
+  errors: string[];
+}
+
+const _ingestJobs = new Map<string, IngestJobState>();
