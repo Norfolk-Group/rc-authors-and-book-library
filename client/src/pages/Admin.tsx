@@ -42,6 +42,7 @@ import {
   Cpu as CircuitBoard,
   CloudArrowUp,
   ChatCircleText,
+  FolderOpen,
 } from "@phosphor-icons/react";
 import { Loader2, ChevronRight } from "lucide-react";
 import {
@@ -105,6 +106,7 @@ import { AdminReviewQueueTab } from "@/components/admin/AdminReviewQueueTab";
 import AdminIntelligenceDashboard from "@/components/admin/AdminIntelligenceDashboard";
 import { AdminSemanticMapTab } from "@/components/admin/AdminSemanticMapTab";
 import { AdminSuperConversationsTab } from "@/components/admin/AdminSuperConversationsTab";
+import { AdminBulkIngestTab } from "@/components/admin/AdminBulkIngestTab";
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
 import { useAdminActions } from "@/hooks/useAdminActions";
@@ -130,6 +132,7 @@ const NAV_TIPS: Record<string, string> = {
   dropbox: "Back up avatars, book covers, and PDFs to Dropbox. Browse the /backup folder and ingest new PDFs from /Inbox.",
   "dropbox-config": "Manage all Dropbox folder connections — backup, inbox, source, and design folders. Validate paths, toggle folders on/off, and add new connections.",
   "smart-upload": "Upload files from your computer. Claude AI automatically classifies each file, matches it to an author or book, and routes it to the correct database table and Neon namespace.",
+  "bulk-ingest": "Recursively scan a Dropbox folder tree and ingest every PDF — creates book/author records, uploads to S3, and indexes full text into Neon pgvector. Designed for thousands of files across nested subfolders.",
   "neon-pgvector": "Manage the Neon pgvector index used for semantic search, RAG chatbots, and content recommendations.",
   "s3-audit": "Audit S3 CDN assets — find missing covers, broken URLs, and orphaned files. Migrate non-S3 images to CDN.",
   // Intelligence
@@ -180,6 +183,7 @@ const NAV_GROUPS: NavGroup[] = [
       { id: "dropbox", label: "Dropbox Backup", icon: Cloud },
       { id: "dropbox-config", label: "Dropbox Config", icon: Cloud },
       { id: "smart-upload", label: "Smart Upload", icon: CloudArrowUp },
+      { id: "bulk-ingest", label: "Bulk Ingest", icon: FolderOpen },
       { id: "neon-pgvector", label: "Neon pgvector Index", icon: Database },
       { id: "s3-audit", label: "S3 CDN Audit", icon: CloudArrowUp },
     ],
@@ -527,6 +531,7 @@ export default function Admin() {
               {activeSection === "dropbox" && <AdminDropboxTab />}
               {activeSection === "dropbox-config" && <AdminDropboxConfigTab />}
               {activeSection === "smart-upload" && <AdminSmartUploadTab />}
+              {activeSection === "bulk-ingest" && <AdminBulkIngestTab />}
               {activeSection === "neon-pgvector" && <AdminNeonTab />}
               {activeSection === "duplicates" && <AdminDuplicatesTab />}
               {activeSection === "s3-audit" && <AdminS3AuditTab />}
