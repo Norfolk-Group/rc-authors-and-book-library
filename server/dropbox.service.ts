@@ -472,7 +472,13 @@ export async function listDropboxFolderRecursive(folderPath: string): Promise<In
   }
 
   return allEntries
-    .filter((e) => e[".tag"] === "file")
+    .filter(
+      (e) =>
+        e[".tag"] === "file" &&
+        // Exclude any "Processed" subfolder at any depth so a re-run doesn't
+        // re-ingest files a prior run already moved there.
+        !e.path_display.toLowerCase().includes("/processed/")
+    )
     .map((e) => {
       const ext = e.name.split(".").pop()?.toLowerCase() ?? "";
       return {

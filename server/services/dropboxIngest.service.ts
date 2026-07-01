@@ -116,21 +116,24 @@ export interface IngestFileResult {
   movedToProcessed?: boolean;
   duplicateInfo?: DuplicateInfo;
   neonVectors?: number;
+  neonIndexError?: string;
 }
 
 /**
- * Extract plain text from a PDF buffer using pdf-parse.
- * Returns empty string if extraction fails (e.g. scanned/image PDFs).
+ * Extract plain text from a PDF buffer using unpdf (pure JS, no native bindings —
+ * pdf-parse@2 was tried first but pulls in @napi-rs/canvas native bindings and its
+ * v2 API broke the previous callable-function usage).
+ * Returns an error message (rather than swallowing it) so callers can distinguish
+ * "PDF had no text" from "extraction actually failed".
  */
-export async function extractPdfText(buffer: Buffer): Promise<string> {
+export async function extractPdfText(buffer: Buffer): Promise<{ text: string; error?: string }> {
   try {
-    const pdfParseModule = await import("pdf-parse");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const pdfParse: (buf: Buffer) => Promise<{ text: string }> = (pdfParseModule as any).default ?? pdfParseModule;
-    const data = await pdfParse(buffer);
-    return (data.text ?? "").trim();
-  } catch {
-    return "";
+    const { getDocumentProxy, extractText } = await import("unpdf");
+    const pdf = await getDocumentProxy(new Uint8Array(buffer));
+    const { text } = await extractText(pdf, { mergePages: true });
+    return { text: (text ?? "").trim() };
+  } catch (err) {
+    return { text: "", error: err instanceof Error ? err.message : String(err) };
   }
 }
 
@@ -143,18 +146,20 @@ export async function indexPdfToNeon(
   authorName: string,
   bookProfileId: number,
   pdfText: string
-): Promise<number> {
-  if (!pdfText || pdfText.length < 50) return 0;
+): Promise<{ vectors: number; error?: string }> {
+  if (!pdfText || pdfText.length < 50) return { vectors: 0 };
   try {
-    return await indexBook({
+    const vectors = await indexBook({
       bookId: String(bookProfileId),
       title: bookTitle,
       authorName: authorName || undefined,
       text: pdfText,
     });
+    return { vectors };
   } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
     logger.warn(`[dropboxIngest] Neon indexing failed for "${bookTitle}":`, err);
-    return 0;
+    return { vectors: 0, error: message };
   }
 }
 
@@ -385,6 +390,11 @@ export async function ingestDropboxFile(
     fetchBookCover?: boolean;
     dryRun?: boolean;
     indexToNeon?: boolean;
+    /** Destination folder for moveToProcessed. Defaults to the fixed books-inbox
+     * Processed folder; pass the scanned folder's own "/Processed" path when
+     * ingesting an arbitrary (non-inbox) folder so files land next to their source
+     * instead of in the unrelated books-inbox. */
+    processedFolder?: string;
   } = {}
 ): Promise<IngestFileResult> {
   const {
@@ -392,6 +402,7 @@ export async function ingestDropboxFile(
     fetchBookCover = true,
     dryRun = false,
     indexToNeon = false,
+    processedFolder = DROPBOX_FOLDERS.processed,
   } = options;
 
   if (!file.isPdf) {
@@ -434,8 +445,9 @@ export async function ingestDropboxFile(
     // 2a. Compute SHA-256 hash for duplicate detection
     const contentHash = crypto.createHash("sha256").update(pdfBuffer).digest("hex");
 
-    // 2b. Extract text for Neon indexing (non-blocking; empty string if scanned/image PDF)
-    const pdfText = indexToNeon ? await extractPdfText(pdfBuffer) : "";
+    // 2b. Extract text for Neon indexing (empty text if scanned/image PDF, or extraction error)
+    const pdfExtraction = indexToNeon ? await extractPdfText(pdfBuffer) : { text: "" };
+    const pdfText = pdfExtraction.text;
 
     // 3. Upload to S3
     const safeTitle = sanitizeFilename(metadata.bookTitle);
@@ -568,22 +580,27 @@ export async function ingestDropboxFile(
       }
     }
 
-    // 9. Index PDF text into Neon pgvector
+    // 9. Index PDF text into Neon pgvector — skip duplicates (mirrors the book-cover
+    // skip above) so redundant vectors aren't written for content already flagged
+    // as a duplicate of an existing book.
     let neonVectors = 0;
-    if (indexToNeon && pdfText && bookProfileId) {
+    let neonIndexError: string | undefined = pdfExtraction.error;
+    if (indexToNeon && pdfText && bookProfileId && !duplicateInfo.isDuplicate) {
       const primaryAuthorForNeon = metadata.authors[0] ?? "Unknown";
-      neonVectors = await indexPdfToNeon(metadata.bookTitle, primaryAuthorForNeon, bookProfileId, pdfText);
+      const indexResult = await indexPdfToNeon(metadata.bookTitle, primaryAuthorForNeon, bookProfileId, pdfText);
+      neonVectors = indexResult.vectors;
+      neonIndexError = neonIndexError ?? indexResult.error;
     }
 
     // 10. Move to Processed folder in Dropbox
     let movedToProcessed = false;
     if (moveToProcessed) {
       try {
-        const processedPath = `${DROPBOX_FOLDERS.processed}/${file.name}`;
+        const processedPath = `${processedFolder}/${file.name}`;
         await moveDropboxFile(file.dropboxPath, processedPath);
         movedToProcessed = true;
       } catch (moveErr) {
-        console.warn(`[Ingest] Failed to move ${file.name} to Processed:`, moveErr);
+        logger.warn(`[Ingest] Failed to move ${file.name} to Processed:`, moveErr);
       }
     }
 
@@ -599,6 +616,7 @@ export async function ingestDropboxFile(
       movedToProcessed,
       duplicateInfo,
       neonVectors,
+      neonIndexError,
     };
   } catch (err) {
     return {
