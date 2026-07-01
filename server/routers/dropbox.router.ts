@@ -36,6 +36,7 @@ import crypto from "crypto";
 import { getDb } from "../db";
 import { authorProfiles, bookProfiles, contentFiles } from "../../drizzle/schema";
 import { isNotNull, eq } from "drizzle-orm";
+import { parallelBatch } from "../lib/parallelBatch";
 
 export const dropboxRouter = router({
   /** Check if Dropbox is connected and return account info */
@@ -540,7 +541,15 @@ export const dropboxRouter = router({
         startedAt: new Date().toISOString(),
         completedAt: null,
         errors: [],
+        errorCount: 0,
+        warnings: [],
+        warningCount: 0,
       });
+
+      // Move ingested files into a "Processed" subfolder of the SCANNED folder
+      // (not the fixed books-inbox) so arbitrary folders don't get their files
+      // relocated into an unrelated location.
+      const processedFolder = `${input.folderPath}/Processed`;
 
       // Fire-and-forget
       void (async () => {
@@ -551,36 +560,39 @@ export const dropboxRouter = router({
           job.status = "running";
           job.total = pdfs.length;
 
-          // Process in batches of `concurrency`
-          for (let i = 0; i < pdfs.length; i += input.concurrency) {
-            const batch = pdfs.slice(i, i + input.concurrency);
-            const results = await Promise.allSettled(
-              batch.map((file) =>
-                ingestDropboxFile(file, {
-                  moveToProcessed: input.moveToProcessed,
-                  fetchBookCover: input.fetchBookCover,
-                  indexToNeon: input.indexToNeon,
-                  dryRun: false,
-                })
-              )
-            );
-            for (const r of results) {
-              job.processed++;
-              if (r.status === "fulfilled") {
-                const res = r.value;
-                if (res.status === "success") { job.succeeded++; job.neonVectors += res.neonVectors ?? 0; }
-                else if (res.status === "skipped" || res.status === "duplicate") job.skipped++;
-                else { job.failed++; if (res.reason) job.errors.push(res.reason); }
-              } else {
-                job.failed++;
-                job.errors.push(r.reason instanceof Error ? r.reason.message : String(r.reason));
+          await parallelBatch(pdfs, input.concurrency, async (file) => {
+            const res = await ingestDropboxFile(file, {
+              moveToProcessed: input.moveToProcessed,
+              fetchBookCover: input.fetchBookCover,
+              indexToNeon: input.indexToNeon,
+              processedFolder,
+              dryRun: false,
+            });
+            job.processed++;
+            if (res.status === "success" || res.status === "duplicate") {
+              if (res.status === "success") job.succeeded++;
+              else job.skipped++;
+              job.neonVectors += res.neonVectors ?? 0;
+            } else if (res.status === "skipped") {
+              job.skipped++;
+            } else {
+              job.failed++;
+              job.errorCount++;
+              if (job.errors.length < MAX_JOB_MESSAGES && res.reason) job.errors.push(res.reason);
+            }
+            if (res.neonIndexError) {
+              job.warningCount++;
+              if (job.warnings.length < MAX_JOB_MESSAGES) {
+                job.warnings.push(`${file.name}: Neon indexing failed — ${res.neonIndexError}`);
               }
             }
-          }
+            return res;
+          });
           job.status = "completed";
         } catch (err) {
           job.status = "failed";
-          job.errors.push(err instanceof Error ? err.message : String(err));
+          job.errorCount++;
+          if (job.errors.length < MAX_JOB_MESSAGES) job.errors.push(err instanceof Error ? err.message : String(err));
         } finally {
           job.completedAt = new Date().toISOString();
           // Keep job in memory for 24 h then evict
@@ -601,6 +613,10 @@ export const dropboxRouter = router({
 
 // ── In-memory job tracker ─────────────────────────────────────────────────────
 
+/** Cap on stored error/warning message strings per job — avoids an unbounded
+ * array being retained in memory and re-sent on every 2s poll for large runs. */
+const MAX_JOB_MESSAGES = 50;
+
 interface IngestJobState {
   jobId: string;
   status: "scanning" | "running" | "completed" | "failed";
@@ -613,7 +629,12 @@ interface IngestJobState {
   neonVectors: number;
   startedAt: string;
   completedAt: string | null;
+  /** Capped at MAX_JOB_MESSAGES; see errorCount for the true total. */
   errors: string[];
+  errorCount: number;
+  /** Non-fatal issues (e.g. Neon indexing failed for an otherwise-successful file). */
+  warnings: string[];
+  warningCount: number;
 }
 
 const _ingestJobs = new Map<string, IngestJobState>();

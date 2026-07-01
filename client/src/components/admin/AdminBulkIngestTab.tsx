@@ -34,7 +34,7 @@ export function AdminBulkIngestTab() {
   const [fetchBookCover, setFetchBookCover] = useState(true);
   const [indexToNeon, setIndexToNeon] = useState(true);
   const [jobId, setJobId] = useState<string | null>(null);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const notifiedJobIdRef = useRef<string | null>(null);
 
   const ingestFolderMutation = trpc.dropbox.ingestFolder.useMutation({
     onSuccess: (data) => {
@@ -55,12 +55,11 @@ export function AdminBulkIngestTab() {
   const job = jobQuery.data;
   const isDone = job?.status === "completed" || job?.status === "failed";
 
-  // Stop polling once done
+  // Fire a completion/failure toast exactly once per job, when it finishes.
   useEffect(() => {
-    if (isDone && pollRef.current) {
-      clearInterval(pollRef.current);
-      pollRef.current = null;
-      if (job?.status === "completed") {
+    if (isDone && job && notifiedJobIdRef.current !== job.jobId) {
+      notifiedJobIdRef.current = job.jobId;
+      if (job.status === "completed") {
         toast.success(
           `Ingest complete — ${job.succeeded} files ingested, ${job.neonVectors} Neon vectors created`
         );
@@ -230,21 +229,43 @@ export function AdminBulkIngestTab() {
           </div>
 
           {/* Errors */}
-          {job.errors.length > 0 && (
+          {job.errorCount > 0 && (
             <div className="space-y-1">
               <p className="text-xs font-medium text-destructive flex items-center gap-1">
                 <XCircle className="w-3.5 h-3.5" />
-                {job.failed} errors
+                {job.errorCount} errors
               </p>
               <div className="max-h-36 overflow-y-auto rounded border bg-destructive/5 p-2 space-y-1">
-                {job.errors.slice(0, 50).map((e, i) => (
+                {job.errors.map((e, i) => (
                   <p key={i} className="text-[11px] text-muted-foreground font-mono">
                     {e}
                   </p>
                 ))}
-                {job.errors.length > 50 && (
+                {job.errorCount > job.errors.length && (
                   <p className="text-[11px] text-muted-foreground">
-                    …and {job.errors.length - 50} more
+                    …and {job.errorCount - job.errors.length} more
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Warnings — e.g. files that ingested fine but whose text failed to index into Neon */}
+          {job.warningCount > 0 && (
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-amber-600 flex items-center gap-1">
+                <Warning className="w-3.5 h-3.5" />
+                {job.warningCount} warnings
+              </p>
+              <div className="max-h-36 overflow-y-auto rounded border bg-amber-500/5 p-2 space-y-1">
+                {job.warnings.map((w, i) => (
+                  <p key={i} className="text-[11px] text-muted-foreground font-mono">
+                    {w}
+                  </p>
+                ))}
+                {job.warningCount > job.warnings.length && (
+                  <p className="text-[11px] text-muted-foreground">
+                    …and {job.warningCount - job.warnings.length} more
                   </p>
                 )}
               </div>
